@@ -1,0 +1,31 @@
+# Stage 1: Builder – use the official Haskell image which has GHC and cabal
+FROM haskell:latest AS builder
+
+# Ensure required tools (alex and happy) are installed.
+# (They may already be present; if not, install them.)
+RUN apt-get update && apt-get install -y alex happy
+
+# Update cabal package list and install the latest Agda
+RUN cabal update && cabal install Agda
+
+# Copy the Agda binary to a known location for later retrieval
+RUN cp /root/.local/bin/agda /agda
+RUN cp -r /root/.local/state/cabal/ /cabal
+
+# Stage 2: Final – based on your AWS Lambda Python image
+FROM public.ecr.aws/lambda/python:3.12
+
+# Copy requirements.txt and install Python packages
+COPY requirements.txt ${LAMBDA_TASK_ROOT}
+RUN pip install -r requirements.txt
+
+# Copy your function code and Agda source file
+COPY lambda_function.py ${LAMBDA_TASK_ROOT}
+COPY ex.agda ${LAMBDA_TASK_ROOT}
+
+# Copy the Agda binary from the builder stage into a directory in PATH
+COPY --from=builder /agda /usr/local/bin/agda
+COPY --from=builder /cabal /root/.local/state/cabal
+
+# Set the CMD to your Lambda handler (unchanged)
+CMD [ "lambda_function.handler" ]
