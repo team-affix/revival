@@ -13,22 +13,29 @@ def handler(event, context):
     # test1234 = subprocess.run(['agda', './ex.agda'], capture_output=True, text=True)
 
     # Get the file path to typecheck in s3 bucket
-    s3_folder_path = event["obj_key"]
-    print("s3_folder_path   : " + s3_folder_path)
+    s3_folder_name = event["folder_name"]
+    print("obj_key: " + s3_folder_name)
 
-    # Download the folder
+    # Prepare paths
     BUCKET_NAME = "revival-logic-platform"
+    REMOTE_BASE_DIR = "agda-files"
     LOCAL_DL_DIR = "/tmp/dl"
+    s3_folder_path = os.path.join(REMOTE_BASE_DIR, s3_folder_name)
+    AGDA_MAIN_FILE_PARENT_DIR = os.path.join(LOCAL_DL_DIR, s3_folder_path)
+    AGDA_MAIN_FILE_PATH = os.path.join(AGDA_MAIN_FILE_PARENT_DIR, "main.agda")
+    print("BUCKET_NAME: " + BUCKET_NAME)
+    print("REMOTE_BASE_DIR: " + REMOTE_BASE_DIR)
+    print("LOCAL_DL_DIR: " + LOCAL_DL_DIR)
+    print("s3_folder_path: " + s3_folder_path)
+    print("AGDA_MAIN_FILE_PARENT_DIR: " + AGDA_MAIN_FILE_PARENT_DIR)
+    print("AGDA_MAIN_FILE_PATH: " + AGDA_MAIN_FILE_PATH)
 
     # Clean the DL directory before DL
     shutil.rmtree(LOCAL_DL_DIR, True)
 
     # Execute the download from s3
     download_dir(s3_folder_path, LOCAL_DL_DIR, BUCKET_NAME, s3Client)
-
-    # Define location of agda root
-    AGDA_MAIN_FILE_PARENT_DIR = os.path.join(LOCAL_DL_DIR, s3_folder_path)
-    AGDA_MAIN_FILE_PATH = os.path.join(AGDA_MAIN_FILE_PARENT_DIR, "main.agda")
+    print("DL completed.")
 
     # print the download tree
     printDir(LOCAL_DL_DIR)

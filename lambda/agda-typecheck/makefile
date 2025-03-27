@@ -10,3 +10,6 @@ update-lambda:
 invoke:
 	aws lambda invoke --function-name revival-agda-typecheck --payload file://payload.json --cli-binary-format raw-in-base64-out response.json
 	cat response.json
+
+update-tempdir:
+	aws s3 cp ./tempdir s3://revival-logic-platform/agda-files/tempdir --recursive
