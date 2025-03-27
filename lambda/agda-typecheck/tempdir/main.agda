@@ -1,6 +1,4 @@
 module main where
 
-open import Subdir.r0
+open import Subdir.logic
 
-data not (X : Set) : Set where
-    not-intro : (X -> ⊥) -> not X
