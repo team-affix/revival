@@ -27,4 +27,11 @@ def handler(event, context):
 
     result = subprocess.run(["agda", "-i/tmp", LOCAL_FILE_NAME], capture_output=True, text=True)
 
-    return str(event) + "\n" + str(fcontent) + "\n" + str(result)
+    statusCode = 200 if result.returncode == 0 else 500
+
+    return {
+        "statusCode": statusCode,
+        "event": str(event),
+        "fileContent": str(fcontent),
+        "result": str(result)
+    }
