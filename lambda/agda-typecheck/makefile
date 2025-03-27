@@ -14,3 +14,6 @@ invoke:
 update-tempdir:
 	aws s3 rm s3://revival-logic-platform/agda-files/tempdir --recursive
 	aws s3 cp ./tempdir s3://revival-logic-platform/agda-files/tempdir --recursive
+
+full-invoke: update-tempdir invoke
+	
