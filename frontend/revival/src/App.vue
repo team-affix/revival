@@ -1,7 +1,7 @@
 <template>
     <div class="app">
         <p>{{ field }}</p>
-        <button @click="changeField(444)">change field</button>
+        <button @click="changeField('test123')">change field</button>
     </div>
 </template>
 
