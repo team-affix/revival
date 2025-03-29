@@ -11,3 +11,6 @@ data _or_ (X Y : Set) : Set where
 
 data _and_ (X Y : Set) : Set where
     conj : X -> Y -> X and Y
+
+postulate
+    absurd : {X : Set} -> X -> not X -> ⊥
