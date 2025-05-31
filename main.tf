@@ -5,11 +5,18 @@
 
 locals {
   region       = "us-west-1"
-  bucket_name  = "lpk-revival"
+  s3_bucket_name  = "lpk-revival"
+  lambda_package_pull_name = "lpk-revival-package-pull"
 }
 
 ############################################################################
 ############################################################################
+
+# LOCAL VARS, USERS SHOULD NOT MODIFY THESE
+locals {
+  lambda_package_pull_src_file = "./index.js"
+  lambda_package_pull_payload_file = "./function.zip"
+}
 
 terraform {
   required_providers {
@@ -25,7 +32,7 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "bucket" {
-  bucket = local.bucket_name
+  bucket = local.s3_bucket_name
 }
 
 resource "aws_iam_role" "lambda_exec_role" {
@@ -49,13 +56,20 @@ resource "aws_iam_policy_attachment" "lambda_basic_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-resource "aws_lambda_function" "hello_lambda" {
-  function_name = "hello-lambda"
+data "archive_file" "package_pull_lambda_payload" {
+  type        = "zip"
+  source_file  = local.lambda_package_pull_src_file
+#   excludes    = ["venv", "_pycache_"]
+  output_path = local.lambda_package_pull_payload_file
+}
+
+resource "aws_lambda_function" "package_pull_lambda" {
+  function_name = local.lambda_package_pull_name
   handler       = "index.handler"
   runtime       = "nodejs18.x"
-  filename      = "function.zip"  # relative to where you run terraform
+  filename      = local.lambda_package_pull_payload_file
 
   role = aws_iam_role.lambda_exec_role.arn
 
-  source_code_hash = filebase64sha256("function.zip")
+  source_code_hash = data.archive_file.package_pull_lambda_payload.output_base64sha256
 }
