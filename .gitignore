@@ -1,3 +1,28 @@
 *.agdai
 .vscode
 frontend/revival/.vscode
+*.zip
+
+####################################
+# TERRAFORM SECTION
+####################################
+
+# Terraform state files
+*.tfstate
+*.tfstate.backup
+
+# Crash log (if Terraform crashes)
+crash.log
+
+# .terraform directory (plugin binaries, module caches, etc.)
+.terraform/
+
+# Sensitive variable override files
+*.tfvars
+*.tfvars.json
+
+# Plan output (optional, can contain sensitive info)
+*.tfplan
+
+####################################
+####################################
