@@ -1,3 +1,4 @@
 {
-    "package_names": ["absurdity", "calculus"]
+    "package_name": "absurdity",
+    "package_version": "0"
 }

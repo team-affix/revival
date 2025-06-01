@@ -4,8 +4,8 @@ const s3 = new AWS.S3();
 const bucket = process.env.BUCKET_NAME;
 
 exports.handler = async (event) => {
-  const bucket = 'lpk-revival'; // or process.env.BUCKET_NAME if using env vars
   const key = 'temp.txt';
+    // const key = event.package_name + '/' + event.package_version;
 
   try {
     const data = await s3.getObject({ Bucket: bucket, Key: key }).promise();
