@@ -14,8 +14,9 @@ locals {
 
 # LOCAL VARS, USERS SHOULD NOT MODIFY THESE
 locals {
-  lambda_package_pull_src_file = "./index.js"
-  lambda_package_pull_payload_file = "./function.zip"
+  lambda_package_pull_src_file_name = "index.js"
+  lambda_package_pull_src_file_path = "./lambda/pull/${local.lambda_package_pull_src_file_name}"
+  lambda_package_pull_payload_file_path = "./lambda/pull/function.zip"
 }
 
 terraform {
@@ -58,16 +59,16 @@ resource "aws_iam_policy_attachment" "lambda_basic_execution" {
 
 data "archive_file" "package_pull_lambda_payload" {
   type        = "zip"
-  source_file  = local.lambda_package_pull_src_file
+  source_file  = local.lambda_package_pull_src_file_path
 #   excludes    = ["venv", "_pycache_"]
-  output_path = local.lambda_package_pull_payload_file
+  output_path = local.lambda_package_pull_payload_file_path
 }
 
 resource "aws_lambda_function" "package_pull_lambda" {
   function_name = local.lambda_package_pull_name
   handler       = "index.handler"
   runtime       = "nodejs18.x"
-  filename      = local.lambda_package_pull_payload_file
+  filename      = local.lambda_package_pull_payload_file_path
 
   role = aws_iam_role.lambda_exec_role.arn
 
