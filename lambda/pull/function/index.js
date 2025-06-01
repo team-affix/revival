@@ -1,6 +1,8 @@
 const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
 
+const bucket = process.env.BUCKET_NAME;
+
 exports.handler = async (event) => {
   const bucket = 'lpk-revival'; // or process.env.BUCKET_NAME if using env vars
   const key = 'temp.txt';
@@ -12,6 +14,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       body: JSON.stringify({ content }),
+      bucket_name: bucket,
     };
   } catch (err) {
     console.error(err);

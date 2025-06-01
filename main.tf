@@ -2,11 +2,10 @@
 ############################################################################
 # USERS SHOULD MODIFY THESE VARIABLES FOR THEIR PUBLISHER'S INFRASTRUCTURE #
 ############################################################################
-
 locals {
-  region       = "us-west-1"
-  s3_bucket_name  = "lpk-revival"
+  s3_bucket_name = "lpk-revival"
   lambda_package_pull_name = "lpk-revival-package-pull"
+  region = "us-west-1"
 }
 
 ############################################################################
@@ -89,8 +88,13 @@ resource "aws_lambda_function" "package_pull_lambda" {
   handler       = "index.handler"
   runtime       = "nodejs18.x"
   filename      = local.lambda_package_pull_payload_file_path
-
   role = aws_iam_role.lambda_exec_role.arn
-
   source_code_hash = data.archive_file.package_pull_lambda_payload.output_base64sha256
+  
+  environment {
+    variables = {
+      BUCKET_NAME  = local.s3_bucket_name
+    }
+  }
+
 }
