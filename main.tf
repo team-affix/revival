@@ -15,7 +15,7 @@ locals {
 # LOCAL VARS, USERS SHOULD NOT MODIFY THESE
 locals {
   lambda_package_pull_src_file_name = "index.js"
-  lambda_package_pull_src_file_path = "./lambda/pull/${local.lambda_package_pull_src_file_name}"
+  lambda_package_pull_src_dir_path = "./lambda/pull/function/"
   lambda_package_pull_payload_file_path = "./lambda/pull/function.zip"
 }
 
@@ -79,7 +79,7 @@ resource "aws_iam_role_policy" "lambda_s3_access" {
 
 data "archive_file" "package_pull_lambda_payload" {
   type        = "zip"
-  source_file  = local.lambda_package_pull_src_file_path
+  source_dir  = local.lambda_package_pull_src_dir_path
 #   excludes    = ["venv", "_pycache_"]
   output_path = local.lambda_package_pull_payload_file_path
 }
