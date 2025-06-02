@@ -33,6 +33,7 @@ crash.log
 ####################################
 
 lambda/pull/function/node_modules/
+lambda/pull/function/dist/
 
 ####################################
 ####################################

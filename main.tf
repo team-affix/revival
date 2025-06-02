@@ -85,7 +85,7 @@ data "archive_file" "package_pull_lambda_payload" {
 
 resource "aws_lambda_function" "package_pull_lambda" {
   function_name = local.lambda_package_pull_name
-  handler       = "index.handler"
+  handler       = "dist/index.handler"
   runtime       = "nodejs18.x"
   filename      = local.lambda_package_pull_payload_file_path
   role = aws_iam_role.lambda_exec_role.arn
