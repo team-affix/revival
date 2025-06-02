@@ -4,14 +4,15 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "npm install ../../shared/shared-1.0.0.tgz && tsc"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "aws-sdk": "^2.1692.0"
+    "aws-sdk": "^2.1692.0",
+    "shared": "file:../../shared/shared-1.0.0.tgz"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.149",

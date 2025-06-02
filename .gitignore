@@ -2,6 +2,8 @@
 .vscode
 frontend/revival/.vscode
 *.zip
+*.tgz
+*.tsbuildinfo
 
 ####################################
 # TERRAFORM SECTION
@@ -34,6 +36,9 @@ crash.log
 
 lambda/pull/function/node_modules/
 lambda/pull/function/dist/
+
+lambda/shared/node_modules/
+lambda/shared/dist/
 
 ####################################
 ####################################

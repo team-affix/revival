@@ -1,5 +1,6 @@
 const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
+const { auth } = require('shared');
 
 const bucket = process.env.BUCKET_NAME;
 
@@ -20,6 +21,7 @@ exports.handler = async (event: MyEvent) => {
         isBase64Encoded: true,
         body: content,
         bucket_name: bucket,
+        auth
     };
   } catch (err: unknown) {
     console.error(err);
