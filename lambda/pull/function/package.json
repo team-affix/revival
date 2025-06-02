@@ -1,7 +1,8 @@
 {
   "name": "pull",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm install ../../shared/shared-1.0.0.tgz && tsc"
