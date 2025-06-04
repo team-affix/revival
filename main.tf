@@ -2,10 +2,20 @@
 ############################################################################
 # USERS SHOULD MODIFY THESE VARIABLES FOR THEIR PUBLISHER'S INFRASTRUCTURE #
 ############################################################################
-locals {
-  s3_bucket_name = "lpk-revival"
-  lambda_package_pull_name = "lpk-revival-package-pull"
-  region = "us-west-1"
+
+variable "AWS_REGION" {
+  description = "AWS region"
+  type        = string
+}
+
+variable "S3_BUCKET_NAME" {
+  description = "S3 bucket name"
+  type        = string
+}
+
+variable "LAMBDA_PACKAGE_PULL_NAME" {
+  description = "Lambda package pull name"
+  type        = string
 }
 
 ############################################################################
@@ -35,7 +45,7 @@ terraform {
 ############################################################################
 
 provider "aws" {
-  region = local.region
+  region = var.AWS_REGION
 }
 
 ############################################################################
@@ -43,7 +53,7 @@ provider "aws" {
 ############################################################################
 
 resource "aws_s3_bucket" "bucket" {
-  bucket = local.s3_bucket_name
+  bucket = var.S3_BUCKET_NAME
 }
 
 ############################################################################
@@ -102,14 +112,14 @@ data "archive_file" "placeholder_lambda_payload" {
 }
 
 resource "aws_lambda_function" "package_pull_lambda" {
-  function_name = local.lambda_package_pull_name
+  function_name = var.LAMBDA_PACKAGE_PULL_NAME
   handler       = "dist/index.handler"
   runtime       = "nodejs18.x"
   role = aws_iam_role.lambda_exec_role.arn
   
   environment {
     variables = {
-      BUCKET_NAME  = local.s3_bucket_name
+      BUCKET_NAME  = var.S3_BUCKET_NAME
     }
   }
 
