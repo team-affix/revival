@@ -9,14 +9,17 @@ locals {
 }
 
 ############################################################################
+######################## LOCAL VARIABLES ###################################
 ############################################################################
 
-# LOCAL VARS, USERS SHOULD NOT MODIFY THESE
 locals {
-  lambda_package_pull_src_file_name = "index.js"
-  lambda_package_pull_src_dir_path = "./lambda/pull/function/"
-  lambda_package_pull_payload_file_path = "./lambda/pull/function.zip"
+  lambda_placeholder_src_dir_path = "./lambda/placeholder/"
+  lambda_placeholder_zip_file_path = "./lambda/placeholder.zip"
 }
+
+############################################################################
+######################## TERRAFORM BASIC CONFIGURATION #####################
+############################################################################
 
 terraform {
   required_providers {
@@ -27,13 +30,25 @@ terraform {
   }
 }
 
+############################################################################
+########################### AWS BASIC CONFIGURATION ########################
+############################################################################
+
 provider "aws" {
   region = local.region
 }
 
+############################################################################
+############################### AWS S3 BUCKET ##############################
+############################################################################
+
 resource "aws_s3_bucket" "bucket" {
   bucket = local.s3_bucket_name
 }
+
+############################################################################
+########################## AWS LAMBDA CONFIGURATION ########################
+############################################################################
 
 resource "aws_iam_role" "lambda_exec_role" {
   name = "lambda_exec_role"
@@ -76,25 +91,38 @@ resource "aws_iam_role_policy" "lambda_s3_access" {
   })
 }
 
-data "archive_file" "package_pull_lambda_payload" {
+############################################################################
+########################## AWS LAMBDA FUNCTIONS ############################
+############################################################################
+
+data "archive_file" "placeholder_lambda_payload" {
   type        = "zip"
-  source_dir  = local.lambda_package_pull_src_dir_path
-#   excludes    = ["venv", "_pycache_"]
-  output_path = local.lambda_package_pull_payload_file_path
+  source_dir  = local.lambda_placeholder_src_dir_path
+  output_path = local.lambda_placeholder_zip_file_path
 }
 
 resource "aws_lambda_function" "package_pull_lambda" {
   function_name = local.lambda_package_pull_name
   handler       = "dist/index.handler"
   runtime       = "nodejs18.x"
-  filename      = local.lambda_package_pull_payload_file_path
   role = aws_iam_role.lambda_exec_role.arn
-  source_code_hash = data.archive_file.package_pull_lambda_payload.output_base64sha256
   
   environment {
     variables = {
       BUCKET_NAME  = local.s3_bucket_name
     }
+  }
+
+  # Use a placeholder lambda for FIRST TIME CREATION, and then update the lambda using a separate process
+  filename         = local.lambda_placeholder_zip_file_path
+  source_code_hash = data.archive_file.placeholder_lambda_payload.output_base64sha256
+
+  # Ignore the changes to the lambda function filename and source code hash
+  lifecycle {
+    ignore_changes = [
+      filename,
+      source_code_hash
+    ]
   }
 
 }
