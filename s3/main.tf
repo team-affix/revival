@@ -1,16 +1,16 @@
 ############################################################################
-# USERS SHOULD MODIFY THESE VARIABLES FOR THEIR PUBLISHER'S INFRASTRUCTURE #
+# S3 MODULE CONFIGURATION
 ############################################################################
 
-variable "AWS_REGION" {
-  description = "AWS region"
-  type        = string
+# Use common module for shared variables and naming
+module "common" {
+  source = "../common"
 }
 
-variable "S3_BUCKET_NAME" {
-  description = "S3 bucket name"
-  type        = string
-}
+############################################################################
+########################### LOCALS CONFIGURATION ###########################
+############################################################################
+
 
 ############################################################################
 ######################## TERRAFORM BASIC CONFIGURATION #####################
@@ -30,7 +30,7 @@ terraform {
 ############################################################################
 
 provider "aws" {
-  region = var.AWS_REGION
+  region = module.common.aws_region
 }
 
 ############################################################################
@@ -38,7 +38,7 @@ provider "aws" {
 ############################################################################
 
 resource "aws_s3_bucket" "lpk_bucket" {
-  bucket = var.S3_BUCKET_NAME
+  bucket = "${module.common.resource_prefix}-apm-registry"
 }
 
 ############################################################################
@@ -53,4 +53,14 @@ output "bucket_name" {
 output "bucket_arn" {
   description = "ARN of the S3 bucket"
   value       = aws_s3_bucket.lpk_bucket.arn
-} 
+}
+
+output "bucket_id" {
+  description = "ID of the S3 bucket"
+  value       = aws_s3_bucket.lpk_bucket.id
+}
+
+output "bucket_domain_name" {
+  description = "Domain name of the S3 bucket"
+  value       = aws_s3_bucket.lpk_bucket.bucket_domain_name
+}
