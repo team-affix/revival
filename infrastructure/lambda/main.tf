@@ -1,32 +1,4 @@
 ############################################################################
-# LAMBDA MODULE CONFIGURATION
-############################################################################
-
-data "terraform_remote_state" "s3" {
-    backend = "local"
-    config = {
-        path = "../s3/terraform.tfstate"
-    }
-}
-
-# Use common module for shared variables and naming
-data "terraform_remote_state" "common" {
-    backend = "local"
-    config = {
-        path = "../common/terraform.tfstate"
-    }
-}
-
-############################################################################
-######################## LOCAL VARIABLES ###################################
-############################################################################
-
-locals {
-    aws_region = data.terraform_remote_state.common.outputs.aws_region
-    resource_prefix = data.terraform_remote_state.common.outputs.resource_prefix
-}
-
-############################################################################
 ######################## TERRAFORM BASIC CONFIGURATION #####################
 ############################################################################
 
@@ -37,6 +9,69 @@ terraform {
         version = "~> 5.0"
         }
     }
+  backend "s3" {}
+}
+
+############################################################################
+########################### VARIABLES CONFIGURATION #######################
+############################################################################
+
+variable "state_region" {
+    type = string
+    description = "State region"
+}
+
+variable "state_bucket" {
+    type = string
+    description = "State bucket"
+}
+
+variable "state_workspace_key_prefix" {
+    type = string
+    description = "State workspace key prefix"
+}
+
+variable "state_encrypt" {
+    type = bool
+    description = "State encrypt"
+}
+
+variable "state_s3_key" {
+    type = string
+    description = "State s3 key"
+}
+
+variable "aws_region" {
+    type = string
+    description = "AWS region"
+}
+
+variable "project_name" {
+    type = string
+    description = "Project name"
+}
+
+############################################################################
+# LAMBDA MODULE CONFIGURATION
+############################################################################
+
+data "terraform_remote_state" "s3" {
+    backend = "s3"
+    config = {
+        region = var.state_region
+        bucket = var.state_bucket
+        key = var.state_s3_key
+        workspace_key_prefix = var.state_workspace_key_prefix
+        encrypt = var.state_encrypt
+    }
+}
+
+############################################################################
+######################## LOCAL VARIABLES ###################################
+############################################################################
+
+locals {
+    resource_prefix = "${var.project_name}-${terraform.workspace}"
 }
 
 ############################################################################
@@ -44,7 +79,7 @@ terraform {
 ############################################################################
 
 provider "aws" {
-  region = local.aws_region
+  region = var.aws_region
 }
 
 ############################################################################
