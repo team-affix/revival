@@ -26,11 +26,6 @@ variable "state_bucket" {
     description = "State bucket"
 }
 
-variable "state_workspace_key_prefix" {
-    type = string
-    description = "State workspace key prefix"
-}
-
 variable "state_encrypt" {
     type = bool
     description = "State encrypt"
@@ -60,8 +55,7 @@ data "terraform_remote_state" "s3" {
     config = {
         region = var.state_region
         bucket = var.state_bucket
-        key = var.state_s3_key
-        workspace_key_prefix = var.state_workspace_key_prefix
+        key = terraform.workspace == "default" ? var.state_s3_key : "${terraform.workspace}/${var.state_s3_key}"
         encrypt = var.state_encrypt
     }
 }

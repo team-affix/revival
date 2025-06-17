@@ -3,6 +3,7 @@
 # Get the lambda function name
 cd ../../../infrastructure/lambda
 lambda_function_name=$(terraform output -raw lambda_function_name)
+echo "Lambda function name: $lambda_function_name"
 cd ../../software/lambda/pull/function
 
 # Zip the lambda function code

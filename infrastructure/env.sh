@@ -5,7 +5,6 @@ export TF_VAR_project_name="revival"
 # Terraform State
 export TF_VAR_state_bucket="revival-terraformstate"
 export TF_VAR_state_region="us-west-1"
-export TF_VAR_state_workspace_key_prefix="workspace"
 export TF_VAR_state_encrypt="true"
 
 # Terraform State Keys
