@@ -34,11 +34,9 @@ crash.log
 # LAMBDA SECTION
 ####################################
 
-lambda/pull/function/node_modules/
-lambda/pull/function/dist/
-
-lambda/shared/node_modules/
-lambda/shared/dist/
+**/node_modules/
+**/dist/
+**/out.json
 
 ####################################
 ####################################
