@@ -8,15 +8,18 @@ This infrastructure has been restructured to use Terragrunt for better organizat
 infrastructure/
 ├── terraform/          # Terraform modules
 │   ├── s3/             # S3 bucket module
-│   └── lambda/         # Lambda function module
+│   ├── lambda/         # Lambda function module
+│   └── api-gateway/    # API Gateway module for HTTPS access
 ├── terragrunt/         # Terragrunt configurations
 │   ├── terragrunt.hcl  # Root configuration
 │   ├── dev/            # Development environment
 │   │   ├── s3/         # Dev S3 configuration
-│   │   └── lambda/     # Dev Lambda configuration
+│   │   ├── lambda/     # Dev Lambda configuration
+│   │   └── api-gateway/# Dev API Gateway configuration
 │   └── prod/           # Production environment
 │       ├── s3/         # Prod S3 configuration
-│       └── lambda/     # Prod Lambda configuration
+│       ├── lambda/     # Prod Lambda configuration
+│       └── api-gateway/# Prod API Gateway configuration
 └── README.md           # This documentation
 ```
 
@@ -111,10 +114,12 @@ terragrunt destroy
 
 ## Module Dependencies
 
-The Lambda module depends on the S3 module:
-- Lambda requires the S3 bucket name and ARN
-- Terragrunt automatically handles this dependency
-- S3 must be deployed before Lambda in each environment
+The infrastructure now has the following dependency chain:
+1. **S3** - Storage bucket (no dependencies)
+2. **Lambda** - Depends on S3 bucket outputs
+3. **API Gateway** - Depends on Lambda outputs for HTTPS access
+
+Terragrunt automatically handles these dependencies during deployment.
 
 ## Configuration
 
@@ -132,3 +137,42 @@ The old Terraform setup has been completely modernized:
 - ✅ Converted to reusable modules without code duplication
 - ✅ Automatic dependency management
 - ✅ Simplified workflow with no bash scripts required 
+
+## HTTPS Access to Lambda Functions
+
+Your Lambda functions are now accessible via HTTPS through AWS API Gateway:
+
+### HTTPS URLs
+- **Dev Environment**: `https://{api-id}.execute-api.us-west-1.amazonaws.com/dev`
+- **Prod Environment**: `https://{api-id}.execute-api.us-west-1.amazonaws.com/prod`
+
+The actual URLs will be displayed after deployment in the Terragrunt output.
+
+## Deployment Order
+
+When deploying for the first time or to a new environment:
+
+1. **S3 bucket** is deployed first
+2. **Lambda function** is deployed next (depends on S3)
+3. **API Gateway** is deployed last (depends on Lambda)
+
+This happens automatically when using `terragrunt run-all` commands.
+
+### Quick Start for HTTPS Access
+
+1. Deploy all infrastructure:
+```bash
+cd infrastructure/terragrunt/dev
+terragrunt run-all apply
+```
+
+2. Get your HTTPS URL:
+```bash
+cd infrastructure/terragrunt/dev/api-gateway
+terragrunt output api_gateway_url
+```
+
+3. Test your Lambda via HTTPS:
+```bash
+curl https://your-api-gateway-url.execute-api.us-west-1.amazonaws.com/dev
+``` 

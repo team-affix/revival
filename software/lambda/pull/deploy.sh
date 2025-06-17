@@ -14,6 +14,12 @@ if [ -z "$ENVIRONMENT" ]; then
     exit 1
 fi
 
+echo "🚀 Building lambda function..."
+cd function
+npm install
+npm run build
+cd ..
+
 echo "🚀 Deploying Lambda function to $ENVIRONMENT environment..."
 
 # Get the function name from Terragrunt output
