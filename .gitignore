@@ -22,6 +22,7 @@ crash.log
 # Sensitive variable override files
 *.tfvars
 *.tfvars.json
+**/.terragrunt-cache/
 
 # Plan output (optional, can contain sensitive info)
 *.tfplan

@@ -1,40 +1,6 @@
 ############################################################################
-######################## TERRAFORM BASIC CONFIGURATION #####################
-############################################################################
-
-terraform {
-    required_providers {
-        aws = {
-        source  = "hashicorp/aws"
-        version = "~> 5.0"
-        }
-    }
-  backend "s3" {}
-}
-
-############################################################################
 ########################### VARIABLES CONFIGURATION #######################
 ############################################################################
-
-variable "state_region" {
-    type = string
-    description = "State region"
-}
-
-variable "state_bucket" {
-    type = string
-    description = "State bucket"
-}
-
-variable "state_encrypt" {
-    type = bool
-    description = "State encrypt"
-}
-
-variable "state_s3_key" {
-    type = string
-    description = "State s3 key"
-}
 
 variable "aws_region" {
     type = string
@@ -46,18 +12,19 @@ variable "project_name" {
     description = "Project name"
 }
 
-############################################################################
-# LAMBDA MODULE CONFIGURATION
-############################################################################
+variable "environment" {
+    type = string
+    description = "Environment (dev, prod, etc.)"
+}
 
-data "terraform_remote_state" "s3" {
-    backend = "s3"
-    config = {
-        region = var.state_region
-        bucket = var.state_bucket
-        key = terraform.workspace == "default" ? var.state_s3_key : "${terraform.workspace}/${var.state_s3_key}"
-        encrypt = var.state_encrypt
-    }
+variable "s3_bucket_name" {
+    type = string
+    description = "S3 bucket name for Lambda environment variable"
+}
+
+variable "s3_bucket_arn" {
+    type = string
+    description = "S3 bucket ARN for IAM policy"
 }
 
 ############################################################################
@@ -65,15 +32,7 @@ data "terraform_remote_state" "s3" {
 ############################################################################
 
 locals {
-    resource_prefix = "${var.project_name}-${terraform.workspace}"
-}
-
-############################################################################
-########################### AWS BASIC CONFIGURATION ########################
-############################################################################
-
-provider "aws" {
-  region = var.aws_region
+    resource_prefix = "${var.project_name}-${var.environment}"
 }
 
 ############################################################################
@@ -113,8 +72,8 @@ resource "aws_iam_role_policy" "lpk_lambda_package_pull_s3_access" {
         "s3:ListBucket"
       ],
       Resource = [
-        data.terraform_remote_state.s3.outputs.bucket_arn,
-        "${data.terraform_remote_state.s3.outputs.bucket_arn}/*"
+        var.s3_bucket_arn,
+        "${var.s3_bucket_arn}/*"
       ]
     }]
   })
@@ -126,8 +85,8 @@ resource "aws_iam_role_policy" "lpk_lambda_package_pull_s3_access" {
 
 data "archive_file" "lpk_placeholder_lambda_payload" {
   type        = "zip"
-  source_dir  = "./placeholder/"
-  output_path = "./placeholder.zip"
+  source_dir  = "${path.module}/placeholder/"
+  output_path = "${path.module}/placeholder.zip"
 }
 
 resource "aws_lambda_function" "lpk_package_pull_lambda" {
@@ -138,7 +97,7 @@ resource "aws_lambda_function" "lpk_package_pull_lambda" {
   
   environment {
     variables = {
-      BUCKET_NAME  = data.terraform_remote_state.s3.outputs.bucket_name
+      BUCKET_NAME  = var.s3_bucket_name
     }
   }
 
@@ -153,7 +112,6 @@ resource "aws_lambda_function" "lpk_package_pull_lambda" {
       source_code_hash
     ]
   }
-
 }
 
 ############################################################################
@@ -183,4 +141,4 @@ output "lambda_role_arn" {
 output "lambda_role_name" {
   description = "Name of the Lambda execution role"
   value       = aws_iam_role.lpk_lambda_exec_role.name
-}
+} 
