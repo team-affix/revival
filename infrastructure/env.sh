@@ -1,5 +1,4 @@
 # AWS Managed Infrastructure
-export AWS_PROFILE="personal-terraform"
 export TF_VAR_aws_region="us-west-1"
 export TF_VAR_project_name="revival"
 

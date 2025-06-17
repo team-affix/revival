@@ -1,3 +1,5 @@
+set -e
+
 rm -rf ./absurdity
 
 # Get the lambda function name
