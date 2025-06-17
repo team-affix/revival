@@ -3,14 +3,21 @@
 ############################################################################
 
 # Use common module for shared variables and naming
-module "common" {
-  source = "../common"
+data "terraform_remote_state" "common" {
+    backend = "local"
+    config = {
+        path = "../common/terraform.tfstate"
+    }
 }
 
 ############################################################################
 ########################### LOCALS CONFIGURATION ###########################
 ############################################################################
 
+locals {
+    aws_region = data.terraform_remote_state.common.outputs.aws_region
+    resource_prefix = data.terraform_remote_state.common.outputs.resource_prefix
+}
 
 ############################################################################
 ######################## TERRAFORM BASIC CONFIGURATION #####################
@@ -30,7 +37,7 @@ terraform {
 ############################################################################
 
 provider "aws" {
-  region = module.common.aws_region
+  region = local.aws_region
 }
 
 ############################################################################
@@ -38,7 +45,7 @@ provider "aws" {
 ############################################################################
 
 resource "aws_s3_bucket" "lpk_bucket" {
-  bucket = "${module.common.resource_prefix}-apm-registry"
+  bucket = "${local.resource_prefix}-apm-registry"
 }
 
 ############################################################################

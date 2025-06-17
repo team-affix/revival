@@ -2,13 +2,19 @@
 # LAMBDA MODULE CONFIGURATION
 ############################################################################
 
-# Use common module for shared variables and naming
-module "common" {
-  source = "../common"
+data "terraform_remote_state" "s3" {
+    backend = "local"
+    config = {
+        path = "../s3/terraform.tfstate"
+    }
 }
 
-module "s3" {
-  source = "../s3"
+# Use common module for shared variables and naming
+data "terraform_remote_state" "common" {
+    backend = "local"
+    config = {
+        path = "../common/terraform.tfstate"
+    }
 }
 
 ############################################################################
@@ -16,9 +22,8 @@ module "s3" {
 ############################################################################
 
 locals {
-  # Lambda-specific locals only
-  lambda_placeholder_src_dir_path = "./placeholder/"
-  lambda_placeholder_zip_file_path = "./placeholder.zip"
+    aws_region = data.terraform_remote_state.common.outputs.aws_region
+    resource_prefix = data.terraform_remote_state.common.outputs.resource_prefix
 }
 
 ############################################################################
@@ -26,12 +31,12 @@ locals {
 ############################################################################
 
 terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
+    required_providers {
+        aws = {
+        source  = "hashicorp/aws"
+        version = "~> 5.0"
+        }
     }
-  }
 }
 
 ############################################################################
@@ -39,7 +44,7 @@ terraform {
 ############################################################################
 
 provider "aws" {
-  region = module.common.aws_region
+  region = local.aws_region
 }
 
 ############################################################################
@@ -47,7 +52,7 @@ provider "aws" {
 ############################################################################
 
 resource "aws_iam_role" "lpk_lambda_exec_role" {
-  name = "${module.common.resource_prefix}-lambda-exec-role"
+  name = "${local.resource_prefix}-lambda-exec-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -66,8 +71,8 @@ resource "aws_iam_role_policy_attachment" "lpk_lambda_basic_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-resource "aws_iam_role_policy" "lpk_lambda_s3_access" {
-  name = "${module.common.resource_prefix}-lambda-s3-policy"
+resource "aws_iam_role_policy" "lpk_lambda_package_pull_s3_access" {
+  name = "${local.resource_prefix}-lambda-s3-policy"
   role = aws_iam_role.lpk_lambda_exec_role.id
 
   policy = jsonencode({
@@ -79,8 +84,8 @@ resource "aws_iam_role_policy" "lpk_lambda_s3_access" {
         "s3:ListBucket"
       ],
       Resource = [
-        "arn:aws:s3:::${module.s3.bucket_name}",
-        "arn:aws:s3:::${module.s3.bucket_name}/*"
+        data.terraform_remote_state.s3.outputs.bucket_arn,
+        "${data.terraform_remote_state.s3.outputs.bucket_arn}/*"
       ]
     }]
   })
@@ -97,14 +102,14 @@ data "archive_file" "lpk_placeholder_lambda_payload" {
 }
 
 resource "aws_lambda_function" "lpk_package_pull_lambda" {
-  function_name = "${module.common.resource_prefix}-package-pull-lambda"
+  function_name = "${local.resource_prefix}-package-pull-lambda"
   handler       = "dist/index.handler"
   runtime       = "nodejs18.x"
   role = aws_iam_role.lpk_lambda_exec_role.arn
   
   environment {
     variables = {
-      BUCKET_NAME  = module.s3.bucket_name
+      BUCKET_NAME  = data.terraform_remote_state.s3.outputs.bucket_name
     }
   }
 

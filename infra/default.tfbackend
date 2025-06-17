@@ -1,0 +1,4 @@
+bucket               = "revival-terraformstate"
+region               = "us-west-1"
+workspace_key_prefix = "workspace"
+encrypt              = true
