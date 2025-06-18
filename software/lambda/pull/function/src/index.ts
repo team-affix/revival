@@ -43,7 +43,7 @@ export const handler = async (event: APIGatewayEvent | RequestData) => {
         throw new Error('Invalid event format. Expected either API Gateway event with body or direct invocation with package_name and package_version');
     }
 
-    const key = requestData.package_name + '/' + requestData.package_version + '.zip';
+    const key = 'packages/' + requestData.package_name + '/' + requestData.package_version + '.zip';
     
     console.log("BUCKET: ", bucket);
     console.log("KEY: ", key);

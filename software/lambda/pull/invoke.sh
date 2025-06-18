@@ -39,6 +39,9 @@ elif [ "$ENTRYPOINT" == "api-gateway" ]; then
 
 fi
 
+mkdir -p ./absurdity
+cd ./absurdity
+
 # rm out.json
-unzip response.zip
-rm response.zip
+unzip ../response.zip
+rm ../response.zip
