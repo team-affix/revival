@@ -17,19 +17,52 @@ variable "environment" {
   description = "Environment (dev, prod, etc.)"
 }
 
-variable "lambda_function_name" {
+# Package Pull Lambda Variables
+variable "package_pull_lambda_function_name" {
   type        = string
-  description = "Name of the Lambda function"
+  description = "Name of the Package Pull Lambda function"
 }
 
-variable "lambda_function_arn" {
+variable "package_pull_lambda_function_arn" {
   type        = string
-  description = "ARN of the Lambda function"
+  description = "ARN of the Package Pull Lambda function"
 }
 
-variable "lambda_invoke_arn" {
+variable "package_pull_lambda_invoke_arn" {
   type        = string
-  description = "Invoke ARN of the Lambda function"
+  description = "Invoke ARN of the Package Pull Lambda function"
+}
+
+# Package Push Lambda Variables
+variable "package_push_lambda_function_name" {
+  type        = string
+  description = "Name of the Package Push Lambda function"
+}
+
+variable "package_push_lambda_function_arn" {
+  type        = string
+  description = "ARN of the Package Push Lambda function"
+}
+
+variable "package_push_lambda_invoke_arn" {
+  type        = string
+  description = "Invoke ARN of the Package Push Lambda function"
+}
+
+# Get Puzzle Lambda Variables
+variable "get_puzzle_lambda_function_name" {
+  type        = string
+  description = "Name of the Get Puzzle Lambda function"
+}
+
+variable "get_puzzle_lambda_function_arn" {
+  type        = string
+  description = "ARN of the Get Puzzle Lambda function"
+}
+
+variable "get_puzzle_lambda_invoke_arn" {
+  type        = string
+  description = "Invoke ARN of the Get Puzzle Lambda function"
 }
 
 ############################################################################
@@ -41,90 +74,58 @@ locals {
 }
 
 ############################################################################
-########################## API GATEWAY CONFIGURATION #######################
+######################## SHARED API GATEWAY ################################
 ############################################################################
 
-# API Gateway REST API
+# Single API Gateway REST API for all Lambda functions
 resource "aws_api_gateway_rest_api" "lpk_api_gateway" {
   name        = "${local.resource_prefix}-api"
   description = "API Gateway for ${var.project_name} ${var.environment} Lambda functions"
-  
+
   endpoint_configuration {
     types = ["REGIONAL"]
   }
 }
 
-# API Gateway Resource (catch-all proxy)
-resource "aws_api_gateway_resource" "lpk_api_gateway_proxy_resource" {
-  rest_api_id = aws_api_gateway_rest_api.lpk_api_gateway.id
-  parent_id   = aws_api_gateway_rest_api.lpk_api_gateway.root_resource_id
-  path_part   = "{proxy+}"
-}
-
-# API Gateway Method for proxy resource
-resource "aws_api_gateway_method" "lpk_api_gateway_proxy_method" {
-  rest_api_id   = aws_api_gateway_rest_api.lpk_api_gateway.id
-  resource_id   = aws_api_gateway_resource.lpk_api_gateway_proxy_resource.id
-  http_method   = "ANY"
-  authorization = "NONE"
-}
-
-# API Gateway Method for root resource
-resource "aws_api_gateway_method" "lpk_api_gateway_root_method" {
-  rest_api_id   = aws_api_gateway_rest_api.lpk_api_gateway.id
-  resource_id   = aws_api_gateway_rest_api.lpk_api_gateway.root_resource_id
-  http_method   = "ANY"
-  authorization = "NONE"
-}
-
-# API Gateway Integration for proxy resource
-resource "aws_api_gateway_integration" "lpk_api_gateway_proxy_integration" {
-  rest_api_id = aws_api_gateway_rest_api.lpk_api_gateway.id
-  resource_id = aws_api_gateway_resource.lpk_api_gateway_proxy_resource.id
-  http_method = aws_api_gateway_method.lpk_api_gateway_proxy_method.http_method
-
-  integration_http_method = "POST"
-  type                   = "AWS_PROXY"
-  uri                    = var.lambda_invoke_arn
-}
-
-# API Gateway Integration for root resource
-resource "aws_api_gateway_integration" "lpk_api_gateway_root_integration" {
-  rest_api_id = aws_api_gateway_rest_api.lpk_api_gateway.id
-  resource_id = aws_api_gateway_rest_api.lpk_api_gateway.root_resource_id
-  http_method = aws_api_gateway_method.lpk_api_gateway_root_method.http_method
-
-  integration_http_method = "POST"
-  type                   = "AWS_PROXY"
-  uri                    = var.lambda_invoke_arn
-}
-
-# Lambda permission for API Gateway to invoke Lambda
-resource "aws_lambda_permission" "lpk_api_gateway_lambda_permission" {
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = var.lambda_function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.lpk_api_gateway.execution_arn}/*/*"
-}
-
-# API Gateway Deployment
+# Shared API Gateway Deployment
 resource "aws_api_gateway_deployment" "lpk_api_gateway_deployment" {
   depends_on = [
-    aws_api_gateway_integration.lpk_api_gateway_proxy_integration,
-    aws_api_gateway_integration.lpk_api_gateway_root_integration,
+    # Package Pull dependencies
+    aws_api_gateway_integration.lpk_package_pull_integration,
+    aws_api_gateway_integration.lpk_package_pull_proxy_integration,
+    # Package Push dependencies
+    aws_api_gateway_integration.lpk_package_push_integration,
+    aws_api_gateway_integration.lpk_package_push_proxy_integration,
+    # Get Puzzle dependencies
+    aws_api_gateway_integration.lpk_get_puzzle_integration,
+    aws_api_gateway_integration.lpk_get_puzzle_proxy_integration,
   ]
 
   rest_api_id = aws_api_gateway_rest_api.lpk_api_gateway.id
 
-  # Force redeployment on configuration changes
   triggers = {
     redeployment = sha1(jsonencode([
-      aws_api_gateway_resource.lpk_api_gateway_proxy_resource.id,
-      aws_api_gateway_method.lpk_api_gateway_proxy_method.id,
-      aws_api_gateway_method.lpk_api_gateway_root_method.id,
-      aws_api_gateway_integration.lpk_api_gateway_proxy_integration.id,
-      aws_api_gateway_integration.lpk_api_gateway_root_integration.id,
+      # Package Pull triggers
+      aws_api_gateway_resource.lpk_package_pull_resource.id,
+      aws_api_gateway_resource.lpk_package_pull_proxy_resource.id,
+      aws_api_gateway_method.lpk_package_pull_method.id,
+      aws_api_gateway_method.lpk_package_pull_proxy_method.id,
+      aws_api_gateway_integration.lpk_package_pull_integration.id,
+      aws_api_gateway_integration.lpk_package_pull_proxy_integration.id,
+      # Package Push triggers
+      aws_api_gateway_resource.lpk_package_push_resource.id,
+      aws_api_gateway_resource.lpk_package_push_proxy_resource.id,
+      aws_api_gateway_method.lpk_package_push_method.id,
+      aws_api_gateway_method.lpk_package_push_proxy_method.id,
+      aws_api_gateway_integration.lpk_package_push_integration.id,
+      aws_api_gateway_integration.lpk_package_push_proxy_integration.id,
+      # Get Puzzle triggers
+      aws_api_gateway_resource.lpk_get_puzzle_resource.id,
+      aws_api_gateway_resource.lpk_get_puzzle_proxy_resource.id,
+      aws_api_gateway_method.lpk_get_puzzle_method.id,
+      aws_api_gateway_method.lpk_get_puzzle_proxy_method.id,
+      aws_api_gateway_integration.lpk_get_puzzle_integration.id,
+      aws_api_gateway_integration.lpk_get_puzzle_proxy_integration.id,
     ]))
   }
 
@@ -133,7 +134,7 @@ resource "aws_api_gateway_deployment" "lpk_api_gateway_deployment" {
   }
 }
 
-# API Gateway Stage
+# Shared API Gateway Stage
 resource "aws_api_gateway_stage" "lpk_api_gateway_stage" {
   deployment_id = aws_api_gateway_deployment.lpk_api_gateway_deployment.id
   rest_api_id   = aws_api_gateway_rest_api.lpk_api_gateway.id
@@ -144,6 +145,7 @@ resource "aws_api_gateway_stage" "lpk_api_gateway_stage" {
 ############################# OUTPUTS ######################################
 ############################################################################
 
+# API Gateway Base URL
 output "api_gateway_url" {
   description = "Base URL of the API Gateway"
   value       = aws_api_gateway_stage.lpk_api_gateway_stage.invoke_url
@@ -154,12 +156,20 @@ output "api_gateway_id" {
   value       = aws_api_gateway_rest_api.lpk_api_gateway.id
 }
 
-output "api_gateway_arn" {
-  description = "ARN of the API Gateway"
-  value       = aws_api_gateway_rest_api.lpk_api_gateway.arn
+# Package Pull API endpoints
+output "package_pull_api_url" {
+  description = "URL for Package Pull API endpoint"
+  value       = "${aws_api_gateway_stage.lpk_api_gateway_stage.invoke_url}/package-pull"
 }
 
-output "api_gateway_execution_arn" {
-  description = "Execution ARN of the API Gateway"
-  value       = aws_api_gateway_rest_api.lpk_api_gateway.execution_arn
+# Package Push API endpoints
+output "package_push_api_url" {
+  description = "URL for Package Push API endpoint"
+  value       = "${aws_api_gateway_stage.lpk_api_gateway_stage.invoke_url}/package-push"
+}
+
+# Get Puzzle API endpoints
+output "get_puzzle_api_url" {
+  description = "URL for Get Puzzle API endpoint"
+  value       = "${aws_api_gateway_stage.lpk_api_gateway_stage.invoke_url}/get-puzzle"
 } 

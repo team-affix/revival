@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Lambda deployment script
-# Usage: ./deploy.sh dev|prod
+# Lambda invocation script
+# Usage: ./invoke.sh dev|prod cli|api-gateway
 
 set -e
 
@@ -20,16 +20,14 @@ rm -rf ./absurdity
 
 if [ "$ENTRYPOINT" == "cli" ]; then
     # Get the lambda function name
-    cd ../../../infrastructure/terragrunt/$ENVIRONMENT/lambda
-    lambda_function_name=$(terragrunt output -raw lambda_function_name)
-    cd ../../../../software/lambda/pull
+    lambda_function_name=$(cd ../../../infrastructure/terragrunt/$ENVIRONMENT/lambda && terragrunt output -raw package_pull_lambda_function_name)
     # Invoke the lambda function
     aws lambda invoke --function-name "$lambda_function_name" --payload file://payload.json --cli-binary-format raw-in-base64-out out.json
     jq -r '.body' out.json | base64 --decode > response.zip
 
 elif [ "$ENTRYPOINT" == "api-gateway" ]; then
-    # Get the api gateway url
-    api_gateway_url=$(cd ../../../infrastructure/terragrunt/$ENVIRONMENT/api-gateway && terragrunt output -raw api_gateway_url)
+    # Get the package pull api gateway url
+    api_gateway_url=$(cd ../../../infrastructure/terragrunt/$ENVIRONMENT/api-gateway && terragrunt output -raw package_pull_api_url)
 
     echo "🚀 Invoking lambda function thru api gateway..."
     echo "API Gateway URL: $api_gateway_url"

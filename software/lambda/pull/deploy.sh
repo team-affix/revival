@@ -23,7 +23,7 @@ cd ..
 echo "🚀 Deploying Lambda function to $ENVIRONMENT environment..."
 
 # Get the function name from Terragrunt output
-FUNCTION_NAME=$(cd ../../../infrastructure/terragrunt/$ENVIRONMENT/lambda && terragrunt output -raw lambda_function_name)
+FUNCTION_NAME=$(cd ../../../infrastructure/terragrunt/$ENVIRONMENT/lambda && terragrunt output -raw package_pull_lambda_function_name)
 
 if [ -z "$FUNCTION_NAME" ]; then
     echo "❌ Error: Could not get function name from Terragrunt output"

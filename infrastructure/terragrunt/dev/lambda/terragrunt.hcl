@@ -1,6 +1,6 @@
-# Include all settings from the root terragrunt.hcl file
+# Include all settings from the root root.hcl file
 include "root" {
-  path = find_in_parent_folders()
+  path = find_in_parent_folders("root.hcl")
 }
 
 # Specify the terraform source code location

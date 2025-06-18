@@ -3,28 +3,28 @@
 ############################################################################
 
 variable "aws_region" {
-    type = string
-    description = "AWS region"
+  type        = string
+  description = "AWS region"
 }
 
 variable "project_name" {
-    type = string
-    description = "Project name"
+  type        = string
+  description = "Project name"
 }
 
 variable "environment" {
-    type = string
-    description = "Environment (dev, prod, etc.)"
+  type        = string
+  description = "Environment (dev, prod, etc.)"
 }
 
 variable "s3_bucket_name" {
-    type = string
-    description = "S3 bucket name for Lambda environment variable"
+  type        = string
+  description = "S3 bucket name for Lambda environment variable"
 }
 
 variable "s3_bucket_arn" {
-    type = string
-    description = "S3 bucket ARN for IAM policy"
+  type        = string
+  description = "S3 bucket ARN for IAM policy"
 }
 
 ############################################################################
@@ -32,11 +32,11 @@ variable "s3_bucket_arn" {
 ############################################################################
 
 locals {
-    resource_prefix = "${var.project_name}-${var.environment}"
+  resource_prefix = "${var.project_name}-${var.environment}"
 }
 
 ############################################################################
-########################## AWS LAMBDA CONFIGURATION ########################
+###################### SHARED LAMBDA CONFIGURATION #########################
 ############################################################################
 
 resource "aws_iam_role" "lpk_lambda_exec_role" {
@@ -45,8 +45,8 @@ resource "aws_iam_role" "lpk_lambda_exec_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
       Principal = {
         Service = "lambda.amazonaws.com"
       }
@@ -59,80 +59,65 @@ resource "aws_iam_role_policy_attachment" "lpk_lambda_basic_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-resource "aws_iam_role_policy" "lpk_lambda_package_pull_s3_access" {
-  name = "${local.resource_prefix}-lambda-s3-policy"
-  role = aws_iam_role.lpk_lambda_exec_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect   = "Allow",
-      Action   = [
-        "s3:GetObject",
-        "s3:ListBucket"
-      ],
-      Resource = [
-        var.s3_bucket_arn,
-        "${var.s3_bucket_arn}/*"
-      ]
-    }]
-  })
-}
-
-############################################################################
-########################## AWS LAMBDA FUNCTIONS ############################
-############################################################################
-
 data "archive_file" "lpk_placeholder_lambda_payload" {
   type        = "zip"
   source_dir  = "${path.module}/placeholder/"
   output_path = "${path.module}/placeholder.zip"
 }
 
-resource "aws_lambda_function" "lpk_package_pull_lambda" {
-  function_name = "${local.resource_prefix}-package-pull-lambda"
-  handler       = "dist/index.handler"
-  runtime       = "nodejs18.x"
-  role = aws_iam_role.lpk_lambda_exec_role.arn
-  
-  environment {
-    variables = {
-      BUCKET_NAME  = var.s3_bucket_name
-    }
-  }
-
-  # Use a placeholder lambda for FIRST TIME CREATION, and then update the lambda using a separate process
-  filename         = data.archive_file.lpk_placeholder_lambda_payload.output_path
-  source_code_hash = data.archive_file.lpk_placeholder_lambda_payload.output_base64sha256
-
-  # Ignore the changes to the lambda function filename and source code hash
-  lifecycle {
-    ignore_changes = [
-      filename,
-      source_code_hash
-    ]
-  }
-}
-
 ############################################################################
 ############################# OUTPUTS ######################################
 ############################################################################
 
-output "lambda_function_name" {
-  description = "Name of the Lambda function"
+# Package Pull Lambda Outputs
+output "package_pull_lambda_function_name" {
+  description = "Name of the Package Pull Lambda function"
   value       = aws_lambda_function.lpk_package_pull_lambda.function_name
 }
 
-output "lambda_function_arn" {
-  description = "ARN of the Lambda function"
+output "package_pull_lambda_function_arn" {
+  description = "ARN of the Package Pull Lambda function"
   value       = aws_lambda_function.lpk_package_pull_lambda.arn
 }
 
-output "lambda_function_invoke_arn" {
-  description = "Invoke ARN of the Lambda function"
+output "package_pull_lambda_invoke_arn" {
+  description = "Invoke ARN of the Package Pull Lambda function"
   value       = aws_lambda_function.lpk_package_pull_lambda.invoke_arn
 }
 
+# Package Push Lambda Outputs
+output "package_push_lambda_function_name" {
+  description = "Name of the Package Push Lambda function"
+  value       = aws_lambda_function.lpk_package_push_lambda.function_name
+}
+
+output "package_push_lambda_function_arn" {
+  description = "ARN of the Package Push Lambda function"
+  value       = aws_lambda_function.lpk_package_push_lambda.arn
+}
+
+output "package_push_lambda_invoke_arn" {
+  description = "Invoke ARN of the Package Push Lambda function"
+  value       = aws_lambda_function.lpk_package_push_lambda.invoke_arn
+}
+
+# Get Puzzle Lambda Outputs
+output "get_puzzle_lambda_function_name" {
+  description = "Name of the Get Puzzle Lambda function"
+  value       = aws_lambda_function.lpk_get_puzzle_lambda.function_name
+}
+
+output "get_puzzle_lambda_function_arn" {
+  description = "ARN of the Get Puzzle Lambda function"
+  value       = aws_lambda_function.lpk_get_puzzle_lambda.arn
+}
+
+output "get_puzzle_lambda_invoke_arn" {
+  description = "Invoke ARN of the Get Puzzle Lambda function"
+  value       = aws_lambda_function.lpk_get_puzzle_lambda.invoke_arn
+}
+
+# Shared Outputs
 output "lambda_role_arn" {
   description = "ARN of the Lambda execution role"
   value       = aws_iam_role.lpk_lambda_exec_role.arn

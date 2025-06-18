@@ -1,6 +1,6 @@
-# Include all settings from the root terragrunt.hcl file
+# Include all settings from the root root.hcl file
 include "root" {
-  path = find_in_parent_folders()
+  path = find_in_parent_folders("root.hcl")
 }
 
 # Specify the terraform source code location
@@ -15,8 +15,20 @@ dependency "lambda" {
 
 # Environment-specific inputs
 inputs = {
-  environment            = "prod"
-  lambda_function_name   = dependency.lambda.outputs.lambda_function_name
-  lambda_function_arn    = dependency.lambda.outputs.lambda_function_arn
-  lambda_invoke_arn      = dependency.lambda.outputs.lambda_function_invoke_arn
+  environment = "prod"
+  
+  # Package Pull Lambda
+  package_pull_lambda_function_name = dependency.lambda.outputs.package_pull_lambda_function_name
+  package_pull_lambda_function_arn  = dependency.lambda.outputs.package_pull_lambda_function_arn
+  package_pull_lambda_invoke_arn    = dependency.lambda.outputs.package_pull_lambda_invoke_arn
+  
+  # Package Push Lambda
+  package_push_lambda_function_name = dependency.lambda.outputs.package_push_lambda_function_name
+  package_push_lambda_function_arn  = dependency.lambda.outputs.package_push_lambda_function_arn
+  package_push_lambda_invoke_arn    = dependency.lambda.outputs.package_push_lambda_invoke_arn
+  
+  # Get Puzzle Lambda
+  get_puzzle_lambda_function_name = dependency.lambda.outputs.get_puzzle_lambda_function_name
+  get_puzzle_lambda_function_arn  = dependency.lambda.outputs.get_puzzle_lambda_function_arn
+  get_puzzle_lambda_invoke_arn    = dependency.lambda.outputs.get_puzzle_lambda_invoke_arn
 }
