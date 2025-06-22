@@ -4,6 +4,10 @@ include "root" {
   merge_strategy = "deep"
 }
 
+include "env" {
+  path = find_in_parent_folders("env.hcl")
+}
+
 # Generate provider block with both AWS and Docker providers for ECR
 # This will override the provider block from root.hcl
 generate "provider" {
@@ -36,5 +40,4 @@ terraform {
 
 # Environment-specific inputs
 inputs = {
-  environment = "dev"
 }

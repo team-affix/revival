@@ -7,14 +7,9 @@ variable "aws_region" {
   description = "AWS region"
 }
 
-variable "project_name" {
+variable "resource_prefix" {
   type        = string
-  description = "Project name"
-}
-
-variable "environment" {
-  type        = string
-  description = "Environment (dev, prod, etc.)"
+  description = "Resource prefix"
 }
 
 variable "s3_bucket_name" {
@@ -31,16 +26,12 @@ variable "s3_bucket_arn" {
 ######################## LOCAL VARIABLES ###################################
 ############################################################################
 
-locals {
-  resource_prefix = "${var.project_name}-${var.environment}"
-}
-
 ############################################################################
 ###################### SHARED LAMBDA CONFIGURATION #########################
 ############################################################################
 
 resource "aws_iam_role" "lpk_lambda_exec_role" {
-  name = "${local.resource_prefix}-lambda-exec-role"
+  name = "${var.resource_prefix}-lambda-exec-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

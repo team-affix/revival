@@ -1,13 +1,18 @@
+locals {
+  aws_region = "us-west-1"
+  project_name = "revival"
+}
+
 # Configure Terragrunt to automatically store tfstate files in an S3 bucket
 remote_state {
   backend = "s3"
   config = {
     encrypt        = true
-    bucket         = "revival-terraformstate"
+    bucket         = "${local.project_name}-terraformstate"
     key            = "${path_relative_to_include()}/terraform.tfstate"
-    region         = "us-west-1"
+    region         = local.aws_region
     use_lockfile   = true
-    dynamodb_table = "revival-terraform-locks"
+    dynamodb_table = "${local.project_name}-terraform-locks"
   }
   generate = {
     path      = "backend.tf"
@@ -37,6 +42,6 @@ EOF
 
 # Configure common input variables
 inputs = {
-  aws_region   = "us-west-1"
-  project_name = "revival"
-} 
+  aws_region   = local.aws_region
+  project_name = local.project_name
+}

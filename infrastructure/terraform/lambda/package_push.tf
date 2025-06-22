@@ -4,7 +4,7 @@
 
 # S3 policy for package_push_lambda (read/write)
 resource "aws_iam_role_policy" "lpk_lambda_package_push_s3_access" {
-  name = "${local.resource_prefix}-lambda-package-push-s3-policy"
+  name = "${var.resource_prefix}-lambda-package-push-s3-policy"
   role = aws_iam_role.lpk_lambda_exec_role.id
 
   policy = jsonencode({
@@ -27,7 +27,7 @@ resource "aws_iam_role_policy" "lpk_lambda_package_push_s3_access" {
 
 # Package Push Lambda Function
 resource "aws_lambda_function" "lpk_package_push_lambda" {
-  function_name = "${local.resource_prefix}-package-push-lambda"
+  function_name = "${var.resource_prefix}-package-push-lambda"
   handler       = "dist/index.handler"
   runtime       = "nodejs18.x"
   role          = aws_iam_role.lpk_lambda_exec_role.arn

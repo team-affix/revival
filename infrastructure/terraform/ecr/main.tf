@@ -7,30 +7,21 @@ variable "aws_region" {
   description = "AWS region"
 }
 
-variable "project_name" {
+variable "resource_prefix" {
   type        = string
-  description = "Project name"
-}
-
-variable "environment" {
-  type        = string
-  description = "Environment (dev, prod, etc.)"
+  description = "Resource prefix"
 }
 
 ############################################################################
 ######################## LOCAL VARIABLES ###################################
 ############################################################################
 
-locals {
-  resource_prefix = "${var.project_name}-${var.environment}"
-}
-
 ############################################################################
 ########################### ECR REPOSITORY ###############################
 ############################################################################
 
 resource "aws_ecr_repository" "lpk_ecr_repository" {
-  name                 = "${local.resource_prefix}-ecr-repository"
+  name                 = "${var.resource_prefix}-ecr-repository"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {

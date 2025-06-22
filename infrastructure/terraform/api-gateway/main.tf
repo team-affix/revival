@@ -7,14 +7,19 @@ variable "aws_region" {
   description = "AWS region"
 }
 
-variable "project_name" {
-  type        = string
-  description = "Project name"
+variable "environment" {
+    type = string
+    description = "Environment (dev, prod, etc.)"
 }
 
-variable "environment" {
+variable "project_name" {
+    type = string
+    description = "Project name"
+}
+
+variable "resource_prefix" {
   type        = string
-  description = "Environment (dev, prod, etc.)"
+  description = "Resource prefix"
 }
 
 # Package Pull Lambda Variables
@@ -69,17 +74,13 @@ variable "get_puzzle_lambda_invoke_arn" {
 ######################## LOCAL VARIABLES ###################################
 ############################################################################
 
-locals {
-  resource_prefix = "${var.project_name}-${var.environment}"
-}
-
 ############################################################################
 ######################## SHARED API GATEWAY ################################
 ############################################################################
 
 # Single API Gateway REST API for all Lambda functions
 resource "aws_api_gateway_rest_api" "lpk_api_gateway" {
-  name        = "${local.resource_prefix}-api"
+  name        = "${var.resource_prefix}-api"
   description = "API Gateway for ${var.project_name} ${var.environment} Lambda functions"
 
   endpoint_configuration {

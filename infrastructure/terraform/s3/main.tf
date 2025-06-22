@@ -7,30 +7,21 @@ variable "aws_region" {
     description = "AWS region"
 }
 
-variable "project_name" {
+variable "resource_prefix" {
     type = string
-    description = "Project name"
-}
-
-variable "environment" {
-    type = string
-    description = "Environment (dev, prod, etc.)"
+    description = "Resource prefix"
 }
 
 ############################################################################
 ########################### LOCALS CONFIGURATION ###########################
 ############################################################################
 
-locals {
-    resource_prefix = "${var.project_name}-${var.environment}"
-}
-
 ############################################################################
 ############################### AWS S3 BUCKET ##############################
 ############################################################################
 
 resource "aws_s3_bucket" "lpk_bucket" {
-  bucket = "${local.resource_prefix}-apm-registry"
+  bucket = "${var.resource_prefix}-apm-registry"
 }
 
 ############################################################################

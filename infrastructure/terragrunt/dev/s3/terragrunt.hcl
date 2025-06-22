@@ -3,6 +3,10 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
+include "env" {
+  path = find_in_parent_folders("env.hcl")
+}
+
 # Specify the terraform source code location
 terraform {
   source = "../../../terraform/s3"
@@ -10,5 +14,4 @@ terraform {
 
 # Environment-specific inputs
 inputs = {
-  environment = "dev"
-} 
+}

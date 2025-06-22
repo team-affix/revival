@@ -4,7 +4,7 @@
 
 # S3 policy for package_pull_lambda (read-only)
 resource "aws_iam_role_policy" "lpk_lambda_package_pull_s3_access" {
-  name = "${local.resource_prefix}-lambda-package-pull-s3-policy"
+  name = "${var.resource_prefix}-lambda-package-pull-s3-policy"
   role = aws_iam_role.lpk_lambda_exec_role.id
 
   policy = jsonencode({
@@ -25,7 +25,7 @@ resource "aws_iam_role_policy" "lpk_lambda_package_pull_s3_access" {
 
 # Package Pull Lambda Function
 resource "aws_lambda_function" "lpk_package_pull_lambda" {
-  function_name = "${local.resource_prefix}-package-pull-lambda"
+  function_name = "${var.resource_prefix}-package-pull-lambda"
   handler       = "dist/index.handler"
   runtime       = "nodejs18.x"
   role          = aws_iam_role.lpk_lambda_exec_role.arn

@@ -3,6 +3,10 @@ include "root" {
   path = find_in_parent_folders("root.hcl")
 }
 
+include "env" {
+  path = find_in_parent_folders("env.hcl")
+}
+
 # Specify the terraform source code location
 terraform {
   source = "../../../terraform/api-gateway"
@@ -15,8 +19,6 @@ dependency "lambda" {
 
 # Environment-specific inputs
 inputs = {
-  environment = "prod"
-  
   # Package Pull Lambda
   package_pull_lambda_function_name = dependency.lambda.outputs.package_pull_lambda_function_name
   package_pull_lambda_function_arn  = dependency.lambda.outputs.package_pull_lambda_function_arn
