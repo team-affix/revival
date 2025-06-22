@@ -9,7 +9,7 @@ include "env" {
 
 # Specify the terraform source code location
 terraform {
-  source = "../../../terraform/s3"
+  source = "../../../modules/s3"
 }
 
 # Environment-specific inputs

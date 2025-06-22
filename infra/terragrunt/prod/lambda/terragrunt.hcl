@@ -9,7 +9,7 @@ include "env" {
 
 # Specify the terraform source code location
 terraform {
-  source = "../../../terraform/lambda"
+  source = "../../../modules/lambda"
 }
 
 # Define dependencies

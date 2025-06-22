@@ -35,7 +35,7 @@ EOF
 
 # Specify the terraform source code location
 terraform {
-  source = "../../../terraform/ecr"
+  source = "../../../modules/ecr"
 }
 
 # Environment-specific inputs
