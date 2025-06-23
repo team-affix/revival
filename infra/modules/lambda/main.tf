@@ -12,6 +12,11 @@ variable "resource_prefix" {
   description = "Resource prefix"
 }
 
+variable "terragrunt_module_path" {
+  type        = string
+  description = "Terragrunt module path"
+}
+
 variable "s3_bucket_name" {
   type        = string
   description = "S3 bucket name for Lambda environment variable"
@@ -48,12 +53,6 @@ resource "aws_iam_role" "lpk_lambda_exec_role" {
 resource "aws_iam_role_policy_attachment" "lpk_lambda_basic_execution" {
   role       = aws_iam_role.lpk_lambda_exec_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-data "archive_file" "lpk_placeholder_lambda_payload" {
-  type        = "zip"
-  source_dir  = "${path.module}/placeholder/"
-  output_path = "${path.module}/placeholder.zip"
 }
 
 ############################################################################
@@ -117,4 +116,9 @@ output "lambda_role_arn" {
 output "lambda_role_name" {
   description = "Name of the Lambda execution role"
   value       = aws_iam_role.lpk_lambda_exec_role.name
-} 
+}
+
+output "terragrunt_module_path" {
+  description = "Terragrunt module path"
+  value       = var.terragrunt_module_path
+}

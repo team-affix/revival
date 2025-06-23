@@ -2,6 +2,12 @@
 #################### PACKAGE PULL LAMBDA CONFIGURATION ####################
 ############################################################################
 
+data "archive_file" "lpk_package_pull_lambda_payload" {
+  type        = "zip"
+  source_dir  = "${path.module}/../../../../../../../software/server/lambda/pull/function"
+  output_path = "${path.module}/package_pull.zip"
+}
+
 # S3 policy for package_pull_lambda (read-only)
 resource "aws_iam_role_policy" "lpk_lambda_package_pull_s3_access" {
   name = "${var.resource_prefix}-lambda-package-pull-s3-policy"
@@ -36,13 +42,7 @@ resource "aws_lambda_function" "lpk_package_pull_lambda" {
     }
   }
 
-  filename         = data.archive_file.lpk_placeholder_lambda_payload.output_path
-  source_code_hash = data.archive_file.lpk_placeholder_lambda_payload.output_base64sha256
+  filename         = data.archive_file.lpk_package_pull_lambda_payload.output_path
+  source_code_hash = data.archive_file.lpk_package_pull_lambda_payload.output_base64sha256
 
-  lifecycle {
-    ignore_changes = [
-      filename,
-      source_code_hash
-    ]
-  }
 } 
