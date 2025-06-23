@@ -27,6 +27,11 @@ variable "s3_bucket_arn" {
   description = "S3 bucket ARN for IAM policy"
 }
 
+variable "lambda_source_root" {
+  type        = string
+  description = "Root path to Lambda source code directory"
+}
+
 ############################################################################
 ######################## LOCAL VARIABLES ###################################
 ############################################################################
