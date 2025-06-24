@@ -4,7 +4,7 @@
 
 data "archive_file" "lpk_package_push_lambda_payload" {
   type        = "zip"
-  source_dir  = "${path.module}/../../../software/server/lambda/push/function"
+  source_dir  = "${path.module}/../../../software/server/lambda/push/"
   output_path = "${path.module}/package_push.zip"
 }
 

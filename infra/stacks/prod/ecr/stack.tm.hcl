@@ -16,6 +16,26 @@ generate_hcl "_main.tf" {
   }
 }
 
+# Generate outputs to expose module outputs at stack level
+generate_hcl "_outputs.tf" {
+  content {
+    output "repository_url" {
+      description = "URL of the ECR repository"
+      value       = module.ecr.repository_url
+    }
+
+    output "repository_name" {
+      description = "Name of the ECR repository"
+      value       = module.ecr.repository_name
+    }
+
+    output "repository_arn" {
+      description = "ARN of the ECR repository"
+      value       = module.ecr.repository_arn
+    }
+  }
+}
+
 # Generate terraform.tfvars (ECR doesn't need environment variable)
 generate_file "terraform.tfvars" {
   content = <<-EOT

@@ -21,7 +21,7 @@ variable "resource_prefix" {
 ############################################################################
 
 resource "aws_s3_bucket" "lpk_bucket" {
-  bucket = "${var.resource_prefix}-apm-registry"
+  bucket = "${var.resource_prefix}-registry"
 }
 
 ############################################################################

@@ -4,7 +4,7 @@
 
 data "archive_file" "lpk_get_puzzle_lambda_payload" {
   type        = "zip"
-  source_dir  = "${path.module}/../../../software/server/lambda/get_puzzle/function"
+  source_dir  = "${path.module}/../../../software/server/lambda/get-puzzle/"
   output_path = "${path.module}/get_puzzle.zip"
 }
 
