@@ -1,22 +1,22 @@
 stack {
-  name        = "S3 Bucket - Prod"
-  description = "S3 bucket for the prod environment"
-  id          = "s3-prod"
+  name        = "ECR Repository - Prod"
+  description = "ECR repository for the prod environment"
+  id          = "ecr-prod"
 }
 
 # Generate the main Terraform configuration
 generate_hcl "_main.tf" {
   content {
-    module "s3" {
-      source = "../../../modules/s3"
-      
+    module "ecr" {
+      source = "../../../modules/ecr"
+
       aws_region      = var.aws_region
       resource_prefix = var.resource_prefix
     }
   }
 }
 
-# Generate terraform.tfvars (S3 doesn't need environment variable)
+# Generate terraform.tfvars (ECR doesn't need environment variable)
 generate_file "terraform.tfvars" {
   content = <<-EOT
     resource_prefix = "${global.resource_prefix}"

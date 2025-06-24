@@ -2,7 +2,7 @@ stack {
   name        = "Lambda Functions - Dev"
   description = "Lambda functions for the dev environment"
   id          = "lambda-dev"
-  
+
   # This stack depends on S3
   after = ["../s3"]
 }
@@ -14,7 +14,7 @@ generate_hcl "_main.tf" {
     data "terraform_remote_state" "s3" {
       backend = "s3"
       config = {
-        bucket = "${global.project_name}-terraform-state"
+        bucket = "${global.project_name}-terraformstate"
         key    = "dev/s3/terraform.tfstate"
         region = "${global.aws_region}"
       }
@@ -22,22 +22,18 @@ generate_hcl "_main.tf" {
 
     module "lambda" {
       source = "../../../modules/lambda"
-      
       aws_region         = var.aws_region
-      environment        = var.environment
-      project_name       = var.project_name
       resource_prefix    = var.resource_prefix
       s3_bucket_name     = data.terraform_remote_state.s3.outputs.bucket_name
-      lambda_source_root = "${terramate.stack.path.to_root}/software/server/lambda"
+      s3_bucket_arn      = data.terraform_remote_state.s3.outputs.bucket_arn
     }
   }
 }
 
-# Generate terraform.tfvars
+# Generate terraform.tfvars (Lambda only needs resource_prefix)
 generate_file "terraform.tfvars" {
   content = <<-EOT
-    environment     = "${global.environment}"
-    project_name    = "${global.project_name}"
     resource_prefix = "${global.resource_prefix}"
+    environment     = "${global.environment}"
   EOT
 } 

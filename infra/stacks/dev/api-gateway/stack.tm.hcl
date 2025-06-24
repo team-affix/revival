@@ -1,8 +1,8 @@
 stack {
-  name        = "API Gateway - Prod"
-  description = "API Gateway for the prod environment"
-  id          = "api-gateway-prod"
-  
+  name        = "API Gateway - Dev"
+  description = "API Gateway for the dev environment"
+  id          = "api-gateway-dev"
+
   # This stack depends on Lambda functions
   after = ["../lambda"]
 }
@@ -15,14 +15,14 @@ generate_hcl "_main.tf" {
       backend = "s3"
       config = {
         bucket = "${global.project_name}-terraform-state"
-        key    = "prod/lambda/terraform.tfstate"
+        key    = "dev/lambda/terraform.tfstate"
         region = "${global.aws_region}"
       }
     }
 
     module "api_gateway" {
       source = "../../../modules/api-gateway"
-      
+
       aws_region                        = var.aws_region
       environment                       = var.environment
       project_name                      = var.project_name

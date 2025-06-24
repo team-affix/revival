@@ -5,7 +5,7 @@ terramate {
   config {
     # Enable experimental features
     experiments = []
-    
+
     # Configure Git integration
     git {
       default_branch = "main"
@@ -19,7 +19,7 @@ globals {
   # Project settings
   project_name = "revival"
   aws_region   = "us-west-1"
-  
+
   # Terraform backend configuration
   terraform_backend = {
     bucket         = "${global.project_name}-terraformstate"
@@ -27,7 +27,7 @@ globals {
     dynamodb_table = "${global.project_name}-terraform-locks"
     encrypt        = true
   }
-  
+
   # Common tags
   common_tags = {
     Project     = global.project_name
@@ -56,7 +56,7 @@ generate_hcl "_provider.tf" {
   content {
     terraform {
       required_version = ">= 1.0"
-      
+
       required_providers {
         aws = {
           source  = "hashicorp/aws"
@@ -75,7 +75,7 @@ generate_hcl "_provider.tf" {
 
     provider "aws" {
       region = var.aws_region
-      
+
       default_tags {
         tags = var.common_tags
       }
@@ -107,7 +107,7 @@ generate_hcl "_variables.tf" {
       description = "Resource prefix"
       type        = string
     }
-    
+
     variable "common_tags" {
       description = "Common tags to apply to all resources"
       type        = map(string)

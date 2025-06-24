@@ -5,8 +5,8 @@
 # Zip the folder
 data "archive_file" "absurdity_0_zip" {
   type        = "zip"
-  source_dir  = "./default_files/packages/absurdity/0"  # Folder to zip
-  output_path = "./default_files/package_zips/absurdity/0.zip"   # Temp zip file
+  source_dir  = "${path.module}/default_files/packages/absurdity/0"  # Folder to zip
+  output_path = "${path.module}/default_files/package_zips/absurdity/0.zip"   # Temp zip file
   # Exclude Terragrunt/Terraform files
   excludes = [
     ".terragrunt-source-manifest"

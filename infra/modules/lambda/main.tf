@@ -12,11 +12,6 @@ variable "resource_prefix" {
   description = "Resource prefix"
 }
 
-variable "terragrunt_module_path" {
-  type        = string
-  description = "Terragrunt module path"
-}
-
 variable "s3_bucket_name" {
   type        = string
   description = "S3 bucket name for Lambda environment variable"
@@ -25,11 +20,6 @@ variable "s3_bucket_name" {
 variable "s3_bucket_arn" {
   type        = string
   description = "S3 bucket ARN for IAM policy"
-}
-
-variable "lambda_source_root" {
-  type        = string
-  description = "Root path to Lambda source code directory"
 }
 
 ############################################################################
@@ -121,9 +111,4 @@ output "lambda_role_arn" {
 output "lambda_role_name" {
   description = "Name of the Lambda execution role"
   value       = aws_iam_role.lpk_lambda_exec_role.name
-}
-
-output "terragrunt_module_path" {
-  description = "Terragrunt module path"
-  value       = var.terragrunt_module_path
 }
