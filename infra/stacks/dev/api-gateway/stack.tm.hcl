@@ -21,11 +21,11 @@ generate_hcl "_main.tf" {
     }
 
     module "api_gateway" {
-      source = "../../../modules/api-gateway"
-
-      aws_region       = var.aws_region
-      environment      = var.environment
-      project_name     = var.project_name
+      source               = "../../../modules/api-gateway"
+      resource_prefix      = var.resource_prefix
+      aws_region           = var.aws_region
+      environment          = var.environment
+      project_name         = var.project_name
       lambda_function_name = data.terraform_remote_state.lambda.outputs.pull_function_name
       lambda_invoke_arn    = data.terraform_remote_state.lambda.outputs.pull_function_invoke_arn
     }
@@ -57,5 +57,6 @@ generate_file "terraform.tfvars" {
   content = <<-EOT
     project_name = "${global.project_name}"
     environment  = "${global.environment}"
+    resource_prefix = "${global.resource_prefix}"
   EOT
 } 
