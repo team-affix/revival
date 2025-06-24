@@ -26,8 +26,22 @@ generate_hcl "_main.tf" {
       aws_region       = var.aws_region
       environment      = var.environment
       project_name     = var.project_name
-      lambda_function_name = data.terraform_remote_state.lambda.outputs.pull_function_name
-      lambda_invoke_arn    = data.terraform_remote_state.lambda.outputs.pull_function_invoke_arn
+      resource_prefix  = var.resource_prefix
+      
+      # Package Pull Lambda variables
+      package_pull_lambda_function_name = data.terraform_remote_state.lambda.outputs.package_pull_lambda_function_name
+      package_pull_lambda_function_arn  = data.terraform_remote_state.lambda.outputs.package_pull_lambda_function_arn
+      package_pull_lambda_invoke_arn    = data.terraform_remote_state.lambda.outputs.package_pull_lambda_invoke_arn
+      
+      # Package Push Lambda variables
+      package_push_lambda_function_name = data.terraform_remote_state.lambda.outputs.package_push_lambda_function_name
+      package_push_lambda_function_arn  = data.terraform_remote_state.lambda.outputs.package_push_lambda_function_arn
+      package_push_lambda_invoke_arn    = data.terraform_remote_state.lambda.outputs.package_push_lambda_invoke_arn
+      
+      # Get Puzzle Lambda variables
+      get_puzzle_lambda_function_name = data.terraform_remote_state.lambda.outputs.get_puzzle_lambda_function_name
+      get_puzzle_lambda_function_arn  = data.terraform_remote_state.lambda.outputs.get_puzzle_lambda_function_arn
+      get_puzzle_lambda_invoke_arn    = data.terraform_remote_state.lambda.outputs.get_puzzle_lambda_invoke_arn
     }
   }
 }
@@ -45,9 +59,19 @@ generate_hcl "_outputs.tf" {
       value       = module.api_gateway.api_gateway_id
     }
 
-    output "api_gateway_arn" {
-      description = "ARN of the API Gateway"
-      value       = module.api_gateway.api_gateway_arn
+    output "package_pull_api_url" {
+      description = "URL for Package Pull API endpoint"
+      value       = module.api_gateway.package_pull_api_url
+    }
+
+    output "package_push_api_url" {
+      description = "URL for Package Push API endpoint"
+      value       = module.api_gateway.package_push_api_url
+    }
+
+    output "get_puzzle_api_url" {
+      description = "URL for Get Puzzle API endpoint"
+      value       = module.api_gateway.get_puzzle_api_url
     }
   }
 }
@@ -57,5 +81,6 @@ generate_file "terraform.tfvars" {
   content = <<-EOT
     project_name = "${global.project_name}"
     environment  = "${global.environment}"
+    resource_prefix = "${global.resource_prefix}"
   EOT
 } 

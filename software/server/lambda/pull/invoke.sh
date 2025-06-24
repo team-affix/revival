@@ -20,14 +20,14 @@ rm -rf ./absurdity
 
 if [ "$ENTRYPOINT" == "cli" ]; then
     # Get the lambda function name
-    lambda_function_name=$(cd ../../../../infra/terragrunt/$ENVIRONMENT/lambda && terragrunt output -raw package_pull_lambda_function_name)
+    lambda_function_name=$(cd ../../../../infra/stacks/$ENVIRONMENT/lambda && terraform output -raw package_pull_lambda_function_name)
     # Invoke the lambda function
     aws lambda invoke --function-name "$lambda_function_name" --payload file://payload.json --cli-binary-format raw-in-base64-out out.json
     jq -r '.body' out.json | base64 --decode > response.zip
 
 elif [ "$ENTRYPOINT" == "api-gateway" ]; then
     # Get the package pull api gateway url
-    api_gateway_url=$(cd ../../../../infra/terragrunt/$ENVIRONMENT/api-gateway && terragrunt output -raw package_pull_api_url)
+    api_gateway_url=$(cd ../../../../infra/stacks/$ENVIRONMENT/api-gateway && terraform output -raw package_pull_api_url)
 
     echo "🚀 Invoking lambda function thru api gateway..."
     echo "API Gateway URL: $api_gateway_url"

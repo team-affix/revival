@@ -4,8 +4,13 @@
 
 data "archive_file" "lpk_package_push_lambda_payload" {
   type        = "zip"
-  source_dir  = "${path.module}/../../../software/server/lambda/push/"
+  source_dir  = "${path.module}/../../../software/server/lambda/push/function"
   output_path = "${path.module}/package_push.zip"
+
+  excludes = [
+    "tests",
+    "jest.config.js",
+  ]
 }
 
 # S3 policy for package_push_lambda (read/write)

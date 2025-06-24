@@ -34,24 +34,64 @@ generate_hcl "_main.tf" {
 # Generate outputs to expose module outputs at stack level
 generate_hcl "_outputs.tf" {
   content {
-    output "pull_function_name" {
-      description = "Name of the pull Lambda function"
-      value       = module.lambda.pull_function_name
+    output "aws_region" {
+      description = "AWS region"
+      value       = var.aws_region
     }
 
-    output "pull_function_arn" {
-      description = "ARN of the pull Lambda function"
-      value       = module.lambda.pull_function_arn
+    output "package_pull_lambda_function_name" {
+      description = "Name of the Package Pull Lambda function"
+      value       = module.lambda.package_pull_lambda_function_name
     }
 
-    output "pull_function_invoke_arn" {
-      description = "Invoke ARN of the pull Lambda function"
-      value       = module.lambda.pull_function_invoke_arn
+    output "package_pull_lambda_function_arn" {
+      description = "ARN of the Package Pull Lambda function"
+      value       = module.lambda.package_pull_lambda_function_arn
     }
 
-    output "pull_function_qualified_arn" {
-      description = "Qualified ARN of the pull Lambda function"
-      value       = module.lambda.pull_function_qualified_arn
+    output "package_pull_lambda_invoke_arn" {
+      description = "Invoke ARN of the Package Pull Lambda function"
+      value       = module.lambda.package_pull_lambda_invoke_arn
+    }
+
+    output "package_push_lambda_function_name" {
+      description = "Name of the Package Push Lambda function"
+      value       = module.lambda.package_push_lambda_function_name
+    }
+
+    output "package_push_lambda_function_arn" {
+      description = "ARN of the Package Push Lambda function"
+      value       = module.lambda.package_push_lambda_function_arn
+    }
+
+    output "package_push_lambda_invoke_arn" {
+      description = "Invoke ARN of the Package Push Lambda function"
+      value       = module.lambda.package_push_lambda_invoke_arn
+    }
+
+    output "get_puzzle_lambda_function_name" {
+      description = "Name of the Get Puzzle Lambda function"
+      value       = module.lambda.get_puzzle_lambda_function_name
+    }
+
+    output "get_puzzle_lambda_function_arn" {
+      description = "ARN of the Get Puzzle Lambda function"
+      value       = module.lambda.get_puzzle_lambda_function_arn
+    }
+
+    output "get_puzzle_lambda_invoke_arn" {
+      description = "Invoke ARN of the Get Puzzle Lambda function"
+      value       = module.lambda.get_puzzle_lambda_invoke_arn
+    }
+
+    output "lambda_role_arn" {
+      description = "ARN of the Lambda execution role"
+      value       = module.lambda.lambda_role_arn
+    }
+
+    output "lambda_role_name" {
+      description = "Name of the Lambda execution role"
+      value       = module.lambda.lambda_role_name
     }
   }
 }
@@ -60,5 +100,6 @@ generate_hcl "_outputs.tf" {
 generate_file "terraform.tfvars" {
   content = <<-EOT
     resource_prefix = "${global.resource_prefix}"
+    environment     = "${global.environment}"
   EOT
 } 
