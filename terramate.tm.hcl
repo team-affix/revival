@@ -17,14 +17,14 @@ terramate {
 # Global variables available to all stacks
 globals {
   # Project settings
-  project_name = "revival"
+  project_name = "apm"
   aws_region   = "us-west-1"
 
   # Terraform backend configuration
   terraform_backend = {
     bucket         = "${global.project_name}-terraformstate"
     region         = global.aws_region
-    dynamodb_table = "${global.project_name}-terraform-locks"
+    dynamodb_table = "${global.project_name}-terraformlocks"
     encrypt        = true
   }
 

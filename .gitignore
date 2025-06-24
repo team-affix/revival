@@ -12,6 +12,7 @@ frontend/revival/.vscode
 # Terraform state files
 *.tfstate
 *.tfstate.backup
+_*.tf
 
 # Crash log (if Terraform crashes)
 crash.log
