@@ -4,8 +4,8 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test:dev": "STACK_ENV=dev jest",
+    "test:prod": "STACK_ENV=prod jest",
     "update-shared": "npm install ../../shared/shared-1.0.0.tgz",
     "build": "tsc",
     "build:test": "npm run build && npm test"

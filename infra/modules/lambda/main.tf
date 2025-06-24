@@ -55,6 +55,11 @@ resource "aws_iam_role_policy_attachment" "lpk_lambda_basic_execution" {
 ############################################################################
 
 # Package Pull Lambda Outputs
+output "aws_region" {
+  description = "AWS region"
+  value       = var.aws_region
+}
+
 output "package_pull_lambda_function_name" {
   description = "Name of the Package Pull Lambda function"
   value       = aws_lambda_function.lpk_package_pull_lambda.function_name

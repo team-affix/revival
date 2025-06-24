@@ -34,6 +34,11 @@ generate_hcl "_main.tf" {
 # Generate outputs to expose module outputs at stack level
 generate_hcl "_outputs.tf" {
   content {
+    output "aws_region" {
+      description = "AWS region"
+      value       = var.aws_region
+    }
+
     output "package_pull_lambda_function_name" {
       description = "Name of the Package Pull Lambda function"
       value       = module.lambda.package_pull_lambda_function_name

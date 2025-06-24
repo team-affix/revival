@@ -6,6 +6,11 @@ data "archive_file" "lpk_package_pull_lambda_payload" {
   type        = "zip"
   source_dir  = "${path.module}/../../../software/server/lambda/pull/function"
   output_path = "${path.module}/package_pull.zip"
+  
+  excludes = [
+    "tests",
+    "jest.config.js",
+  ]
 }
 
 # S3 policy for package_pull_lambda (read-only)
