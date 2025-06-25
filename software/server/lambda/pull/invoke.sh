@@ -4,6 +4,7 @@
 # Usage: ./invoke.sh dev|prod cli|api-gateway
 
 set -e
+set -x
 
 ENVIRONMENT=$1
 ENTRYPOINT=$2

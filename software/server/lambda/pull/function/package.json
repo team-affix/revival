@@ -1,12 +1,10 @@
 {
   "name": "pull",
   "version": "1.0.0",
-  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "test:dev": "STACK_ENV=dev jest",
     "test:prod": "STACK_ENV=prod jest",
-    "update-shared": "npm install ../../shared/shared-1.0.0.tgz",
     "build": "tsc",
     "build:test": "npm run build && npm test"
   },
@@ -15,8 +13,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "aws-sdk": "^2.1692.0",
-    "shared": "file:../../shared/shared-1.0.0.tgz"
+    "@aws-sdk/client-s3": "^3.490.0",
+    "aws-lambda-ric": "^3.3.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.149",

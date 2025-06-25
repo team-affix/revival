@@ -2,6 +2,15 @@
 ########################### VARIABLES CONFIGURATION #######################
 ############################################################################
 
+terraform {
+  required_providers {
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "~> 3.0"
+    }
+  }
+}
+
 variable "aws_region" {
   type        = string
   description = "AWS region"
@@ -22,9 +31,36 @@ variable "s3_bucket_arn" {
   description = "S3 bucket ARN for IAM policy"
 }
 
+variable "package_pull_repository_url" {
+  type        = string
+  description = "URL of the ECR repository for package-pull lambda"
+}
+
+variable "package_push_repository_url" {
+  type        = string
+  description = "URL of the ECR repository for package-push lambda"
+}
+
+variable "get_puzzle_repository_url" {
+  type        = string
+  description = "URL of the ECR repository for get-puzzle lambda"
+}
+
 ############################################################################
-######################## LOCAL VARIABLES ###################################
+######################## DOCKER CONFIGURATION #############################
 ############################################################################
+
+# Get ECR authorization token
+data "aws_ecr_authorization_token" "token" {}
+
+# Configure Docker provider with ECR credentials
+provider "docker" {
+  registry_auth {
+    address  = data.aws_ecr_authorization_token.token.proxy_endpoint
+    username = data.aws_ecr_authorization_token.token.user_name
+    password = data.aws_ecr_authorization_token.token.password
+  }
+}
 
 ############################################################################
 ###################### SHARED LAMBDA CONFIGURATION #########################

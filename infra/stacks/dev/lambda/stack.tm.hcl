@@ -3,8 +3,8 @@ stack {
   description = "Lambda functions for the dev environment"
   id          = "lambda-dev"
 
-  # This stack depends on S3
-  after = ["../s3"]
+  # This stack depends on S3 and ECR
+  after = ["../s3", "../ecr"]
 }
 
 # Generate the main Terraform configuration
@@ -20,6 +20,16 @@ generate_hcl "_main.tf" {
       }
     }
 
+    # Data source to get ECR repository info from remote state
+    data "terraform_remote_state" "ecr" {
+      backend = "s3"
+      config = {
+        bucket = "${global.terraform_backend.bucket}"
+        key    = "dev/ecr/terraform.tfstate"
+        region = "${global.aws_region}"
+      }
+    }
+
     module "lambda" {
       source = "../../../modules/lambda"
 
@@ -27,6 +37,11 @@ generate_hcl "_main.tf" {
       resource_prefix      = var.resource_prefix
       s3_bucket_name       = data.terraform_remote_state.s3.outputs.bucket_name
       s3_bucket_arn        = data.terraform_remote_state.s3.outputs.bucket_arn
+
+      # ECR repository URLs
+      package_pull_repository_url = data.terraform_remote_state.ecr.outputs.package_pull_repository_url
+      package_push_repository_url = data.terraform_remote_state.ecr.outputs.package_push_repository_url
+      get_puzzle_repository_url   = data.terraform_remote_state.ecr.outputs.get_puzzle_repository_url
     }
   }
 }

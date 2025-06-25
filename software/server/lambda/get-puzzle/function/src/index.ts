@@ -1,5 +1,4 @@
 import AWS from 'aws-sdk';
-import { auth } from 'shared';
 
 const s3 = new AWS.S3();
 const bucket = process.env.BUCKET_NAME;
