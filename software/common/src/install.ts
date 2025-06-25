@@ -18,6 +18,7 @@ export function cwd_is_root_package() : boolean {
     return cwdBasename === parentBasename;
 }
 
+// Get the package binary from the registry
 async function get_package_binary(name: string, version: string, domain: string) : Promise<Buffer> {
     // Get the package binary from the registry
     const url = `https://${domain}/packages/${name}/${version}`;
