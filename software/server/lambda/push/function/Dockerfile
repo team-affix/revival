@@ -13,6 +13,7 @@ ARG FUNCTION_DIR
 RUN mkdir -p ${FUNCTION_DIR}
 COPY package*.json tsconfig.json ${FUNCTION_DIR}/
 COPY src/ ${FUNCTION_DIR}/src/
+COPY common-1.0.0.tgz ${FUNCTION_DIR}/common-1.0.0.tgz
 
 WORKDIR ${FUNCTION_DIR}
 

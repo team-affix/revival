@@ -5,10 +5,6 @@
   "scripts": {
     "build": "tsc"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",
     "aws-lambda-ric": "^3.3.0"
