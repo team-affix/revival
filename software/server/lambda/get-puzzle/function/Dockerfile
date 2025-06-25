@@ -4,6 +4,8 @@ ARG FUNCTION_DIR="/function"
 # Build stage
 FROM node:20-buster AS build-image
 
+RUN apt-get update && apt-get install -y cmake
+
 # Include global args in this stage of the build
 ARG FUNCTION_DIR
 
@@ -13,6 +15,7 @@ COPY package*.json tsconfig.json ${FUNCTION_DIR}/
 COPY src/ ${FUNCTION_DIR}/src/
 
 WORKDIR ${FUNCTION_DIR}
+
 
 # Install all dependencies (including dev dependencies for TypeScript and aws-lambda-ric)
 RUN npm install
@@ -24,8 +27,7 @@ RUN npm run build
 RUN npm ci --only=production
 
 # Install cmake and aws-lambda-ric
-RUN apt-get update && apt-get install -y cmake
-RUN npm install aws-lambda-ric
+# RUN npm install aws-lambda-ric
 
 # Final slim image with LaTeX
 FROM node:20-buster-slim
@@ -41,14 +43,16 @@ ARG FUNCTION_DIR
 # Set working directory to function root directory
 WORKDIR ${FUNCTION_DIR}
 
-# Copy package.json and install only production dependencies
-COPY package*.json ${FUNCTION_DIR}/
+# Copy the updated package.json from build stage (this includes our CommonJS changes)
+COPY --from=build-image ${FUNCTION_DIR}/package*.json ${FUNCTION_DIR}/
 
 # Copy the built JavaScript files from build stage
 COPY --from=build-image ${FUNCTION_DIR}/dist ${FUNCTION_DIR}/dist
 
 # Copy the node_modules from build stage
 COPY --from=build-image ${FUNCTION_DIR}/node_modules/ ${FUNCTION_DIR}/node_modules/
+
+RUN echo "test" > ${FUNCTION_DIR}/test.txt
 
 # Set runtime interface client as default command for the container runtime
 ENTRYPOINT ["/usr/local/bin/npx", "aws-lambda-ric"]

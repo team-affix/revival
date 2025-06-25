@@ -34,7 +34,7 @@ export const handler = async (event: APIGatewayEvent | RequestData) => {
         //     'X-Bucket-Name': bucket
         // },
         isBase64Encoded: true,
-        body: "test"
+        body: "pull"
     };
 
 //     let requestData: RequestData;
