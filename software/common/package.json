@@ -5,10 +5,14 @@
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
+    "test": "jest",
     "dist": "npm pack && cp common-1.0.0.tgz ../server/lambda/push/function/common-1.0.0.tgz"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.0.4",
+    "jest": "^30.0.3",
+    "ts-jest": "^29.4.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
