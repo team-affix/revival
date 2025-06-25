@@ -44,7 +44,7 @@ resource "aws_lambda_function" "lpk_get_puzzle_lambda" {
   # Use container image
   package_type = "Image"
   image_uri    = docker_registry_image.get_puzzle_registry_image.name
-
+  source_code_hash = docker_registry_image.get_puzzle_registry_image.sha256_digest
   # Lambda container image config
   image_config {
     command = ["dist/index.handler"]

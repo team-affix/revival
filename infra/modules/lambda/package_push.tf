@@ -67,6 +67,7 @@ resource "aws_lambda_function" "lpk_package_push_lambda" {
   # Use container image
   package_type = "Image"
   image_uri    = docker_registry_image.package_push_registry_image.name
+  source_code_hash = docker_registry_image.package_push_registry_image.sha256_digest
 
   # Lambda container image config
   image_config {
