@@ -19,20 +19,26 @@ export function cwd_is_root_package() : boolean {
 }
 
 // Get the package binary from the registry
-async function get_package_binary(name: string, version: string, domain: string) : Promise<Buffer> {
-    // Get the package binary from the registry
-    const url = `https://${domain}/packages/${name}/${version}`;
-    const response = await fetch(url);
-    const binary = await response.arrayBuffer();
-    return Buffer.from(binary);
+async function get_package_binary(name: string, version: string) : Promise<Buffer> {
+    // Get the stub binary data from the directory ../test_packages/name/version relative to the module
+    const stubFolderPath = path.join(__dirname, '..', 'test_packages', name, version);
+
+    // Create a new zip archive and add the folder contents
+    const zip = new AdmZip();
+    zip.addLocalFolder(stubFolderPath);
+    const zipBytes = zip.toBuffer();
+
+    // console.debug(`Zip bytes: MADE IT HERE`);
+    // Return the zip bytes
+    return zipBytes;
 }
 
 // Installs agda packages into the previous directory
-export async function install(queue: Set<string>, installed: Map<string, { version: string, domain: string }>) {
+export async function install(queue: Set<string>, installed: Map<string, string>) {
     // The way that the queue will work is:
 
     // 1. Create local temp_queue by looking thru deps.txt and:
-    //    a. Parse deps.txt to get the (name,version,domain) tuples
+    //    a. Parse deps.txt to get the (name,version) tuples
     //    b. Check if a package with the same name is in the caller queue
     //    c. If so, skip it (parent has overridden the dependency)
     //    d. If not, add its name to the temp_queue
@@ -52,14 +58,34 @@ export async function install(queue: Set<string>, installed: Map<string, { versi
     const temp_queue: Set<string> = new Set();
 
     // a. Parse deps.txt to get the (name,version,domain) tuples
+    
+    // Check if deps.txt exists
+    if (!fs.existsSync('deps.txt')) {
+        throw new Error('deps.txt does not exist');
+    }
+
+    // Read deps.txt
     const deps = fs.readFileSync('deps.txt', 'utf8');
     const depsLines = deps.split('\n');
 
-    // Create a map of (name,version,domain) tuples
-    const depsMap = new Map<string, { version: string, domain: string }>();
+    console.debug(`Deps: ${JSON.stringify(depsLines)}`);
+
+    // Create a map of (name,version) tuples
+    const depsMap = new Map<string, string>();
     for (const line of depsLines) {
-        const [name, version, domain] = line.split(' ');
-        depsMap.set(name, { version, domain });
+        // Parse the line
+        const [name, version] = line.split(' ');
+
+        // If the line is empty, break
+        if (!name)
+            break;
+
+        // If the name can be parsed, but the version or domain cannot, throw an error
+        if (!version)
+            throw new Error(`Invalid line: ${line}`);
+
+        // Add the tuple to the map
+        depsMap.set(name, version);
     }
 
     for (const name of depsMap.keys()) {
@@ -97,7 +123,7 @@ export async function install(queue: Set<string>, installed: Map<string, { versi
         installed.set(name, depsMap.get(name)!);
 
         // iv. Get the package binary from the registry
-        const binary = await get_package_binary(name, depsMap.get(name)!.version, depsMap.get(name)!.domain);
+        const binary = await get_package_binary(name, depsMap.get(name)!);
 
 
         // v. Mkdir the package name in the previous directory

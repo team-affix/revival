@@ -4,6 +4,8 @@ import { Command } from 'commander';
 import { greeting, spawnCommand, copyFilesWithExtension } from './utils.js';
 import * as path from 'path';
 
+import { cwd_is_root_package, install } from './install.js';
+
 // Set version manually (can be updated during build)
 const VERSION = '1.0.0';
 
@@ -21,7 +23,18 @@ program
   .command('install')
   .description('Installs agda packages from dependencies file')
   .action(async () => {
-    
+    if (!cwd_is_root_package()) {
+      console.error('Error: This command must be run from the root package of an apm environment');
+      process.exit(1);
+    }
+
+    // Create empty queue of packages to install
+    const queue : Set<string> = new Set();
+
+    // Create empty map of installed packages
+    const installed : Map<string, string> = new Map();
+
+    await install(queue, installed);
   });
 
 // Parse command line arguments
