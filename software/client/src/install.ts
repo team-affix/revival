@@ -3,6 +3,8 @@ import process from 'process';
 import fs from 'fs';
 import AdmZip from 'adm-zip';
 import debug from 'debug';
+import os from 'os';
+import assert from 'assert';
 
 // Check if the current directory is an apm root package
 export function cwd_is_root_package() : boolean {
@@ -18,8 +20,56 @@ export function cwd_is_root_package() : boolean {
     return cwdBasename === parentBasename;
 }
 
+export function clean() {
+    // Cleans the virtual environment of all non-root packages
+
+    // Create debug logger
+    const dbg = debug('apm:clean');
+
+    // We expect this to be called from the root package
+    assert(cwd_is_root_package());
+
+    // Get the root package name
+    const cwd = process.cwd();
+    const rootPackageName = path.basename(cwd);
+
+    dbg(`Root package name: ${rootPackageName}`);
+
+    // Get the parent directory
+    const parentDir = path.dirname(cwd);
+
+    dbg(`Parent directory: ${parentDir}`);
+
+    // Get the list of packages in the parent directory
+    const files = fs.readdirSync(parentDir);
+
+    // For each folder/file in the parent directory, if it is not the root package, delete it
+    for (const file of files) {
+        if (file === rootPackageName)
+            continue;
+
+        // indicate that we are deleting the file with strikethrough text
+        console.log(`\x1b[9m${file}\x1b[0m`);
+
+        // Delete the file
+        fs.rmSync(path.join(parentDir, file), { recursive: true, force: true });
+    }
+    
+}
+
 // Get the package binary from the registry
-async function get_package_binary(name: string, version: string) : Promise<Buffer> {
+async function get_package_binary(registries: string[], name: string, version: string) : Promise<Buffer> {
+    // If this is a default package name, fetch data from the directory ../default_packages/name relative to the modules
+    const defaultFolderPath = path.join(__dirname, '..', 'default_packages', name);
+    if (fs.existsSync(defaultFolderPath)) {
+        // Create a new zip archive and add the folder contents
+        const zip = new AdmZip();
+        zip.addLocalFolder(defaultFolderPath);
+        const zipBytes = zip.toBuffer();
+        // Return the zip bytes
+        return zipBytes;
+    }
+
     // Get the stub binary data from the directory ../test_packages/name/version relative to the module
     const stubFolderPath = path.join(__dirname, '..', 'test_packages', name, version);
 
@@ -33,8 +83,38 @@ async function get_package_binary(name: string, version: string) : Promise<Buffe
     return zipBytes;
 }
 
+export async function pull(registries: string[], name: string, version: string) {
+    // Get the current directory
+    const cwd = process.cwd();
+
+    // Get the parent directory
+    const parentDir = path.dirname(cwd);
+
+    // iv. Get the package binary from the registry
+    const binary = await get_package_binary(registries, name, version);
+
+    // Create binary in computer's temp directory /tmp/apmbin.zip
+    const binaryPath = path.join(os.tmpdir(), 'apmbin.zip');
+    fs.writeFileSync(binaryPath, binary);
+    const zip = new AdmZip(binaryPath);
+
+    // v. Mkdir the package name in the previous directory
+    const packageDir = path.join(parentDir, name);
+    fs.mkdirSync(packageDir, { recursive: true });
+
+    // vi. CD into the package folder
+    process.chdir(packageDir);
+    
+    // vii. Unzip the binary into CWD
+    zip.extractAllTo(packageDir);
+
+    // viii. Delete the binary
+    fs.unlinkSync(binaryPath);
+
+}
+
 // Installs agda packages into the previous directory
-export async function install(queue: Set<string>, installed: Map<string, string>) {
+export async function install(registries: string[], queue: Set<string>, installed: Map<string, string>) {
     // The way that the queue will work is:
 
     // 1. Create local temp_queue by looking thru deps.txt and:
@@ -53,6 +133,9 @@ export async function install(queue: Set<string>, installed: Map<string, string>
     //       vii. Unzip the binary into CWD
     //       viii. Delete the binary
     //       ix. Invoke install(queue+temp_queue, installed) recursively
+
+    // Create a debug logger
+    const dbg = debug('apm:install');
     
     // 1. Create local temp_queue
     const temp_queue: Set<string> = new Set();
@@ -68,7 +151,7 @@ export async function install(queue: Set<string>, installed: Map<string, string>
     const deps = fs.readFileSync('deps.txt', 'utf8');
     const depsLines = deps.split('\n');
 
-    console.debug(`Deps: ${JSON.stringify(depsLines)}`);
+    dbg(`Deps: ${JSON.stringify(depsLines)}`);
 
     // Create a map of (name,version) tuples
     const depsMap = new Map<string, string>();
@@ -106,10 +189,9 @@ export async function install(queue: Set<string>, installed: Map<string, string>
     for (const name of temp_queue) {
         newQueue.add(name);
     }
-
-    // Get the current directory information and the parent directory
+    
+    // Get the current directory
     const cwd = process.cwd();
-    const parentDir = path.dirname(cwd);
 
     // f. Go thru the temp_queue and install the packages 1 by one, where for each package we:
     for (const name of temp_queue) {
@@ -119,35 +201,25 @@ export async function install(queue: Set<string>, installed: Map<string, string>
             throw new Error(`Unresolved peer dependency: ${name}`);
         }
 
+        dbg(`Installing ${name} (${depsMap.get(name)})`);
+
         // iii. If not, push to the installed list (DO NOT POP FROM temp_queue)
         installed.set(name, depsMap.get(name)!);
 
-        // iv. Get the package binary from the registry
-        const binary = await get_package_binary(name, depsMap.get(name)!);
-
-
-        // v. Mkdir the package name in the previous directory
-        const packageDir = path.join(parentDir, name);
-        fs.mkdirSync(packageDir, { recursive: true });
-
-        // vi. CD into the package folder
-        process.chdir(packageDir);
-        
-        // vii. Unzip the binary into CWD
-        fs.writeFileSync('../binary.zip', binary);
-        const zip = new AdmZip('../binary.zip');
-        zip.extractAllTo(packageDir);
-
-        // viii. Delete the binary
-        fs.unlinkSync('../binary.zip');
+        // iv. Pull the package (pull MUST NOT reset the cwd, as it is needed for next install call)
+        await pull(registries, name, depsMap.get(name)!);
 
         // ix. Invoke install(queue+temp_queue, installed) recursively
-        install(newQueue, installed);
+        install(registries, newQueue, installed);
 
     }
 
+    
+    // Change back to the original directory
+    process.chdir(cwd);
+
     // Indicate that the package has been installed
     const packageName = path.basename(cwd);
-    debug(`Installed: ${packageName}`);
+    console.log(packageName);
 
 }
