@@ -1,4 +1,4 @@
-module Absurdity.main where
+module Default.Absurdity where
 
 data ⊥ : Set where
 

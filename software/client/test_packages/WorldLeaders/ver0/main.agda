@@ -1,1 +1,1 @@
-module WorldLeaders where
+module WorldLeaders.main where

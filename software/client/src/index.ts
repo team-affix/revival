@@ -3,8 +3,9 @@
 import { Command } from 'commander';
 import { greeting, spawnCommand, copyFilesWithExtension } from './utils.js';
 import * as path from 'path';
-
-import { clean, cwd_is_root_package, install } from './install.js';
+import * as fs from 'fs';
+import { debug } from 'debug';
+import { cwd_is_root_package, get_deps, clean, install, install_default_package } from './install.js';
 
 // Set version manually (can be updated during build)
 const VERSION = '1.0.0';
@@ -41,22 +42,60 @@ program
       process.exit(1);
     }
 
-    // Clean the virtual environment
-    clean();
+    // Create debug logger
+    const dbg = debug('apm:install');
 
-    // Create empty queue of packages to install
-    const queue : Set<string> = new Set();
+    try {
+        // Create empty map of installed packages
+        const installed : Map<string, string> = new Map();
+        
+        // Install the default package
+        await install_default_package(installed);
+        
+        // Get the root package dependencies
+        const deps = get_deps();
+        
+        dbg(`Dependencies: ${JSON.stringify(Object.fromEntries(deps))}`);
+        
+        // Create initial queue of dependencies
+        const queue : Set<string> = new Set();
+        // Add all initial dependencies to the initial queue
+        for (const name of deps.keys()) {
+            queue.add(name);
+        }
 
-    // Create empty map of installed packages
-    const installed : Map<string, string> = new Map();
+        dbg(`Queue: ${JSON.stringify(Array.from(queue))}`);
 
-    await install(registries, queue, installed);
+        // Install the dependencies
+        for (const [name,version] of deps.entries()) {
+            await install(
+                name,
+                version,
+                registries,
+                queue,
+                installed
+            );
+        }
+
+        dbg(`Installed: ${JSON.stringify(Object.fromEntries(installed))}`);
+    }
+    catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error.message);
+      }
+      else {
+        console.error(error);
+      }
+      process.exit(1);
+    }
+
   });
+
 
 // Parse command line arguments
 program.parse();
 
-// If no command is provided, show help
+  // If no command is provided, show help
 if (!process.argv.slice(2).length) {
   program.outputHelp();
 }
