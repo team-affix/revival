@@ -1,0 +1,28 @@
+{
+  "name": "apm",
+  "version": "1.0.0",
+  "description": "Agda package manager.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "apm": "./dist/index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/node": "^22.15.30",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "commander": "^14.0.0",
+    "glob": "^11.0.2",
+    "@aws-sdk/client-lambda": "^3.835.0",
+    "@types/adm-zip": "^0.5.7",
+    "@types/debug": "^4.1.12",
+    "adm-zip": "^0.5.16",
+    "debug": "^4.4.1"
+  }
+}
