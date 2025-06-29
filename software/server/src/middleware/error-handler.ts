@@ -10,13 +10,14 @@ export interface AppError extends Error {
 }
 
 export class PackageNotFoundError extends Error implements AppError {
-    name: string;
-    version: string;
+    packageName: string;
+    packageVersion: string;
     status: number;
-    constructor(name: string, version: string) {
-        super(`Package ${name} version ${version} not found`);
-        this.name = name;
-        this.version = version;
+    constructor(packageName: string, packageVersion: string) {
+        super(`Package ${packageName} version ${packageVersion} not found`);
+        this.name = 'PackageNotFoundError';
+        this.packageName = packageName;
+        this.packageVersion = packageVersion;
         this.status = 404;
         // Required to make instanceof work correctly in some environments
         Object.setPrototypeOf(this, new.target.prototype);
@@ -33,8 +34,7 @@ export const errorHandler: ErrorRequestHandler = (err: AppError, req: Request, r
 
     // Print the error
     dbg(`Error message: ${err.message}`);
-    dbg(`Error details: ${JSON.stringify(err)}`);
 
     // Send the error
-    res.status(err.status || 500).json({ message: err.message, details: err });
+    res.status(err.status || 500).json(err);
 };
