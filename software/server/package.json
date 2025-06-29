@@ -6,10 +6,11 @@
         "apm-daemon": "./dist/index.js"
     },
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
         "build": "tsc",
         "start": "node dist/index.js",
-        "dev": "DEBUG=apm:* nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts"
+        "dev": "DEBUG=apm:* nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
+        "test": "jest",
+        "test:watch": "jest --watch"
     },
     "keywords": [],
     "author": "",
@@ -18,8 +19,11 @@
     "devDependencies": {
         "@types/debug": "^4.1.12",
         "@types/glob": "^8.1.0",
+        "@types/jest": "^30.0.0",
         "@types/node": "^22.15.30",
+        "jest": "^30.0.3",
         "prettier": "^3.6.2",
+        "ts-jest": "^29.4.0",
         "ts-node": "^10.9.2",
         "typescript": "^5.8.3"
     },

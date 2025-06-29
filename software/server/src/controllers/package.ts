@@ -24,10 +24,7 @@ export const getPackage: RequestHandler = (req: Request, res: Response, next: Ne
     const dbg = debug('apm:server:getPackage');
 
     // Parse the request
-    const parsedRequest: GetPackageRequest = {
-        name: req.params.name,
-        version: req.params.version,
-    };
+    const parsedRequest: GetPackageRequest = req.body;
 
     // Print the parsed request
     dbg(`Parsed request: ${JSON.stringify(parsedRequest)}`);

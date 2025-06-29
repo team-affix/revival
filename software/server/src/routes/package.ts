@@ -3,6 +3,6 @@ import { getPackage } from '../controllers/package';
 
 const router = Router();
 
-router.get('/:name/:version', getPackage);
+router.get('/', getPackage);
 
 export default router;
