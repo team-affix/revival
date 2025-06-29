@@ -5,7 +5,11 @@ import { debug } from 'debug';
 ////////////////////// DEFINE ERROR TYPES ///////////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
-export class PackageNotFoundError extends Error {
+export interface AppError extends Error {
+    status: number;
+}
+
+export class PackageNotFoundError extends Error implements AppError {
     name: string;
     version: string;
     status: number;
@@ -23,15 +27,14 @@ export class PackageNotFoundError extends Error {
 ////////////////////// DEFINE ERROR HANDLER //////////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
-export type AppError = PackageNotFoundError;
-
 export const errorHandler: ErrorRequestHandler = (err: AppError, req: Request, res: Response, next: NextFunction) => {
     // Create debugger
     const dbg = debug('apm:server:errorHandler');
 
     // Print the error
-    dbg(`Error: ${err}`);
+    dbg(`Error message: ${err.message}`);
+    dbg(`Error details: ${JSON.stringify(err)}`);
 
     // Send the error
-    res.status(err.status || 500).json(err);
+    res.status(err.status || 500).json({ message: err.message, details: err });
 };

@@ -21,7 +21,7 @@ export type GetPackageErrorResponse = PackageNotFoundError;
 
 export const getPackage: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
     // Create debugger
-    const dbg = debug('apm:server:get_package');
+    const dbg = debug('apm:server:getPackage');
 
     // Parse the request
     const parsedRequest: GetPackageRequest = {
@@ -40,9 +40,7 @@ export const getPackage: RequestHandler = (req: Request, res: Response, next: Ne
 
     // Check if the package exists
     if (!fs.existsSync(pkgPath)) {
-        const response: GetPackageErrorResponse = new PackageNotFoundError(parsedRequest.name, parsedRequest.version);
-        res.status(404).json(response);
-        return;
+        throw new PackageNotFoundError(parsedRequest.name, parsedRequest.version);
     }
 
     // Read in the package binary (NOT UTF-8, should be a buffer)
