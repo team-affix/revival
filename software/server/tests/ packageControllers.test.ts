@@ -5,18 +5,23 @@ import { PackageNotFoundError } from '../src/middleware/error-handler';
 describe('controllers/package', () => {
     describe('getPackage', () => {
         it('should throw a PackageNotFoundError if the package does not exist', () => {
+            // Define the package name and version
+            const PACKAGE_NAME = 'NonExistentPackage';
+            const PACKAGE_VERSION = '1.0.0';
+
+            // Create a mock request and response
             const req = {} as Request;
             const res = {} as Response;
 
             // Set the request body
             req.body = {
-                name: 'NonExistentPackage',
-                version: '1.0.0',
+                name: PACKAGE_NAME,
+                version: PACKAGE_VERSION,
             };
 
             // Expect the PackageNotFoundError to have been thrown
             expect(() => getPackage(req, res, jest.fn())).toThrow(
-                new PackageNotFoundError('NonExistentPackage', '1.0.0'),
+                new PackageNotFoundError(PACKAGE_NAME, PACKAGE_VERSION),
             );
         });
     });

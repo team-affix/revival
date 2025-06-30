@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import app from './app';
 import config from './config';
+import app from './app';
 
+// Start the server
 app.listen(config.port, () => {
     console.log(`Server running on port ${config.port}`);
 });
