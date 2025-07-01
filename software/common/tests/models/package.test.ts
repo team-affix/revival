@@ -1,7 +1,9 @@
-import Package from '../../src/models/package';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import { expect, describe, it, beforeEach } from '@jest/globals';
+import Package from '../../src/models/package';
+import PackageNotFoundError from '../../src/errors/package-not-found';
 
 describe('models/package', () => {
     const tmpRegistryPath = path.join(os.tmpdir(), 'tmp-registry');
@@ -14,14 +16,14 @@ describe('models/package', () => {
         fs.mkdirSync(tmpRegistryPath, { recursive: true });
     });
 
-    it('Package.find() should return null if the package does not exist', () => {
+    it('Package.fromFile() should throw PackageNotFoundError if the package does not exist', () => {
         const pkgName = 'name';
         const pkgVersion = 'version';
-        const pkg = Package.find(tmpRegistryPath, pkgName, pkgVersion);
-        expect(pkg).toBeNull();
+        const pkgPath = path.join(tmpRegistryPath, `${pkgName}.${pkgVersion}.tar`);
+        expect(() => Package.fromFile(pkgName, pkgVersion, pkgPath)).toThrow(PackageNotFoundError);
     });
 
-    it('Package.find() should return a Package object if the package exists', () => {
+    it('Package.fromFile() should return a Package object if the package exists', () => {
         const pkgName = 'name';
         const pkgVersion = 'version';
 
@@ -35,7 +37,7 @@ describe('models/package', () => {
         fs.writeFileSync(pkgPath, 'test');
 
         // Find the package
-        const pkg = Package.find(tmpRegistryPath, pkgName, pkgVersion);
+        const pkg = Package.fromFile(pkgName, pkgVersion, pkgPath);
         expect(pkg).toBeInstanceOf(Package);
     });
 
@@ -55,11 +57,11 @@ describe('models/package', () => {
         fs.writeFileSync(pkgPath, BINARY_DATA);
 
         // Find the package
-        const pkg = Package.find(tmpRegistryPath, pkgName, pkgVersion);
+        const pkg = Package.fromFile(pkgName, pkgVersion, pkgPath);
         expect(pkg).toBeInstanceOf(Package);
 
         // Get the binary data
-        const binaryData = pkg?.getBinary();
+        const binaryData = pkg.getBinary();
         expect(binaryData?.toString()).toBe(BINARY_DATA);
     });
 });

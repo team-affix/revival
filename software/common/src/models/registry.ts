@@ -21,9 +21,10 @@ class Registry {
     async getPackage(name: string, version: string): Promise<Package | null> {
         const filePath = path.join(this.rootPath, `${name}.${version}.tar`);
         if (!fs.existsSync(filePath)) return null;
-        return await Package.fromFile(filePath);
+        return await Package.fromFile(name, version, filePath);
     }
 
+    // Add a package to the registry
     addPackage(name: string, version: string, binary: Buffer): void {
         // Check if the package is valid
     }
