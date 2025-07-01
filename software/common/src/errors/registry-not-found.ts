@@ -1,6 +1,6 @@
 class RegistryNotFoundError extends Error {
-    constructor(path: string) {
-        super(`Registry root path ${path} does not exist`);
+    constructor(registryRoot: string) {
+        super(`Registry root path ${registryRoot} does not exist`);
         this.name = 'RegistryNotFoundError';
     }
 }

@@ -20,6 +20,10 @@ class Registry {
     getPackage(name: string, version: string): Package | null {
         return Package.find(this.rootPath, name, version);
     }
+
+    addPackage(name: string, version: string, binary: Buffer): void {
+        // Check if the package is valid
+    }
 }
 
 export default Registry;

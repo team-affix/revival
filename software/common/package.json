@@ -5,6 +5,7 @@
     "scripts": {
         "build": "tsc",
         "test": "jest",
+        "test:watch": "jest --watch",
         "lint": "eslint src tests",
         "dist": "npm pack && cp common-1.0.0.tgz ../server/lambda/push/function/common-1.0.0.tgz"
     },
