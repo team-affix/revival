@@ -1,39 +1,118 @@
 import fs from 'fs';
 import path from 'path';
 import debug from 'debug';
+import tarStream from 'tar-stream';
+// import tar from 'tar';
+import glob from 'glob';
+import crypto from 'crypto';
 import PackageAlreadyExistsError from '../errors/package-already-exists';
+import InvalidPackageError from '../errors/invalid-package';
+import PackageCreationError from '../errors/package-creation';
 
 // Debugger
 const dbg = debug('apm:common:models:package');
 
 class Package {
-    // Path to the package on disk
-    // Constructs a package model given the registry root, name, and version
+    // Constructs a package model
     private constructor(
-        private packagePath: string,
-        public name: string,
-        public version: string,
+        private name: string,
+        private version: string,
+        private binary: Buffer,
     ) {}
 
-    // Find a package in the file system given the registry root, name, and version
-    static find(registryRoot: string, name: string, version: string): Package | null {
-        const packagePath = path.join(registryRoot, name, `${version}.tar`);
-        dbg(`Looking for package ${name}@${version} at ${packagePath}`);
-        if (!fs.existsSync(packagePath)) return null;
-        return new Package(packagePath, name, version);
+    // Load a package from tar file
+    static async fromFile(packagePath: string): Promise<Package> {
+        // Assume tar file name in form <name>.<version>.tar
+        const basename = path.basename(packagePath);
+        const [name, version, ext] = basename.split('.');
+        if (ext !== 'tar') throw new InvalidPackageError(packagePath);
+        return new Package(name, version, fs.readFileSync(packagePath));
     }
 
-    // Create a package in the registry given the registry root, name, version, and binary
-    static create(registryRoot: string, name: string, version: string, binary: Buffer): Package {
-        const packagePath = path.join(registryRoot, name, `${version}.tar`);
-        if (fs.existsSync(packagePath)) throw new PackageAlreadyExistsError(registryRoot, name, version);
-        fs.writeFileSync(packagePath, binary);
-        return new Package(packagePath, name, version);
+    // Create a package from a directory
+    static async createFromDirectory(srcDir: string): Promise<Package> {
+        // Get the name and version of the package
+        const name = path.basename(srcDir);
+
+        // Append the deps.txt file to the list using glob
+        const depsPath = path.join(srcDir, 'deps.txt');
+
+        // Check that the deps.txt file is valid
+        if (!fs.existsSync(depsPath) || !fs.statSync(depsPath).isFile())
+            throw new PackageCreationError(srcDir, 'deps.txt invalid or missing');
+
+        // Get a list of all agda files
+        const files = glob.sync('**/*.agda', { cwd: srcDir, nodir: true });
+
+        dbg('Agda files (should be relative paths): ', files);
+
+        // Add the deps.txt file to the list
+        files.push(depsPath);
+
+        // Construct the tar binary
+        const binary = await Package.createTar(srcDir, files);
+
+        // Get the hash of the package
+        const version = crypto.createHash('sha256').update(binary).digest('hex');
+
+        // Create the package
+        return new Package(name, version, binary);
     }
 
-    // Get the binary of the package
-    getBinary(): Buffer {
-        return fs.readFileSync(this.packagePath);
+    // Get the name of the package
+    getName(): string {
+        return this.name;
+    }
+
+    // Get the version of the package
+    getVersion(): string {
+        return this.version;
+    }
+
+    // Extract the package to a destination directory
+    extract(dest: string): void {}
+
+    // Tar in-memory
+    private static async createTar(basePath: string, files: string[]): Promise<Buffer> {
+        return new Promise((resolve, reject) => {
+            const pack = tarStream.pack();
+            const chunks: Buffer[] = [];
+            for (const file of files) {
+                pack.entry({ name: file }, fs.readFileSync(path.join(basePath, file)));
+            }
+            pack.on('data', (chunk) => chunks.push(chunk));
+            pack.on('end', () => resolve(Buffer.concat(chunks)));
+        });
+    }
+
+    // Peek a file in a tar archive
+    private static async peekTar(tarPath: string, targetFile: string): Promise<Buffer> {
+        return new Promise((resolve, reject) => {
+            const extract = tarStream.extract();
+            const stream = fs.createReadStream(tarPath);
+
+            let found = false;
+
+            extract.on('entry', (header, fileStream, next) => {
+                if (header.name === targetFile) {
+                    found = true;
+                    const chunks: Buffer[] = [];
+                    fileStream.on('data', (chunk) => chunks.push(chunk));
+                    fileStream.on('end', () => {
+                        resolve(Buffer.concat(chunks));
+                    });
+                } else {
+                    fileStream.resume();
+                    fileStream.on('end', next);
+                }
+            });
+
+            extract.on('finish', () => {
+                if (!found) reject(new Error('File not found in archive'));
+            });
+
+            stream.pipe(extract);
+        });
     }
 }
 

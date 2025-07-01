@@ -1,6 +1,7 @@
 import fs from 'fs';
-import Package from './package';
 import debug from 'debug';
+import path from 'path';
+import Package from './package';
 import RegistryNotFoundError from '../errors/registry-not-found';
 
 // Debugger
@@ -17,8 +18,10 @@ class Registry {
     }
 
     // Get a package from the registry
-    getPackage(name: string, version: string): Package | null {
-        return Package.find(this.rootPath, name, version);
+    async getPackage(name: string, version: string): Promise<Package | null> {
+        const filePath = path.join(this.rootPath, `${name}.${version}.tar`);
+        if (!fs.existsSync(filePath)) return null;
+        return await Package.fromFile(filePath);
     }
 
     addPackage(name: string, version: string, binary: Buffer): void {
