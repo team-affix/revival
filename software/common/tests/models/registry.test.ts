@@ -1,6 +1,7 @@
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import { expect, describe, it, beforeEach } from '@jest/globals';
 import Registry from '../../src/models/registry';
 import RegistryNotFoundError from '../../src/errors/registry-not-found';
 

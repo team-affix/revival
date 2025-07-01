@@ -9,8 +9,6 @@ import PackageAlreadyExistsError from '../errors/package-already-exists';
 import InvalidPackageError from '../errors/invalid-package';
 import PackageCreationError from '../errors/package-creation';
 import PackageNotFoundError from '../errors/package-not-found';
-// Debugger
-const dbg = debug('apm:common:models:package');
 
 class Package {
     // Constructs a package model
@@ -22,12 +20,24 @@ class Package {
 
     // Load a package from tar file
     static fromFile(name: string, version: string, packagePath: string): Package {
+        // Get the debugger
+        const dbg = debug('apm:common:models:Package:fromFile');
+
+        // Indicate that we are loading a package
+        dbg(`Loading package ${name}@${version} from ${packagePath}`);
+
         // Check if the package exists
         if (!fs.existsSync(packagePath) || !fs.statSync(packagePath).isFile())
             throw new PackageNotFoundError(name, version, packagePath);
 
+        // Indicate that we are reading the package
+        dbg(`Reading package`);
+
         // Read the package
         const binary = fs.readFileSync(packagePath);
+
+        // Indicate that we have read the package
+        dbg(`Read package`);
 
         // Return the package
         return new Package(name, version, binary);
