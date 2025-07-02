@@ -30,7 +30,7 @@ abstract class PackageBase {
     }
 
     // Parse the dependencies given a raw dependencies file
-    protected static parseDeps(raw: string): Map<string, string> {
+    static parseDeps(raw: string): Map<string, string> {
         // Get the debuggers
         const dbg = debug('apm:common:models:PackageBase:parseDeps');
 
@@ -67,7 +67,7 @@ abstract class PackageBase {
         return result;
     }
 
-    protected static serializeDeps(deps: Map<string, string>): string {
+    static serializeDeps(deps: Map<string, string>): string {
         // Get the debuggers
         const dbg = debug('apm:common:models:PackageBase:serializeDeps');
 
@@ -290,7 +290,7 @@ class Package extends PackageBase {
         fs.writeFileSync(outPath, binary);
     }
 
-    private static computeVersion(binary: Buffer): string {
+    static computeVersion(binary: Buffer): string {
         // Get the debugger
         const dbg = debug('apm:common:models:Package:computeVersion');
 
