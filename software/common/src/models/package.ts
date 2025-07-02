@@ -210,7 +210,45 @@ class Package extends PackageBase {
         const dbg = debug('apm:common:models:Package:save');
 
         // Indicate that we are saving the package
-        dbg(`Saving package`);
+        dbg(`Saving package to ${outPath}`);
+
+        // Get the name of the package
+        const name = this.getName();
+
+        // Get the dependencies of the package
+        const deps = this.getDeps();
+
+        // Get the payload of the package
+        const payload = this.getPayload();
+
+        // Serialize the dependencies
+        const depsArray = Array.from(deps.entries());
+        const depsSerialized = JSON.stringify(depsArray);
+
+        // Define the offsets
+        const depsOffset = name.length;
+        const payloadOffset = depsOffset + depsSerialized.length;
+
+        // Define the header/footer lengths
+        const headerLength = name.length + depsSerialized.length;
+        const footerLength = 8;
+
+        // Construct the buffer
+        const buffer = Buffer.alloc(headerLength + payload.length + footerLength);
+
+        // Write the header
+        buffer.write(name, 0);
+        buffer.write(depsSerialized, depsOffset);
+
+        // Write the payload
+        payload.copy(buffer, payloadOffset);
+
+        // Write the footer
+        buffer.writeUInt32LE(depsOffset, buffer.length - 4);
+        buffer.writeUInt32LE(payloadOffset, buffer.length - 8);
+
+        // Write the buffer to the file
+        fs.writeFileSync(outPath, buffer);
     }
 
     // Tar in-memory
