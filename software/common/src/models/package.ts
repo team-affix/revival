@@ -10,6 +10,7 @@ import InvalidPackageError from '../errors/invalid-package';
 import PackageCreationError from '../errors/package-creation';
 import PackageNotFoundError from '../errors/package-not-found';
 import FailedToParseDepsError from '../errors/failed-to-parse-deps';
+import VersionMismatchError from '../errors/version-mismatch';
 
 abstract class PackageBase {
     // Constructs a package base
@@ -170,7 +171,7 @@ class Package extends PackageBase {
         dbg(`Read package, length: ${binary.length}`);
 
         // Get the version of the package
-        const version = crypto.createHash('sha256').update(binary).digest('hex');
+        const version = Package.computeVersion(binary);
 
         // Get the offsets from the footer
         const footerLength = 8;
@@ -274,8 +275,36 @@ class Package extends PackageBase {
         binary.writeUInt32LE(depsOffset, binary.length - 4);
         binary.writeUInt32LE(payloadOffset, binary.length - 8);
 
+        // Compute the version of the package
+        const version = Package.computeVersion(binary);
+
+        // Check that the version is correct
+        if (version !== this.getVersion())
+            throw new VersionMismatchError(
+                this.getVersion(),
+                version,
+                'Version mismatch in package save: some nondeterministic serialization occurred',
+            );
+
         // Write the binary to the file
         fs.writeFileSync(outPath, binary);
+    }
+
+    private static computeVersion(binary: Buffer): string {
+        // Get the debugger
+        const dbg = debug('apm:common:models:Package:computeVersion');
+
+        // Indicate that we are computing the version
+        dbg(`Computing version of binary: ${binary.length}`);
+
+        // Compute the version
+        const result = crypto.createHash('sha256').update(binary).digest('hex');
+
+        // Indicate that we have computed the version
+        dbg(`Computed version: ${result}`);
+
+        // Return the version
+        return result;
     }
 
     // Tar in-memory
