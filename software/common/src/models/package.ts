@@ -65,6 +65,34 @@ abstract class PackageBase {
         // Return the map
         return result;
     }
+
+    protected static serializeDeps(deps: Map<string, string>): string {
+        // Get the debuggers
+        const dbg = debug('apm:common:models:PackageBase:serializeDeps');
+
+        // Indicate that we are serializing the deps
+        dbg(`Serializing deps: ${JSON.stringify(Object.fromEntries(deps))}`);
+
+        // Create an array from the entries
+        const depsArray = Array.from(deps.entries());
+
+        // Sort the array based on the keys
+        depsArray.sort((a, b) => a[0].localeCompare(b[0]));
+
+        // Create a string of the dependencies
+        let result = '';
+
+        // For each dependency, add it to the string
+        for (const [name, version] of depsArray) {
+            result += `${name} ${version}\n`;
+        }
+
+        // Indicate that we have serialized the deps
+        dbg(`Serialized deps: ${result}`);
+
+        // Return the string
+        return result;
+    }
 }
 
 class Draft extends PackageBase {
@@ -222,8 +250,7 @@ class Package extends PackageBase {
         const payload = this.getPayload();
 
         // Serialize the dependencies
-        const depsArray = Array.from(deps.entries());
-        const depsSerialized = JSON.stringify(depsArray);
+        const depsSerialized = PackageBase.serializeDeps(deps);
 
         // Define the offsets
         const depsOffset = name.length;
@@ -233,22 +260,22 @@ class Package extends PackageBase {
         const headerLength = name.length + depsSerialized.length;
         const footerLength = 8;
 
-        // Construct the buffer
-        const buffer = Buffer.alloc(headerLength + payload.length + footerLength);
+        // Construct the binary
+        const binary = Buffer.alloc(headerLength + payload.length + footerLength);
 
         // Write the header
-        buffer.write(name, 0);
-        buffer.write(depsSerialized, depsOffset);
+        binary.write(name, 0);
+        binary.write(depsSerialized, depsOffset);
 
         // Write the payload
-        payload.copy(buffer, payloadOffset);
+        payload.copy(binary, payloadOffset);
 
         // Write the footer
-        buffer.writeUInt32LE(depsOffset, buffer.length - 4);
-        buffer.writeUInt32LE(payloadOffset, buffer.length - 8);
+        binary.writeUInt32LE(depsOffset, binary.length - 4);
+        binary.writeUInt32LE(payloadOffset, binary.length - 8);
 
-        // Write the buffer to the file
-        fs.writeFileSync(outPath, buffer);
+        // Write the binary to the file
+        fs.writeFileSync(outPath, binary);
     }
 
     // Tar in-memory

@@ -35,7 +35,7 @@ class Registry {
         dbg(`Package exists`);
 
         // Return the package
-        return await Package.fromFile(name, version, filePath);
+        return await Package.load(filePath);
     }
 
     // Add a package to the registry

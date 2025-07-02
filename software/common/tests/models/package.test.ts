@@ -17,15 +17,11 @@ describe('models/package', () => {
     });
 
     it('Package.fromFile() should throw PackageNotFoundError if the path does not exist', () => {
-        const pkgName = 'name';
-        const pkgVersion = 'version';
-        const pkgPath = path.join(tmpRegistryPath, `${pkgName}.${pkgVersion}.tar`);
-        expect(() => Package.fromFile(pkgName, pkgVersion, pkgPath)).toThrow(PackageNotFoundError);
+        const pkgPath = path.join(tmpRegistryPath, 'does-not-exist.tar');
+        expect(() => Package.load(pkgPath)).toThrow(PackageNotFoundError);
     });
 
     it('Package.fromFile() should throw PackageNotFoundError if the path is a directory', () => {
-        const pkgName = 'name';
-        const pkgVersion = 'version';
         const dirPath = path.join(tmpRegistryPath, 'dir');
 
         // Create the directory
@@ -35,7 +31,7 @@ describe('models/package', () => {
         expect(fs.existsSync(dirPath)).toBe(true);
 
         // Expect the package to not be found
-        expect(() => Package.fromFile(pkgName, pkgVersion, dirPath)).toThrow(PackageNotFoundError);
+        expect(() => Package.load(dirPath)).toThrow(PackageNotFoundError);
     });
 
     it('Package.fromFile() should return a Package object if the package exists', () => {
