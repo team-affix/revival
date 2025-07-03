@@ -30,7 +30,7 @@ abstract class PackageBase {
     }
 
     // Parse the dependencies given a raw dependencies file
-    static parseDeps(raw: string): Map<string, string> {
+    protected static parseDeps(raw: string): Map<string, string> {
         // Get the debuggers
         const dbg = debug('apm:common:models:PackageBase:parseDeps');
 
@@ -67,7 +67,7 @@ abstract class PackageBase {
         return result;
     }
 
-    static serializeDeps(deps: Map<string, string>): string {
+    protected static serializeDeps(deps: Map<string, string>): string {
         // Get the debuggers
         const dbg = debug('apm:common:models:PackageBase:serializeDeps');
 
@@ -297,7 +297,8 @@ class Package extends PackageBase {
     // Extract the package to a destination directory
     extract(dest: string): void {}
 
-    static computeBinary(name: string, deps: Map<string, string>, payload: Buffer): Buffer {
+    // Compute the binary
+    private static computeBinary(name: string, deps: Map<string, string>, payload: Buffer): Buffer {
         // Get the debugger
         const dbg = debug('apm:common:models:Package:computeBinary');
 
@@ -333,7 +334,8 @@ class Package extends PackageBase {
         return binary;
     }
 
-    static computeVersion(binary: Buffer): string {
+    // Compute the version of the package
+    private static computeVersion(binary: Buffer): string {
         // Get the debugger
         const dbg = debug('apm:common:models:Package:computeVersion');
 
