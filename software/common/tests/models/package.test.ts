@@ -408,7 +408,7 @@ describe('models/package', () => {
         });
     });
 
-    describe('Package.packTar()', () => {
+    describe('Package.packTar() and Package.extractTar()', () => {
         const packDir = path.join(os.tmpdir(), 'apm-pack-tar-tmp-dir');
         const extractDir = path.join(os.tmpdir(), 'apm-extract-tar-tmp-dir');
 
