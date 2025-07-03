@@ -277,7 +277,7 @@ class Package extends PackageBase {
     extract(dest: string): void {}
 
     // Serialize the dependencies to be written to the binary
-    protected static serializeDeps(deps: Map<string, string>): string {
+    private static serializeDeps(deps: Map<string, string>): string {
         // Get the debuggers
         const dbg = debug('apm:common:models:PackageBase:serializeDeps');
 
@@ -295,7 +295,7 @@ class Package extends PackageBase {
     }
 
     // Deserialize the dependencies region from the binary
-    protected static deserializeDeps(deps: string): Map<string, string> {
+    private static deserializeDeps(deps: string): Map<string, string> {
         // Get the debuggers
         const dbg = debug('apm:common:models:PackageBase:deserializeDeps');
 
