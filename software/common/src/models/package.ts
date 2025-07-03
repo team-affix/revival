@@ -2,10 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import debug from 'debug';
 import tarStream from 'tar-stream';
-// import tar from 'tar';
+import tarFs from 'tar-fs';
 import glob from 'glob';
 import crypto from 'crypto';
-import { Readable } from 'stream';
+import { Readable, Writable, pipeline } from 'stream';
+import { promisify } from 'util';
 import PackageAlreadyExistsError from '../errors/package-already-exists';
 import InvalidPackageError from '../errors/invalid-package';
 import PackageCreationError from '../errors/package-creation';
@@ -13,6 +14,9 @@ import PackageNotFoundError from '../errors/package-not-found';
 import FailedToParseDepsError from '../errors/failed-to-parse-deps';
 import VersionMismatchError from '../errors/version-mismatch';
 import FailedToDeserializeDepsError from '../errors/failed-to-deserialize-deps';
+
+// Utility function for async pipeline
+const pipelineAsync = promisify(pipeline);
 
 abstract class PackageBase {
     // Constructs a package base
@@ -238,7 +242,7 @@ class Package extends PackageBase {
         dbg(`Files: ${JSON.stringify(files)}`);
 
         // Construct the tar binary
-        const payload = await Package.createTar(srcDir, files);
+        const payload = await Package.packTar(srcDir, files);
 
         // Indicate the payload
         dbg(`Payload length: ${payload.length}`);
@@ -377,36 +381,34 @@ class Package extends PackageBase {
     }
 
     // Tar in-memory
-    private static async createTar(basePath: string, files: string[]): Promise<Buffer> {
-        return new Promise((resolve, reject) => {
-            const pack = tarStream.pack();
+    private static async packTar(basePath: string, files: string[]): Promise<Buffer> {
+        // return new Promise((resolve, reject) => {
+        //     const pack = tarStream.pack();
+        //     const chunks: Buffer[] = [];
+        //     for (const file of files) {
+        //         pack.entry({ name: file }, fs.readFileSync(path.join(basePath, file)));
+        //     }
+        //     pack.finalize();
+        //     pack.on('data', (chunk) => chunks.push(chunk));
+        //     pack.on('end', () => resolve(Buffer.concat(chunks)));
+        // });
+        // Change current directory to the base path
+
+        // Use tar-fs to create the pack stream
+        const result = await tarFs.pack(basePath, { entries: files });
+
+        // Pipe the stream contents to a buffer
+        return new Promise<Buffer>((resolve, reject) => {
             const chunks: Buffer[] = [];
-            for (const file of files) {
-                pack.entry({ name: file }, fs.readFileSync(path.join(basePath, file)));
-            }
-            pack.finalize();
-            pack.on('data', (chunk) => chunks.push(chunk));
-            pack.on('end', () => resolve(Buffer.concat(chunks)));
+            result.on('data', (chunk) => chunks.push(chunk));
+            result.on('end', () => resolve(Buffer.concat(chunks)));
         });
     }
 
-    // private static async extractTar(tar: Buffer, cwd: string): Promise<void> {
-    //     return new Promise((resolve, reject) => {
-    //         const extract = tarStream.extract();
-    //         const chunks: Buffer[] = [];
-    //         extract.on('entry', (header, stream, next) => {
-    //             // Ensure the parent directory exists
-    //             fs.mkdirSync(path.join(cwd, header.name), { recursive: true });
-    //             // Create a write stream
-    //             const writeStream = fs.createWriteStream(dest);
-    //             // Pipe the stream
-    //             stream.pipe(writeStream);
-    //             // Call the next function
-    //             stream.on('end', next);
-    //         });
-    //         extract.on('finish', () => resolve());
-    //     });
-    // }
+    // Extract a tar
+    private static async extractTar(tar: Buffer, cwd: string): Promise<void> {
+        return await pipelineAsync(Readable.from(tar), tarFs.extract(cwd));
+    }
 }
 
 export { PackageBase, Draft, Package };
