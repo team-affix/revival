@@ -4,8 +4,8 @@
     "main": "./dist/index.js",
     "scripts": {
         "build": "tsc",
-        "test": "jest",
-        "test:watch": "jest --watch",
+        "test": "jest --verbose",
+        "test:watch": "jest --watch --verbose",
         "lint": "eslint src tests",
         "dist": "npm pack && cp common-1.0.0.tgz ../server/lambda/push/function/common-1.0.0.tgz"
     },
