@@ -115,6 +115,104 @@ describe('models/package', () => {
         });
     });
 
+    describe('Package.serializeDeps()', () => {
+        it('should serialize with zero entries', () => {
+            const deps = new Map();
+            const serialized = (Package as any).serializeDeps(deps);
+            expect(serialized).toBe('{}');
+        });
+
+        it('should serialize with one entry', () => {
+            const deps = new Map([['dep0', 'ver0']]);
+            const serialized = (Package as any).serializeDeps(deps);
+            expect(serialized).toBe('{"dep0":"ver0"}');
+        });
+
+        it('should serialize correctly with 2 entries', () => {
+            const deps = new Map([
+                ['dep0', 'ver0'],
+                ['dep1', 'ver1'],
+            ]);
+            const serialized = (Package as any).serializeDeps(deps);
+            expect(serialized).toBe('{"dep0":"ver0","dep1":"ver1"}');
+        });
+
+        it('should serialize correctly with many entries', () => {
+            const deps = new Map([
+                ['dep0', 'ver0'],
+                ['dep1', 'ver1'],
+                ['dep2', 'ver2'],
+                ['dep3', 'ver3'],
+                ['dep4', 'ver4'],
+                ['dep5', 'ver5'],
+                ['dep6', 'ver6'],
+                ['dep7', 'ver7'],
+                ['dep8', 'ver8'],
+                ['dep9', 'ver9'],
+                ['dep10', 'ver10'],
+                ['dep11', 'ver11'],
+                ['dep12', 'ver12'],
+                ['dep13', 'ver13'],
+                ['dep14', 'ver14'],
+                ['dep15', 'ver15'],
+            ]);
+
+            const serialized = (Package as any).serializeDeps(deps);
+            expect(serialized).toBe(
+                '{"dep0":"ver0","dep1":"ver1","dep2":"ver2","dep3":"ver3","dep4":"ver4","dep5":"ver5","dep6":"ver6","dep7":"ver7","dep8":"ver8","dep9":"ver9","dep10":"ver10","dep11":"ver11","dep12":"ver12","dep13":"ver13","dep14":"ver14","dep15":"ver15"}',
+            );
+        });
+    });
+
+    describe('Package.deserializeDeps()', () => {
+        describe('success cases', () => {
+            it('should deserialize correctly with zero entries', () => {
+                const serialized = '{}';
+                const deps = (Package as any).deserializeDeps(serialized);
+                expect(deps).toEqual(new Map());
+            });
+
+            it('should deserialize correctly with one entry', () => {
+                const serialized = '{"dep0":"ver0"}';
+                const deps = (Package as any).deserializeDeps(serialized);
+                expect(deps).toEqual(new Map([['dep0', 'ver0']]));
+            });
+
+            it('should deserialize correctly with many entries', () => {
+                const serialized =
+                    '{"dep0":"ver0","dep1":"ver1","dep2":"ver2","dep3":"ver3","dep4":"ver4","dep5":"ver5","dep6":"ver6","dep7":"ver7","dep8":"ver8","dep9":"ver9","dep10":"ver10","dep11":"ver11","dep12":"ver12","dep13":"ver13","dep14":"ver14","dep15":"ver15"}';
+                const deps = (Package as any).deserializeDeps(serialized);
+                expect(deps).toEqual(
+                    new Map([
+                        ['dep0', 'ver0'],
+                        ['dep1', 'ver1'],
+                        ['dep2', 'ver2'],
+                        ['dep3', 'ver3'],
+                        ['dep4', 'ver4'],
+                        ['dep5', 'ver5'],
+                        ['dep6', 'ver6'],
+                        ['dep7', 'ver7'],
+                        ['dep8', 'ver8'],
+                        ['dep9', 'ver9'],
+                        ['dep10', 'ver10'],
+                        ['dep11', 'ver11'],
+                        ['dep12', 'ver12'],
+                        ['dep13', 'ver13'],
+                        ['dep14', 'ver14'],
+                        ['dep15', 'ver15'],
+                    ]),
+                );
+            });
+        });
+
+        describe('failure cases', () => {
+            it('should throw a FailedToDeserializeDepsError if the string is empty', () => {
+                const serialized = '';
+                expect(() => (Package as any).deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+            });
+        });
+    });
+
     describe('Package.load()', () => {
         const tmpRegistryPath = path.join(os.tmpdir(), 'tmp-registry');
 

@@ -11,6 +11,7 @@ import PackageCreationError from '../errors/package-creation';
 import PackageNotFoundError from '../errors/package-not-found';
 import FailedToParseDepsError from '../errors/failed-to-parse-deps';
 import VersionMismatchError from '../errors/version-mismatch';
+import FailedToDeserializeDepsError from '../errors/failed-to-deserialize-deps';
 
 abstract class PackageBase {
     // Constructs a package base
@@ -302,7 +303,15 @@ class Package extends PackageBase {
         dbg(`Deserializing deps: ${deps}`);
 
         // Parse the dependencies
-        const result = new Map<string, string>(Object.entries(JSON.parse(deps)));
+        let result: Map<string, string>;
+
+        // Attempt to deserialize the deps
+        try {
+            result = new Map<string, string>(Object.entries(JSON.parse(deps)));
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : 'Unknown error';
+            throw new FailedToDeserializeDepsError(deps, msg);
+        }
 
         // Indicate that we have deserialized the deps
         dbg(`Deserialized deps: ${JSON.stringify(Object.fromEntries(result))}`);
