@@ -6,6 +6,7 @@ import { expect, describe, it, beforeEach } from '@jest/globals';
 import { Package, Draft, PackageBase } from '../../src/models/package';
 import PackageNotFoundError from '../../src/errors/package-not-found';
 import FailedToParseDepsError from '../../src/errors/failed-to-parse-deps';
+import FailedToDeserializeDepsError from '../../src/errors/failed-to-deserialize-deps';
 
 describe('models/package', () => {
     describe('Draft.parseDeps()', () => {
@@ -208,6 +209,26 @@ describe('models/package', () => {
         describe('failure cases', () => {
             it('should throw a FailedToDeserializeDepsError if the string is empty', () => {
                 const serialized = '';
+                expect(() => (Package as any).deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+            });
+
+            it('should throw a FailedToDeserializeDepsError if the string is not valid JSON', () => {
+                const serialized = 'invalid';
+                expect(() => (Package as any).deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+            });
+
+            it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing a closing brace)', () => {
+                const serialized = '{"dep0":"ver0"';
+                expect(() => (Package as any).deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+            });
+
+            it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing an opening brace)', () => {
+                const serialized = '"dep0":"ver0"}';
+                expect(() => (Package as any).deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+            });
+
+            it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing a colon)', () => {
+                const serialized = '{"dep0" "ver0"}';
                 expect(() => (Package as any).deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
         });
