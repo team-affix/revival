@@ -47,10 +47,16 @@ abstract class PackageBase {
         // For each line, parse the line and add the tuple to the map
         for (const line of depsLines) {
             // Parse the line
-            const [name, version] = line.split(' ');
+            const [name, version, extra] = line.split(' ');
 
-            // If the line is empty, break
-            if (!name) break;
+            // If there are more than two parts, throw an error
+            if (extra)
+                throw new FailedToParseDepsError(
+                    `Error parsing line, expected 2 space-separated parts, got 3: ${line}`,
+                );
+
+            // If the line is empty, continue
+            if (!name) continue;
 
             // If the name can be parsed, but the version or domain cannot, throw an error
             if (!version) throw new FailedToParseDepsError(`Error parsing line: ${line}`);

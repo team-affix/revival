@@ -6,13 +6,15 @@ import { expect, describe, it, beforeEach } from '@jest/globals';
 import Package from '../../src/models/package';
 import PackageNotFoundError from '../../src/errors/package-not-found';
 import PackageBase from '../../src/models/package';
+import FailedToParseDeps from '../../src/errors/failed-to-parse-deps';
+import FailedToParseDepsError from '../../src/errors/failed-to-parse-deps';
 
 describe('models/package', () => {
     const tmpRegistryPath = path.join(os.tmpdir(), 'tmp-registry');
 
     const getExampleBinary = (pkgName: string, deps: Map<string, string>, payload: Buffer) => {
         // Serialize the dependencies
-        const depsSerialized = PackageBase.serializeDeps(deps);
+        const depsSerialized = (PackageBase as any).serializeDeps(deps);
 
         // Construct the header
         const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
@@ -36,6 +38,118 @@ describe('models/package', () => {
 
         // Create the temporary registry
         fs.mkdirSync(tmpRegistryPath, { recursive: true });
+    });
+
+    describe('parseDeps()', () => {
+        describe('success cases', () => {
+            it('should parse as an empty map if the string is empty', () => {
+                const raw = '';
+                const deps = (PackageBase as any).parseDeps(raw);
+                expect(deps).toEqual(new Map());
+            });
+
+            it('should parse correctly with one dependency', () => {
+                const raw = 'dep0 ver0';
+                const deps = (PackageBase as any).parseDeps(raw);
+                expect(deps).toEqual(new Map([['dep0', 'ver0']]));
+            });
+
+            it('should parse correctly with two dependencies', () => {
+                const raw = 'dep0 ver0\ndep1 ver1';
+                const deps = (PackageBase as any).parseDeps(raw);
+                expect(deps).toEqual(
+                    new Map([
+                        ['dep0', 'ver0'],
+                        ['dep1', 'ver1'],
+                    ]),
+                );
+            });
+
+            it('should parse correctly with many dependencies', () => {
+                const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2\ndep3 ver3\ndep4 ver4\ndep5 ver5';
+                const deps = (PackageBase as any).parseDeps(raw);
+                expect(deps).toEqual(
+                    new Map([
+                        ['dep0', 'ver0'],
+                        ['dep1', 'ver1'],
+                        ['dep2', 'ver2'],
+                        ['dep3', 'ver3'],
+                        ['dep4', 'ver4'],
+                        ['dep5', 'ver5'],
+                    ]),
+                );
+            });
+
+            it('should successfully parse if the string contains any redundant newlines', () => {
+                const raw = 'dep0 ver0\n\ndep1 ver1';
+                const deps = (PackageBase as any).parseDeps(raw);
+                expect(deps).toEqual(
+                    new Map([
+                        ['dep0', 'ver0'],
+                        ['dep1', 'ver1'],
+                    ]),
+                );
+            });
+
+            it('should successfully parse if the string contains any redundant newlines', () => {
+                const raw = 'dep0 ver0\n\n\ndep1 ver1\n\n\n\ndep2 ver2\n\n\n';
+                const deps = (PackageBase as any).parseDeps(raw);
+                expect(deps).toEqual(
+                    new Map([
+                        ['dep0', 'ver0'],
+                        ['dep1', 'ver1'],
+                        ['dep2', 'ver2'],
+                    ]),
+                );
+            });
+        });
+
+        describe('failure cases', () => {
+            it('should throw a FailedToParseDepsError if the string contains just a package name', () => {
+                const raw = 'dep0';
+                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+            });
+
+            it('should throw a FailedToParseDepsError if the string contains any invalid dependencies', () => {
+                const raw = 'dep0 ver0\ndep1';
+                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+            });
+
+            it('should throw a FailedToParseDepsError if the string contains only duplicate dependencies', () => {
+                const raw = 'dep0 ver0\ndep0 ver1';
+                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+            });
+
+            it('should throw a FailedToParseDepsError if the string contains any duplicate dependencies', () => {
+                const raw = 'dep0 ver0\ndep1 ver1\ndep0 ver2';
+                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+            });
+
+            it('should throw a FailedToParseDepsError if the string contains any invalid lines', () => {
+                const raw = 'dep0 ver0 etc\n';
+                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+            });
+
+            it('should throw a FailedToParseDepsError if the string contains any invalid lines', () => {
+                const raw = 'dep0 ver0 etc\n';
+                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+            });
+
+            it('should throw a FailedToParseDepsError if the string contains any lines with more than two parts', () => {
+                const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2 etc\ndep3 ver3';
+                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+            });
+
+            it('should throw a FailedToParseDepsError if the any lines start with a space', () => {
+                const raw = ' dep0 ver0';
+                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+            });
+
+            it('should throw a FailedToParseDepsError if the any lines start with a space', () => {
+                const raw = 'dep0 ver0\n dep1 ver1\ndep2 ver2';
+                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+            });
+        });
     });
 
     it('Package.fromFile() should throw PackageNotFoundError if the path does not exist', () => {
@@ -79,7 +193,7 @@ describe('models/package', () => {
         const payload = Buffer.from([0xff]);
 
         // Serialize the dependencies
-        const depsSerialized = PackageBase.serializeDeps(deps);
+        const depsSerialized = (PackageBase as any).serializeDeps(deps);
 
         // Construct the header
         const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
@@ -98,7 +212,7 @@ describe('models/package', () => {
         dbg(`Binary: ${binary.toString('hex')}`);
 
         // Get the version of the package
-        const version = Package.computeVersion(binary);
+        const version = (Package as any).computeVersion(binary);
 
         // Print the version
         dbg(`Version: ${version}`);
@@ -136,7 +250,7 @@ describe('models/package', () => {
         const payload = Buffer.from([0xff]);
 
         // Serialize the dependencies
-        const depsSerialized = PackageBase.serializeDeps(deps);
+        const depsSerialized = (PackageBase as any).serializeDeps(deps);
 
         // Construct the header
         const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
@@ -155,7 +269,7 @@ describe('models/package', () => {
         dbg(`Binary: ${binary.toString('hex')}`);
 
         // Get the version of the package
-        const version = Package.computeVersion(binary);
+        const version = (Package as any).computeVersion(binary);
 
         // Print the version
         dbg(`Version: ${version}`);
@@ -247,7 +361,7 @@ describe('models/package', () => {
         const payload = Buffer.from([0xff]);
 
         // Serialize the dependencies
-        const depsSerialized = PackageBase.serializeDeps(deps);
+        const depsSerialized = (PackageBase as any).serializeDeps(deps);
 
         // Construct the header
         const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
@@ -266,7 +380,7 @@ describe('models/package', () => {
         dbg(`Binary: ${binary.toString('hex')}`);
 
         // Get the version of the package
-        const version = Package.computeVersion(binary);
+        const version = (Package as any).computeVersion(binary);
 
         // Print the version
         dbg(`Version: ${version}`);
