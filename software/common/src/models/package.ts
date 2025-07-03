@@ -5,6 +5,7 @@ import tarStream from 'tar-stream';
 // import tar from 'tar';
 import glob from 'glob';
 import crypto from 'crypto';
+import { Readable } from 'stream';
 import PackageAlreadyExistsError from '../errors/package-already-exists';
 import InvalidPackageError from '../errors/invalid-package';
 import PackageCreationError from '../errors/package-creation';
@@ -383,10 +384,29 @@ class Package extends PackageBase {
             for (const file of files) {
                 pack.entry({ name: file }, fs.readFileSync(path.join(basePath, file)));
             }
+            pack.finalize();
             pack.on('data', (chunk) => chunks.push(chunk));
             pack.on('end', () => resolve(Buffer.concat(chunks)));
         });
     }
+
+    // private static async extractTar(tar: Buffer, cwd: string): Promise<void> {
+    //     return new Promise((resolve, reject) => {
+    //         const extract = tarStream.extract();
+    //         const chunks: Buffer[] = [];
+    //         extract.on('entry', (header, stream, next) => {
+    //             // Ensure the parent directory exists
+    //             fs.mkdirSync(path.join(cwd, header.name), { recursive: true });
+    //             // Create a write stream
+    //             const writeStream = fs.createWriteStream(dest);
+    //             // Pipe the stream
+    //             stream.pipe(writeStream);
+    //             // Call the next function
+    //             stream.on('end', next);
+    //         });
+    //         extract.on('finish', () => resolve());
+    //     });
+    // }
 }
 
 export { PackageBase, Draft, Package };
