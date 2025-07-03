@@ -234,6 +234,148 @@ describe('models/package', () => {
         });
     });
 
+    describe('Package.computeBinary()', () => {
+        const produceDesiredBinary = (name: string, deps: Map<string, string>, payload: Buffer) => {
+            // Computed values
+            const depsOffset = name.length;
+            const depsSerialized = (Package as any).serializeDeps(deps);
+            const payloadOffset = depsOffset + depsSerialized.length;
+            const footer = Buffer.alloc(8);
+            footer.writeUInt32LE(depsOffset, 4);
+            footer.writeUint32LE(payloadOffset, 0);
+            const header = Buffer.concat([Buffer.from(name), Buffer.from(depsSerialized)]);
+
+            // Desired value
+            return Buffer.concat([header, payload, footer]);
+        };
+
+        describe('success cases', () => {
+            it('should compute the binary correctly for zero dependencies', () => {
+                const name = 'PKG';
+                const deps = new Map();
+                const payload = Buffer.from([0xff]);
+
+                // Compute the binary
+                const binary = (Package as any).computeBinary(name, deps, payload);
+
+                // Check the result
+                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+            });
+
+            it('should compute the binary correctly for one dependency', () => {
+                const name = 'PKG';
+                const deps = new Map([['dep0', 'ver0']]);
+                const payload = Buffer.from([0xff]);
+
+                // Compute the binary
+                const binary = (Package as any).computeBinary(name, deps, payload);
+
+                // Check the result
+                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+            });
+
+            it('should compute the binary correctly for empty name and zero dependenciess', () => {
+                const name = '';
+                const deps = new Map();
+                const payload = Buffer.from([0xff]);
+
+                // Compute the binary
+                const binary = (Package as any).computeBinary(name, deps, payload);
+
+                // Check the result
+                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+            });
+
+            it('should compute the binary correctly for empty name, zero dependencies, and large payload', () => {
+                const name = '';
+                const deps = new Map();
+                const payload = Buffer.alloc(1000);
+                payload.fill(0xff);
+
+                // Compute the binary
+                const binary = (Package as any).computeBinary(name, deps, payload);
+
+                // Check the result
+                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+            });
+
+            it('should compute the binary correctly for empty name, one dependency, and large payload', () => {
+                const name = '';
+                const deps = new Map([['dep0', 'ver0']]);
+                const payload = Buffer.alloc(1000);
+                payload.fill(0xff);
+
+                // Compute the binary
+                const binary = (Package as any).computeBinary(name, deps, payload);
+
+                // Check the result
+                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+            });
+
+            it('should compute the binary correctly for long name, one dependency, and large payload', () => {
+                const name = 'PKG_WITH_A_LONG_NAME_THAT_EXCEEDS_ALL_EXPECTATIONS_AND_THAT_IS_REALLY_LONG';
+                const deps = new Map([['dep0', 'ver0']]);
+                const payload = Buffer.alloc(1000);
+                payload.fill(0xff);
+
+                // Compute the binary
+                const binary = (Package as any).computeBinary(name, deps, payload);
+
+                // Check the result
+                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+            });
+
+            it('should compute the binary correctly for long name, many dependencies, and large payload', () => {
+                const name = 'PKG_WITH_A_LONG_NAME_THAT_EXCEEDS_ALL_EXPECTATIONS_AND_THAT_IS_REALLY_LONG';
+                const deps = new Map([
+                    ['dep0', 'ver0'],
+                    ['dep1', 'ver1'],
+                    ['dep2', 'ver2'],
+                    ['dep3', 'ver3'],
+                    ['dep4', 'ver4'],
+                    ['dep5', 'ver5'],
+                    ['dep6', 'ver6'],
+                    ['dep7', 'ver7'],
+                    ['dep8', 'ver8'],
+                    ['dep9', 'ver9'],
+                    ['dep10', 'ver10'],
+                    ['dep11', 'ver11'],
+                    ['dep12', 'ver12'],
+                    ['dep13', 'ver13'],
+                    ['dep14', 'ver14'],
+                    ['dep15', 'ver15'],
+                    ['dep16', 'ver16'],
+                    ['dep17', 'ver17'],
+                    ['dep18', 'ver18'],
+                    ['dep19', 'ver19'],
+                    ['dep20', 'ver20'],
+                    ['dep21', 'ver21'],
+                    ['dep22', 'ver22'],
+                    ['dep23', 'ver23'],
+                    ['dep24', 'ver24'],
+                    ['dep25', 'ver25'],
+                    ['dep26', 'ver26'],
+                    ['dep27', 'ver27'],
+                    ['dep28', 'ver28'],
+                    ['dep29', 'ver29'],
+                    ['dep30', 'ver30'],
+                    ['dep31', 'ver31'],
+                    ['dep32', 'ver32'],
+                    ['dep33', 'ver33'],
+                    ['dep34', 'ver34'],
+                ]);
+                const payload = Buffer.alloc(1000);
+                payload.fill(0xff);
+
+                // Compute the binary
+                const binary = (Package as any).computeBinary(name, deps, payload);
+
+                // Check the result
+                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+            });
+        });
+    });
+
     describe('Package.load()', () => {
         const tmpRegistryPath = path.join(os.tmpdir(), 'tmp-registry');
 
