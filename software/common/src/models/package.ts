@@ -98,7 +98,13 @@ abstract class PackageBase {
 
 class Draft extends PackageBase {
     // Constructs a draft
-    private constructor(name: string, deps: Map<string, string>) {
+    private constructor(
+        name: string,
+        deps: Map<string, string>,
+        private srcDir: string,
+        private agdaFiles: string[],
+        private mdFiles: string[],
+    ) {
         super(name, deps);
     }
 
@@ -122,6 +128,9 @@ class Draft extends PackageBase {
         // Indicate the path to the deps.txt file
         dbg(`DepsPath: ${depsPath}`);
 
+        if (!fs.existsSync(depsPath) || !fs.statSync(depsPath).isFile())
+            throw new FailedToParseDepsError(`deps.txt invalid or missing in ${dir}`);
+
         // Get the deps.txt file
         const depsRaw = fs.readFileSync(depsPath, 'utf8');
 
@@ -134,8 +143,35 @@ class Draft extends PackageBase {
         // Indicate the parsed dependencies
         dbg(`Deps: ${JSON.stringify(Object.fromEntries(deps))}`);
 
+        // Get a list of all agda files
+        const agdaFiles = glob.sync('**/*.agda', { cwd: dir, nodir: true });
+
+        // Indicate the agda files
+        dbg(`AgdaFiles: ${JSON.stringify(agdaFiles)}`);
+
+        // Get a list of all md files
+        const mdFiles = glob.sync('**/*.md', { cwd: dir, nodir: true });
+
+        // Indicate the md files
+        dbg(`MdFiles: ${JSON.stringify(mdFiles)}`);
+
         // Return the draft
-        return new Draft(name, deps);
+        return new Draft(name, deps, dir, agdaFiles, mdFiles);
+    }
+
+    // Get the source directory
+    getSrcDir(): string {
+        return this.srcDir;
+    }
+
+    // Get the agda files
+    getAgdaFiles(): string[] {
+        return this.agdaFiles;
+    }
+
+    // Get the md files
+    getMdFiles(): string[] {
+        return this.mdFiles;
     }
 }
 
@@ -144,6 +180,7 @@ class Package extends PackageBase {
     private constructor(
         name: string,
         deps: Map<string, string>,
+        private binary: Buffer,
         private payload: Buffer,
         private version: string,
     ) {
@@ -187,40 +224,67 @@ class Package extends PackageBase {
         const deps = PackageBase.parseDeps(depsRaw);
 
         // Return the package
-        return new Package(name, deps, payload, version);
+        return new Package(name, deps, binary, payload, version);
     }
 
-    // // Create a package from a draft
-    // static async fromDraft(draft: Draft): Promise<Package> {
-    //     // Get the name and version of the package
-    //     const name = path.basename(srcDir);
+    // Create a package from a draft
+    static async fromDraft(draft: Draft): Promise<Package> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:Package:fromDraft');
 
-    //     // Append the deps.txt file to the list using glob
-    //     const depsPath = path.join(srcDir, 'deps.txt');
+        // Get the name and version of the package
+        const name = draft.getName();
 
-    //     // Check that the deps.txt file is valid
-    //     if (!fs.existsSync(depsPath) || !fs.statSync(depsPath).isFile())
-    //         throw new PackageCreationError(srcDir, 'deps.txt invalid or missing');
+        // Get the dependencies of the package
+        const deps = draft.getDeps();
 
-    //     // Get a list of all agda files
-    //     const files = glob.sync('**/*.agda', { cwd: srcDir, nodir: true });
+        // Get the source directory
+        const srcDir = draft.getSrcDir();
 
-    //     dbg('Agda files (should be relative paths): ', files);
+        // Get the agda files
+        const agdaFiles = draft.getAgdaFiles();
 
-    //     // Add the deps.txt file to the list
-    //     files.push(depsPath);
+        // Get the md files
+        const mdFiles = draft.getMdFiles();
 
-    //     // Construct the tar binary
-    //     const binary = await Package.createTar(srcDir, files);
+        // Indicate the agda and md files
+        dbg(`AgdaFiles: ${JSON.stringify(agdaFiles)}`);
+        dbg(`MdFiles: ${JSON.stringify(mdFiles)}`);
 
-    //     // Get the hash of the package
-    //     const version = crypto.createHash('sha256').update(binary).digest('hex');
+        // Concatenate the agda and md files
+        const files = agdaFiles.concat(mdFiles);
 
-    //     // Create the package
-    //     return new Package(name, version, binary);
-    // }
+        // Indicate the files
+        dbg(`Files: ${JSON.stringify(files)}`);
+
+        // Construct the tar binary
+        const payload = await Package.createTar(srcDir, files);
+
+        // Indicate the payload
+        dbg(`Payload length: ${payload.length}`);
+
+        // Compute the binary
+        const binary = Package.computeBinary(name, deps, payload);
+
+        // Indicate the binary
+        dbg(`Binary length: ${binary.length}`);
+
+        // Get the hash of the package
+        const version = Package.computeVersion(binary);
+
+        // Indicate the version
+        dbg(`Version: ${version}`);
+
+        // Create the package
+        return new Package(name, deps, binary, payload, version);
+    }
 
     // Get the binary of the package
+    getBinary(): Buffer {
+        return this.binary;
+    }
+
+    // Get the payload of the package
     getPayload(): Buffer {
         return this.payload;
     }
@@ -233,22 +297,12 @@ class Package extends PackageBase {
     // Extract the package to a destination directory
     extract(dest: string): void {}
 
-    // Save the package
-    save(outPath: string): void {
+    static computeBinary(name: string, deps: Map<string, string>, payload: Buffer): Buffer {
         // Get the debugger
-        const dbg = debug('apm:common:models:Package:save');
+        const dbg = debug('apm:common:models:Package:computeBinary');
 
-        // Indicate that we are saving the package
-        dbg(`Saving package to ${outPath}`);
-
-        // Get the name of the package
-        const name = this.getName();
-
-        // Get the dependencies of the package
-        const deps = this.getDeps();
-
-        // Get the payload of the package
-        const payload = this.getPayload();
+        // Indicate that we are computing the binary
+        dbg(`Computing binary: ${name}, ${deps}, ${payload.length}`);
 
         // Serialize the dependencies
         const depsSerialized = PackageBase.serializeDeps(deps);
@@ -275,19 +329,8 @@ class Package extends PackageBase {
         binary.writeUInt32LE(depsOffset, binary.length - 4);
         binary.writeUInt32LE(payloadOffset, binary.length - 8);
 
-        // Compute the version of the package
-        const version = Package.computeVersion(binary);
-
-        // Check that the version is correct
-        if (version !== this.getVersion())
-            throw new VersionMismatchError(
-                this.getVersion(),
-                version,
-                'Version mismatch in package save: some nondeterministic serialization occurred',
-            );
-
-        // Write the binary to the file
-        fs.writeFileSync(outPath, binary);
+        // Return the binary
+        return binary;
     }
 
     static computeVersion(binary: Buffer): string {
