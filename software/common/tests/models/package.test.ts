@@ -451,7 +451,7 @@ describe('models/package', () => {
         });
 
         describe('success cases', () => {
-            it('should create a tar file correctly for zero files', async () => {
+            it('zero files', async () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>();
@@ -469,7 +469,7 @@ describe('models/package', () => {
                 assertFilesMatchExactly(fileEntries);
             });
 
-            it('should create a tar file correctly for a single file', async () => {
+            it('a single file', async () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>([['file.txt', 'Hello, world!']]);
@@ -487,7 +487,7 @@ describe('models/package', () => {
                 assertFilesMatchExactly(fileEntries);
             });
 
-            it('should create a tar file correctly for two files with different names', async () => {
+            it('two files with different names', async () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>([
@@ -508,7 +508,7 @@ describe('models/package', () => {
                 assertFilesMatchExactly(fileEntries);
             });
 
-            it('should create a tar file correctly for one file in a subdirectory', async () => {
+            it('one file in a subdirectory', async () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>([['subdir/file.txt', 'Hello, world!']]);
@@ -526,7 +526,7 @@ describe('models/package', () => {
                 assertFilesMatchExactly(fileEntries);
             });
 
-            it('should create a tar file correctly for two files in a subdirectory', async () => {
+            it('two files in a subdirectory', async () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>([
@@ -547,7 +547,7 @@ describe('models/package', () => {
                 assertFilesMatchExactly(fileEntries);
             });
 
-            it('should create a tar file correctly for two files, but only one is included in the tar', async () => {
+            it('two files, but only one is included in the tar', async () => {
                 // Create the file
 
                 writeFileInside('file1.txt', 'Hello, world!');
@@ -567,7 +567,7 @@ describe('models/package', () => {
                 assertFilesMatchExactly(fileEntries);
             });
 
-            it('should create a tar file correctly for two files with different contents', async () => {
+            it('two files with different contents', async () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>([
@@ -588,7 +588,7 @@ describe('models/package', () => {
                 assertFilesMatchExactly(fileEntries);
             });
 
-            it('should create a tar file correctly for two files with different extensions', async () => {
+            it('two files with different extensions', async () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>([
@@ -609,7 +609,7 @@ describe('models/package', () => {
                 assertFilesMatchExactly(fileEntries);
             });
 
-            it('should create a tar file correctly for files with unicode characters (specifically agda files)', async () => {
+            it('files with unicode characters (specifically agda files)', async () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
@@ -627,7 +627,7 @@ describe('models/package', () => {
                 assertFilesMatchExactly(fileEntries);
             });
 
-            it('should create a tar file correctly for two files in different directories', async () => {
+            it('two files in different directories', async () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>([
@@ -648,7 +648,7 @@ describe('models/package', () => {
                 assertFilesMatchExactly(fileEntries);
             });
 
-            it('should create a tar file correctly for a file in doubly-nested directories', async () => {
+            it('a file in doubly-nested directories', async () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>([['subdir1/subdir2/file.txt', 'Hello, world!']]);
@@ -666,7 +666,7 @@ describe('models/package', () => {
                 assertFilesMatchExactly(fileEntries);
             });
 
-            it('should create a tar file correctly for many files in different directories', async () => {
+            it('many files in different directories', async () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>([

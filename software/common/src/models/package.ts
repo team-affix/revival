@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import debug from 'debug';
-import tarStream from 'tar-stream';
 import tarFs from 'tar-fs';
 import glob from 'glob';
 import crypto from 'crypto';
