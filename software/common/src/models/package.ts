@@ -28,78 +28,6 @@ abstract class PackageBase {
     getDeps(): Map<string, string> {
         return this.deps;
     }
-
-    // Parse the dependencies given a raw dependencies file
-    protected static parseDeps(raw: string): Map<string, string> {
-        // Get the debuggers
-        const dbg = debug('apm:common:models:PackageBase:parseDeps');
-
-        // Indicate that we are parsing the deps
-        dbg(`Parsing deps: ${raw}`);
-
-        const depsLines = raw.split('\n');
-
-        dbg(`DepsLines: ${JSON.stringify(depsLines)}`);
-
-        // Create a map of (name,version) tuples
-        const result = new Map<string, string>();
-
-        // For each line, parse the line and add the tuple to the map
-        for (const line of depsLines) {
-            // Parse the line
-            const [name, version, extra] = line.split(' ');
-
-            // If there are more than two parts, throw an error
-            if (extra)
-                throw new FailedToParseDepsError(
-                    `Error parsing line, expected 2 space-separated parts, got 3: ${line}`,
-                );
-
-            // If the line is empty, continue
-            if (!name) continue;
-
-            // If the name can be parsed, but the version or domain cannot, throw an error
-            if (!version) throw new FailedToParseDepsError(`Error parsing line: ${line}`);
-
-            // If the package is already in the map, throw an error
-            if (result.has(name))
-                throw new FailedToParseDepsError(`Multiple versions of '${name}' listed in dependencies.`);
-
-            // Add the tuple to the map
-            result.set(name, version);
-        }
-
-        // Return the map
-        return result;
-    }
-
-    protected static serializeDeps(deps: Map<string, string>): string {
-        // Get the debuggers
-        const dbg = debug('apm:common:models:PackageBase:serializeDeps');
-
-        // Indicate that we are serializing the deps
-        dbg(`Serializing deps: ${JSON.stringify(Object.fromEntries(deps))}`);
-
-        // Create an array from the entries
-        const depsArray = Array.from(deps.entries());
-
-        // Sort the array based on the keys
-        depsArray.sort((a, b) => a[0].localeCompare(b[0]));
-
-        // Create a string of the dependencies
-        let result = '';
-
-        // For each dependency, add it to the string
-        for (const [name, version] of depsArray) {
-            result += `${name} ${version}\n`;
-        }
-
-        // Indicate that we have serialized the deps
-        dbg(`Serialized deps: ${result}`);
-
-        // Return the string
-        return result;
-    }
 }
 
 class Draft extends PackageBase {
@@ -144,7 +72,7 @@ class Draft extends PackageBase {
         dbg(`DepsRaw: ${depsRaw}`);
 
         // Parse the dependencies
-        const deps = PackageBase.parseDeps(depsRaw);
+        const deps = Draft.parseDeps(depsRaw);
 
         // Indicate the parsed dependencies
         dbg(`Deps: ${JSON.stringify(Object.fromEntries(deps))}`);
@@ -178,6 +106,50 @@ class Draft extends PackageBase {
     // Get the md files
     getMdFiles(): string[] {
         return this.mdFiles;
+    }
+
+    // Parse the dependencies given a raw dependencies file
+    private static parseDeps(raw: string): Map<string, string> {
+        // Get the debuggers
+        const dbg = debug('apm:common:models:PackageBase:parseDeps');
+
+        // Indicate that we are parsing the deps
+        dbg(`Parsing deps: ${raw}`);
+
+        const depsLines = raw.split('\n');
+
+        dbg(`DepsLines: ${JSON.stringify(depsLines)}`);
+
+        // Create a map of (name,version) tuples
+        const result = new Map<string, string>();
+
+        // For each line, parse the line and add the tuple to the map
+        for (const line of depsLines) {
+            // Parse the line
+            const [name, version, extra] = line.split(' ');
+
+            // If there are more than two parts, throw an error
+            if (extra)
+                throw new FailedToParseDepsError(
+                    `Error parsing line, expected 2 space-separated parts, got 3: ${line}`,
+                );
+
+            // If the line is empty, continue
+            if (!name) continue;
+
+            // If the name can be parsed, but the version or domain cannot, throw an error
+            if (!version) throw new FailedToParseDepsError(`Error parsing line: ${line}`);
+
+            // If the package is already in the map, throw an error
+            if (result.has(name))
+                throw new FailedToParseDepsError(`Multiple versions of '${name}' listed in dependencies.`);
+
+            // Add the tuple to the map
+            result.set(name, version);
+        }
+
+        // Return the map
+        return result;
     }
 }
 
@@ -227,7 +199,7 @@ class Package extends PackageBase {
         const payload = binary.subarray(payloadOffset, binary.length - footerLength);
 
         // Parse the dependencies
-        const deps = PackageBase.parseDeps(depsRaw);
+        const deps = Package.deserializeDeps(depsRaw);
 
         // Return the package
         return new Package(name, deps, binary, payload, version);
@@ -303,6 +275,42 @@ class Package extends PackageBase {
     // Extract the package to a destination directory
     extract(dest: string): void {}
 
+    // Serialize the dependencies to be written to the binary
+    protected static serializeDeps(deps: Map<string, string>): string {
+        // Get the debuggers
+        const dbg = debug('apm:common:models:PackageBase:serializeDeps');
+
+        // Indicate that we are serializing the deps
+        dbg(`Serializing deps: ${JSON.stringify(Object.fromEntries(deps))}`);
+
+        // Create an array from the entries
+        const result = JSON.stringify(Object.fromEntries(deps));
+
+        // Indicate that we have serialized the deps
+        dbg(`Serialized deps: ${result}`);
+
+        // Return the string
+        return result;
+    }
+
+    // Deserialize the dependencies region from the binary
+    protected static deserializeDeps(deps: string): Map<string, string> {
+        // Get the debuggers
+        const dbg = debug('apm:common:models:PackageBase:deserializeDeps');
+
+        // Indicate that we are deserializing the deps
+        dbg(`Deserializing deps: ${deps}`);
+
+        // Parse the dependencies
+        const result = new Map<string, string>(Object.entries(JSON.parse(deps)));
+
+        // Indicate that we have deserialized the deps
+        dbg(`Deserialized deps: ${JSON.stringify(Object.fromEntries(result))}`);
+
+        // Return the map
+        return result;
+    }
+
     // Compute the binary
     private static computeBinary(name: string, deps: Map<string, string>, payload: Buffer): Buffer {
         // Get the debugger
@@ -312,7 +320,7 @@ class Package extends PackageBase {
         dbg(`Computing binary: ${name}, ${deps}, ${payload.length}`);
 
         // Serialize the dependencies
-        const depsSerialized = PackageBase.serializeDeps(deps);
+        const depsSerialized = Package.serializeDeps(deps);
 
         // Define the offsets
         const depsOffset = name.length;
@@ -372,4 +380,4 @@ class Package extends PackageBase {
     }
 }
 
-export default Package;
+export { PackageBase, Draft, Package };

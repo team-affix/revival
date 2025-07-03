@@ -3,30 +3,28 @@ import os from 'os';
 import fs from 'fs';
 import debug from 'debug';
 import { expect, describe, it, beforeEach } from '@jest/globals';
-import Package from '../../src/models/package';
+import { Package, Draft, PackageBase } from '../../src/models/package';
 import PackageNotFoundError from '../../src/errors/package-not-found';
-import PackageBase from '../../src/models/package';
-import FailedToParseDeps from '../../src/errors/failed-to-parse-deps';
 import FailedToParseDepsError from '../../src/errors/failed-to-parse-deps';
 
 describe('models/package', () => {
-    describe('PackageBase.parseDeps()', () => {
+    describe('Draft.parseDeps()', () => {
         describe('success cases', () => {
             it('should parse as an empty map if the string is empty', () => {
                 const raw = '';
-                const deps = (PackageBase as any).parseDeps(raw);
+                const deps = (Draft as any).parseDeps(raw);
                 expect(deps).toEqual(new Map());
             });
 
             it('should parse correctly with one dependency', () => {
                 const raw = 'dep0 ver0';
-                const deps = (PackageBase as any).parseDeps(raw);
+                const deps = (Draft as any).parseDeps(raw);
                 expect(deps).toEqual(new Map([['dep0', 'ver0']]));
             });
 
             it('should parse correctly with two dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1';
-                const deps = (PackageBase as any).parseDeps(raw);
+                const deps = (Draft as any).parseDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -37,7 +35,7 @@ describe('models/package', () => {
 
             it('should parse correctly with many dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2\ndep3 ver3\ndep4 ver4\ndep5 ver5';
-                const deps = (PackageBase as any).parseDeps(raw);
+                const deps = (Draft as any).parseDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -52,7 +50,7 @@ describe('models/package', () => {
 
             it('should successfully parse if the string contains any redundant newlines', () => {
                 const raw = 'dep0 ver0\n\ndep1 ver1';
-                const deps = (PackageBase as any).parseDeps(raw);
+                const deps = (Draft as any).parseDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -63,7 +61,7 @@ describe('models/package', () => {
 
             it('should successfully parse if the string contains any redundant newlines', () => {
                 const raw = 'dep0 ver0\n\n\ndep1 ver1\n\n\n\ndep2 ver2\n\n\n';
-                const deps = (PackageBase as any).parseDeps(raw);
+                const deps = (Draft as any).parseDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -77,42 +75,42 @@ describe('models/package', () => {
         describe('failure cases', () => {
             it('should throw a FailedToParseDepsError if the string contains just a package name', () => {
                 const raw = 'dep0';
-                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any invalid dependencies', () => {
                 const raw = 'dep0 ver0\ndep1';
-                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains only duplicate dependencies', () => {
                 const raw = 'dep0 ver0\ndep0 ver1';
-                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any duplicate dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep0 ver2';
-                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains a single line with more than two parts', () => {
                 const raw = 'dep0 ver0 etc\n';
-                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any lines with more than two parts', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2 etc\ndep3 ver3';
-                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the only line starts with a space', () => {
                 const raw = ' dep0 ver0';
-                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if any lines start with a space', () => {
                 const raw = 'dep0 ver0\n dep1 ver1\ndep2 ver2';
-                expect(() => (PackageBase as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
         });
     });
@@ -151,7 +149,7 @@ describe('models/package', () => {
         describe('success cases', () => {
             it('Package.load() should return a Package object for simple package', () => {
                 // Get the debugger
-                const dbg = debug('apm:common:tests:models:package:load');
+                const dbg = debug('apm:common:tests:models:Package:load');
 
                 // Indicate that we are testing the package from file
                 dbg('Testing Package.load()');
@@ -172,7 +170,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Serialize the dependencies
-                const depsSerialized = (PackageBase as any).serializeDeps(deps);
+                const depsSerialized = (Package as any).serializeDeps(deps);
 
                 // Construct the header
                 const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
@@ -212,7 +210,7 @@ describe('models/package', () => {
 
             it('Package.load() should return a Package object for package with no dependencies', () => {
                 // Get the debugger
-                const dbg = debug('apm:common:tests:models:package:load');
+                const dbg = debug('apm:common:tests:models:Package:load');
 
                 // Indicate that we are testing the package from file
                 dbg('Testing Package.load()');
@@ -229,7 +227,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Serialize the dependencies
-                const depsSerialized = (PackageBase as any).serializeDeps(deps);
+                const depsSerialized = (Package as any).serializeDeps(deps);
 
                 // Construct the header
                 const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
@@ -269,7 +267,7 @@ describe('models/package', () => {
 
             it('Package.load() should return a Package object for package with many dependencies', () => {
                 // Get the debugger
-                const dbg = debug('apm:common:tests:models:package:load');
+                const dbg = debug('apm:common:tests:models:Package:load');
 
                 // Indicate that we are testing the package from file
                 dbg('Testing Package.load()');
@@ -340,7 +338,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Serialize the dependencies
-                const depsSerialized = (PackageBase as any).serializeDeps(deps);
+                const depsSerialized = (Package as any).serializeDeps(deps);
 
                 // Construct the header
                 const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
@@ -380,12 +378,12 @@ describe('models/package', () => {
         });
 
         describe('failure cases', () => {
-            it('Package.fromFile() should throw PackageNotFoundError if the path does not exist', () => {
+            it('Package.load() should throw PackageNotFoundError if the path does not exist', () => {
                 const pkgPath = path.join(tmpRegistryPath, 'does-not-exist.tar');
                 expect(() => Package.load(pkgPath)).toThrow(PackageNotFoundError);
             });
 
-            it('Package.fromFile() should throw PackageNotFoundError if the path is a directory', () => {
+            it('Package.load() should throw PackageNotFoundError if the path is a directory', () => {
                 const dirPath = path.join(tmpRegistryPath, 'dir');
 
                 // Create the directory

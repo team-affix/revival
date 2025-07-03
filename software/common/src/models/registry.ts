@@ -1,7 +1,7 @@
 import fs from 'fs';
 import debug from 'debug';
 import path from 'path';
-import Package from './package';
+import { Package } from './package';
 import RegistryNotFoundError from '../errors/registry-not-found';
 
 // Registry model
