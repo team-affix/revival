@@ -433,16 +433,11 @@ describe('models/package', () => {
         const assertFilesMatchExactly = (entries: Map<string, string>) => {
             for (const [relPath, content] of entries) assertFileInside(relPath, content);
             // Get the list of files in the extract directory using glob
-            const extractDirAbsFiles = glob
-                .sync('**/*', { cwd: extractDir, nodir: true })
-                .map((relPath) => path.join(extractDir, relPath))
-                .sort();
+            const extractDirRelFiles = glob.sync('**/*', { cwd: extractDir, nodir: true }).sort();
             // Get the list of files in the pack directory using glob
-            const expectedAbsFiles = Array.from(entries.keys())
-                .map((relPath) => path.join(extractDir, relPath))
-                .sort();
+            const expectedRelFiles = Array.from(entries.keys()).sort();
             // Assert that the list of files in the extract directory matches the list of files in the pack directory
-            expect(extractDirAbsFiles).toEqual(expectedAbsFiles);
+            expect(extractDirRelFiles).toEqual(expectedRelFiles);
         };
 
         beforeEach(() => {
@@ -517,6 +512,173 @@ describe('models/package', () => {
                 // Create the file
 
                 const fileEntries = new Map<string, string>([['subdir/file.txt', 'Hello, world!']]);
+
+                writeFilesInside(fileEntries);
+
+                const fileRelPaths: string[] = Array.from(fileEntries.keys());
+
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
+
+                expect(tar).toBeDefined();
+
+                await (Package as any).extractTar(tar, extractDir);
+
+                assertFilesMatchExactly(fileEntries);
+            });
+
+            it('should create a tar file correctly for two files in a subdirectory', async () => {
+                // Create the file
+
+                const fileEntries = new Map<string, string>([
+                    ['subdir/file1.txt', 'Hello, world!'],
+                    ['subdir/file2.txt', 'Hello, world!'],
+                ]);
+
+                writeFilesInside(fileEntries);
+
+                const fileRelPaths: string[] = Array.from(fileEntries.keys());
+
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
+
+                expect(tar).toBeDefined();
+
+                await (Package as any).extractTar(tar, extractDir);
+
+                assertFilesMatchExactly(fileEntries);
+            });
+
+            it('should create a tar file correctly for two files, but only one is included in the tar', async () => {
+                // Create the file
+
+                writeFileInside('file1.txt', 'Hello, world!');
+
+                const fileEntries = new Map<string, string>([['file2.txt', 'Hello, world!']]);
+
+                writeFilesInside(fileEntries);
+
+                const fileRelPaths: string[] = Array.from(fileEntries.keys());
+
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
+
+                expect(tar).toBeDefined();
+
+                await (Package as any).extractTar(tar, extractDir);
+
+                assertFilesMatchExactly(fileEntries);
+            });
+
+            it('should create a tar file correctly for two files with different contents', async () => {
+                // Create the file
+
+                const fileEntries = new Map<string, string>([
+                    ['file1.txt', 'My name is Jake'],
+                    ['file2.txt', 'My name is Adam'],
+                ]);
+
+                writeFilesInside(fileEntries);
+
+                const fileRelPaths: string[] = Array.from(fileEntries.keys());
+
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
+
+                expect(tar).toBeDefined();
+
+                await (Package as any).extractTar(tar, extractDir);
+
+                assertFilesMatchExactly(fileEntries);
+            });
+
+            it('should create a tar file correctly for two files with different extensions', async () => {
+                // Create the file
+
+                const fileEntries = new Map<string, string>([
+                    ['file1.md', 'My name is Jake'],
+                    ['file2.txt', 'My name is Adam'],
+                ]);
+
+                writeFilesInside(fileEntries);
+
+                const fileRelPaths: string[] = Array.from(fileEntries.keys());
+
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
+
+                expect(tar).toBeDefined();
+
+                await (Package as any).extractTar(tar, extractDir);
+
+                assertFilesMatchExactly(fileEntries);
+            });
+
+            it('should create a tar file correctly for files with unicode characters (specifically agda files)', async () => {
+                // Create the file
+
+                const fileEntries = new Map<string, string>([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
+
+                writeFilesInside(fileEntries);
+
+                const fileRelPaths: string[] = Array.from(fileEntries.keys());
+
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
+
+                expect(tar).toBeDefined();
+
+                await (Package as any).extractTar(tar, extractDir);
+
+                assertFilesMatchExactly(fileEntries);
+            });
+
+            it('should create a tar file correctly for two files in different directories', async () => {
+                // Create the file
+
+                const fileEntries = new Map<string, string>([
+                    ['subdir1/file1.txt', 'Hello, world1!'],
+                    ['subdir2/file2.txt', 'Hello, world2!'],
+                ]);
+
+                writeFilesInside(fileEntries);
+
+                const fileRelPaths: string[] = Array.from(fileEntries.keys());
+
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
+
+                expect(tar).toBeDefined();
+
+                await (Package as any).extractTar(tar, extractDir);
+
+                assertFilesMatchExactly(fileEntries);
+            });
+
+            it('should create a tar file correctly for a file in doubly-nested directories', async () => {
+                // Create the file
+
+                const fileEntries = new Map<string, string>([['subdir1/subdir2/file.txt', 'Hello, world!']]);
+
+                writeFilesInside(fileEntries);
+
+                const fileRelPaths: string[] = Array.from(fileEntries.keys());
+
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
+
+                expect(tar).toBeDefined();
+
+                await (Package as any).extractTar(tar, extractDir);
+
+                assertFilesMatchExactly(fileEntries);
+            });
+
+            it('should create a tar file correctly for many files in different directories', async () => {
+                // Create the file
+
+                const fileEntries = new Map<string, string>([
+                    ['subdir1/subdir2/file1.txt', 'Hello, world1!'],
+                    ['subdir1/subdir2/file2.txt', 'Hello, world2!'],
+                    ['subdir1/subdir2/file3.txt', 'Hello, world3!'],
+                    ['subdir1/file4.txt', 'Hello, world4!'],
+                    ['subdir1/file5.txt', 'Hello, world5!'],
+                    ['subdir1/subdir3/file6.txt', 'Hello, world6!'],
+                    ['subdir1/subdir4/file7.txt', 'Hello, world7!'],
+                    ['file8.txt', 'Hello, world8!'],
+                ]);
 
                 writeFilesInside(fileEntries);
 
