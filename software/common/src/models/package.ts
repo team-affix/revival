@@ -9,11 +9,11 @@ import { promisify } from 'util';
 import PackageAlreadyExistsError from '../errors/package-already-exists';
 import InvalidPackageError from '../errors/invalid-package';
 import PackageCreationError from '../errors/package-creation';
-import PackageNotFoundError from '../errors/package-not-found';
 import FailedToParseDepsError from '../errors/failed-to-parse-deps';
 import VersionMismatchError from '../errors/version-mismatch';
 import FailedToDeserializeDepsError from '../errors/failed-to-deserialize-deps';
 import DraftLoadError from '../errors/draft-load';
+import PackageLoadError from '../errors/package-load';
 
 // Utility function for async pipeline
 const pipelineAsync = promisify(pipeline);
@@ -184,7 +184,8 @@ class Package extends PackageBase {
         dbg(`Loading package from ${filePath}`);
 
         // Check if the package exists
-        if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) throw new PackageNotFoundError(filePath);
+        if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile())
+            throw new PackageLoadError(filePath, 'File does not exist or is not a file');
 
         // Indicate that we are reading the package
         dbg(`Reading package`);

@@ -5,10 +5,10 @@ import { glob } from 'glob';
 import debug from 'debug';
 import { expect, describe, it, beforeEach } from '@jest/globals';
 import { Package, Draft, PackageBase } from '../../src/models/package';
-import PackageNotFoundError from '../../src/errors/package-not-found';
 import FailedToParseDepsError from '../../src/errors/failed-to-parse-deps';
 import FailedToDeserializeDepsError from '../../src/errors/failed-to-deserialize-deps';
 import DraftLoadError from '../../src/errors/draft-load';
+import PackageLoadError from '../../src/errors/package-load';
 
 describe('models/package', () => {
     // HELPER FUNCTIONS
@@ -1515,9 +1515,9 @@ describe('models/package', () => {
         });
 
         describe('failure cases', () => {
-            it('Package.load() should throw PackageNotFoundError if the path does not exist', () => {
+            it('Package.load() should throw PackageLoadError if the path does not exist', () => {
                 const pkgPath = path.join(tmpRegistryPath, 'does-not-exist.tar');
-                expect(() => Package.load(pkgPath)).toThrow(PackageNotFoundError);
+                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
             });
 
             it('Package.load() should throw PackageNotFoundError if the path is a directory', () => {
@@ -1530,7 +1530,7 @@ describe('models/package', () => {
                 expect(fs.existsSync(dirPath)).toBe(true);
 
                 // Expect the package to not be found
-                expect(() => Package.load(dirPath)).toThrow(PackageNotFoundError);
+                expect(() => Package.load(dirPath)).toThrow(PackageLoadError);
             });
         });
     });
