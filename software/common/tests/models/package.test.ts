@@ -1344,27 +1344,15 @@ describe('models/package', () => {
         });
 
         describe('success cases', () => {
-            it('Package.load() should return a Package object for simple package', () => {
+            const genericTest = (pkgName: string, deps: Map<string, string>, payload: Buffer) => {
                 // Get the debugger
                 const dbg = debug('apm:common:tests:models:Package:load');
 
-                // Indicate that we are testing the package from file
-                dbg('Testing Package.load()');
-
-                const pkgName = 'name';
-
-                // Construct the dependencies
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                    ['dep2', '1.0.2'],
-                ]);
-
-                // Construct the payload (just a uint8)
-                const payload = Buffer.from([0xff]);
-
                 // Construct the package path
-                const pkgPath = path.join(tmpRegistryPath, `${pkgName}.apm`);
+                const pkgPath = path.join(tmpRegistryPath, `test.apm`);
+
+                // If the file already exists, remove it
+                if (fs.existsSync(pkgPath)) fs.unlinkSync(pkgPath);
 
                 // Create the binary
                 const binary = (Package as any).computeBinary(pkgName, deps, payload);
@@ -1390,149 +1378,85 @@ describe('models/package', () => {
                 expect(pkg.getDirectDeps()).toEqual(deps);
                 expect(pkg.getVersion()).toBe(version);
                 expect(pkg.getPayload()).toEqual(payload);
-            });
+            };
 
-            it('Package.load() should return a Package object for package with no dependencies', () => {
-                // Get the debugger
-                const dbg = debug('apm:common:tests:models:Package:load');
+            it('4-char name, 3 dependencies, 1-byte payload', () =>
+                genericTest(
+                    'name',
+                    new Map([
+                        ['dep0', '1.0.0'],
+                        ['dep1', '1.0.1'],
+                        ['dep2', '1.0.2'],
+                    ]),
+                    Buffer.from([0xff]),
+                ));
 
-                // Indicate that we are testing the package from file
-                dbg('Testing Package.load()');
+            it('no dependencies', () => genericTest('name', new Map(), Buffer.from([0xff])));
 
-                const pkgName = 'name';
+            it('many dependencies', () =>
+                genericTest(
+                    'name',
+                    new Map([
+                        ['dep0', '1.0.0'],
+                        ['dep1', '1.0.1'],
+                        ['dep2', '1.0.2'],
+                        ['dep3', '1.0.3'],
+                        ['dep4', '1.0.4'],
+                        ['dep5', '1.0.5'],
+                        ['dep6', '1.0.6'],
+                        ['dep7', '1.0.7'],
+                        ['dep8', '1.0.8'],
+                        ['dep9', '1.0.9'],
+                        ['dep10', '1.0.10'],
+                        ['dep11', '1.0.11'],
+                        ['dep12', '1.0.12'],
+                        ['dep13', '1.0.13'],
+                        ['dep14', '1.0.14'],
+                        ['dep15', '1.0.15'],
+                        ['dep16', '1.0.16'],
+                        ['dep17', '1.0.17'],
+                        ['dep18', '1.0.18'],
+                        ['dep19', '1.0.19'],
+                        ['dep20', '1.0.20'],
+                        ['dep21', '1.0.21'],
+                        ['dep22', '1.0.22'],
+                        ['dep23', '1.0.23'],
+                        ['dep24', '1.0.24'],
+                        ['dep25', '1.0.25'],
+                        ['dep26', '1.0.26'],
+                        ['dep27', '1.0.27'],
+                        ['dep28', '1.0.28'],
+                    ]),
+                    Buffer.from([0xff]),
+                ));
 
-                // Construct the dependencies
-                const deps = new Map();
+            it('no dependencies and a long name', () =>
+                genericTest('name'.repeat(100), new Map(), Buffer.from([0xff])));
 
-                // Construct the payload (just a uint8)
-                const payload = Buffer.from([0xff]);
+            it('no dependencies and a huge payload', () =>
+                genericTest('name', new Map(), Buffer.from(new Uint8Array(10000))));
 
-                // Construct the package path
-                const pkgPath = path.join(tmpRegistryPath, `${pkgName}.apm`);
-
-                // Create the binary
-                const binary = (Package as any).computeBinary(pkgName, deps, payload);
-
-                // Print the binary
-                dbg(`Binary: ${binary.toString('hex')}`);
-
-                // Get the version of the package
-                const version = (Package as any).computeVersion(binary);
-
-                // Print the version
-                dbg(`Version: ${version}`);
-
-                // Create the package file
-                fs.writeFileSync(pkgPath, binary);
-
-                // Find the package
-                const pkg = Package.load(pkgPath);
-
-                expect(pkg).toBeInstanceOf(Package);
-
-                expect(pkg.getName()).toBe(pkgName);
-                expect(pkg.getDirectDeps()).toEqual(deps);
-                expect(pkg.getVersion()).toBe(version);
-                expect(pkg.getPayload()).toEqual(payload);
-            });
-
-            it('Package.load() should return a Package object for package with many dependencies', () => {
-                // Get the debugger
-                const dbg = debug('apm:common:tests:models:Package:load');
-
-                // Indicate that we are testing the package from file
-                dbg('Testing Package.load()');
-
-                const pkgName = 'name';
-
-                // Construct the dependencies
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                    ['dep2', '1.0.2'],
-                    ['dep3', '1.0.3'],
-                    ['dep4', '1.0.4'],
-                    ['dep5', '1.0.5'],
-                    ['dep6', '1.0.6'],
-                    ['dep7', '1.0.7'],
-                    ['dep8', '1.0.8'],
-                    ['dep9', '1.0.9'],
-                    ['dep10', '1.0.10'],
-                    ['dep11', '1.0.11'],
-                    ['dep12', '1.0.12'],
-                    ['dep13', '1.0.13'],
-                    ['dep14', '1.0.14'],
-                    ['dep15', '1.0.15'],
-                    ['dep16', '1.0.16'],
-                    ['dep17', '1.0.17'],
-                    ['dep18', '1.0.18'],
-                    ['dep19', '1.0.19'],
-                    ['dep20', '1.0.20'],
-                    ['dep21', '1.0.21'],
-                    ['dep22', '1.0.22'],
-                    ['dep23', '1.0.23'],
-                    ['dep24', '1.0.24'],
-                    ['dep25', '1.0.25'],
-                    ['dep26', '1.0.26'],
-                    ['dep27', '1.0.27'],
-                    ['dep28', '1.0.28'],
-                    ['dep29', '1.0.29'],
-                    ['dep30', '1.0.30'],
-                    ['dep31', '1.0.31'],
-                    ['dep32', '1.0.32'],
-                    ['dep33', '1.0.33'],
-                    ['dep34', '1.0.34'],
-                    ['dep35', '1.0.35'],
-                    ['dep36', '1.0.36'],
-                    ['dep37', '1.0.37'],
-                    ['dep38', '1.0.38'],
-                    ['dep39', '1.0.39'],
-                    ['dep40', '1.0.40'],
-                    ['dep41', '1.0.41'],
-                    ['dep42', '1.0.42'],
-                    ['dep43', '1.0.43'],
-                    ['dep44', '1.0.44'],
-                    ['dep45', '1.0.45'],
-                    ['dep46', '1.0.46'],
-                    ['dep47', '1.0.47'],
-                    ['dep48', '1.0.48'],
-                    ['dep49', '1.0.49'],
-                    ['dep50', '1.0.50'],
-                    ['dep51', '1.0.51'],
-                    ['dep52', '1.0.52'],
-                ]);
-
-                // Construct the payload (just a uint8)
-                const payload = Buffer.from([0xff]);
-
-                // Create the binary
-                const binary = (Package as any).computeBinary(pkgName, deps, payload);
-
-                // Construct the package path
-                const pkgPath = path.join(tmpRegistryPath, `${pkgName}.apm`);
-
-                // Print the binary
-                dbg(`Binary: ${binary.toString('hex')}`);
-
-                // Get the version of the package
-                const version = (Package as any).computeVersion(binary);
-
-                // Print the version
-                dbg(`Version: ${version}`);
-
-                // Create the package file
-                fs.writeFileSync(pkgPath, binary);
-
-                // Find the package
-                const pkg = Package.load(pkgPath);
-
-                expect(pkg).toBeInstanceOf(Package);
-
-                expect(pkg.getName()).toBe(pkgName);
-                expect(pkg.getDirectDeps()).toEqual(deps);
-                expect(pkg.getVersion()).toBe(version);
-                expect(pkg.getPayload()).toEqual(payload);
-            });
+            it('long name, many dependencies and a huge payload', () =>
+                genericTest(
+                    'name'.repeat(100),
+                    new Map([
+                        ['dep0', '1.0.0'],
+                        ['dep1', '1.0.1'],
+                        ['dep2', '1.0.2'],
+                        ['dep3', '1.0.3'],
+                        ['dep4', '1.0.4'],
+                        ['dep5', '1.0.5'],
+                        ['dep6', '1.0.6'],
+                        ['dep7', '1.0.7'],
+                        ['dep8', '1.0.8'],
+                        ['dep9', '1.0.9'],
+                        ['dep10', '1.0.10'],
+                        ['dep11', '1.0.11'],
+                        ['dep12', '1.0.12'],
+                        ['dep13', '1.0.13'],
+                    ]),
+                    Buffer.from(new Uint8Array(10000)),
+                ));
         });
 
         describe('failure cases', () => {
@@ -1552,6 +1476,164 @@ describe('models/package', () => {
 
                 // Expect the package to not be found
                 expect(() => Package.load(dirPath)).toThrow(PackageLoadError);
+            });
+
+            it('Package.load() should throw PackageLoadError if the package is too short to contain a name length', () => {
+                const pkgPath = path.join(tmpRegistryPath, 'too-short-name-length.apm');
+
+                // Create the package file
+                fs.writeFileSync(pkgPath, Buffer.from([]));
+
+                // Expect the package to not be found
+                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+            });
+
+            it('Package.load() should throw PackageLoadError if the package name length is nonzero but the name is empty', () => {
+                const pkgPath = path.join(tmpRegistryPath, 'too-short-name.apm');
+
+                // Create binary
+                const chunks: Buffer[] = [];
+
+                // Add the name length
+                const nameLengthBuf = Buffer.alloc(4);
+                nameLengthBuf.writeUInt32LE(1, 0);
+                chunks.push(nameLengthBuf);
+
+                // Create the package file
+                fs.writeFileSync(pkgPath, Buffer.concat(chunks));
+            });
+
+            it('Package.load() should throw PackageLoadError if the package name is smaller than the designated name length', () => {
+                const pkgPath = path.join(tmpRegistryPath, 'too-short-name.apm');
+
+                // Create binary
+                const chunks: Buffer[] = [];
+
+                // Add the name length
+                const nameLengthBuf = Buffer.alloc(4);
+                nameLengthBuf.writeUInt32LE(5, 0);
+                chunks.push(nameLengthBuf);
+
+                // Add the name
+                const nameBuf = Buffer.from('name');
+                chunks.push(nameBuf);
+
+                // Create the package file
+                fs.writeFileSync(pkgPath, Buffer.concat(chunks));
+
+                // Expect the package to not be found
+                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+            });
+
+            it('Package.load() should throw PackageLoadError if the package dependencies length is missing', () => {
+                const pkgPath = path.join(tmpRegistryPath, 'missing-deps-length.apm');
+
+                // Create binary
+                const chunks: Buffer[] = [];
+
+                // Add the name length
+                const nameLengthBuf = Buffer.alloc(4);
+                nameLengthBuf.writeUInt32LE(4, 0);
+                chunks.push(nameLengthBuf);
+
+                // Add the name
+                const nameBuf = Buffer.from('name');
+                chunks.push(nameBuf);
+
+                // Create the package file
+                fs.writeFileSync(pkgPath, Buffer.concat(chunks));
+
+                // Expect the package to not be found
+                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+            });
+
+            it('Package.load() should throw PackageLoadError if the package dependencies are missing', () => {
+                const pkgPath = path.join(tmpRegistryPath, 'missing-deps.apm');
+
+                // Create binary
+                const chunks: Buffer[] = [];
+
+                // Add the name length
+                const nameLengthBuf = Buffer.alloc(4);
+                nameLengthBuf.writeUInt32LE(4, 0);
+                chunks.push(nameLengthBuf);
+
+                // Add the name
+                const nameBuf = Buffer.from('name');
+                chunks.push(nameBuf);
+
+                // Add the dependencies length
+                const depsLengthBuf = Buffer.alloc(4);
+                depsLengthBuf.writeUInt32LE(2, 0);
+                chunks.push(depsLengthBuf);
+
+                // Create the package file
+                fs.writeFileSync(pkgPath, Buffer.concat(chunks));
+
+                // Expect the package to not be found
+                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+            });
+
+            it('Package.load() should throw PackageLoadError if the package dependencies are smaller than the designated dependencies length', () => {
+                const pkgPath = path.join(tmpRegistryPath, 'too-short-deps.apm');
+
+                // Create binary
+                const chunks: Buffer[] = [];
+
+                // Add the name length
+                const nameLengthBuf = Buffer.alloc(4);
+                nameLengthBuf.writeUInt32LE(4, 0);
+                chunks.push(nameLengthBuf);
+
+                // Add the name
+                const nameBuf = Buffer.from('name');
+                chunks.push(nameBuf);
+
+                // Add the dependencies length
+                const depsLengthBuf = Buffer.alloc(4);
+                depsLengthBuf.writeUInt32LE(3, 0);
+                chunks.push(depsLengthBuf);
+
+                // Add the dependencies
+                const depsBuf = Buffer.from('{}');
+                chunks.push(depsBuf);
+
+                // Create the package file
+                fs.writeFileSync(pkgPath, Buffer.concat(chunks));
+
+                // Expect the package to not be found
+                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+            });
+
+            it('Package.load() should throw FailedToDeserializeDepsError if the package dependencies are not a valid JSON object', () => {
+                const pkgPath = path.join(tmpRegistryPath, 'invalid-deps.apm');
+
+                // Create binary
+                const chunks: Buffer[] = [];
+
+                // Add the name length
+                const nameLengthBuf = Buffer.alloc(4);
+                nameLengthBuf.writeUInt32LE(4, 0);
+                chunks.push(nameLengthBuf);
+
+                // Add the name
+                const nameBuf = Buffer.from('name');
+                chunks.push(nameBuf);
+
+                // Add the dependencies length
+                const depsLengthBuf = Buffer.alloc(4);
+                depsLengthBuf.writeUInt32LE(1, 0);
+                chunks.push(depsLengthBuf);
+
+                // Add the dependencies
+                const depsBuf = Buffer.from('{');
+                chunks.push(depsBuf);
+
+                // Create the package file
+                fs.writeFileSync(pkgPath, Buffer.concat(chunks));
+
+                // Expect the package to not be found
+                expect(() => Package.load(pkgPath)).toThrow(FailedToDeserializeDepsError);
             });
         });
     });

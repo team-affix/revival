@@ -203,18 +203,25 @@ class Package extends PackageBase {
         let offset = 0;
 
         // Get the name length from the header
+        if (binary.length < 4) throw new PackageLoadError(filePath, 'Package is too short to contain a name length');
         const nameLength = binary.readUInt32LE(offset);
         offset += 4;
 
         // Get the name from the header
+        if (binary.length < offset + nameLength)
+            throw new PackageLoadError(filePath, 'Package is too short to contain a name');
         const name = binary.subarray(offset, offset + nameLength).toString('utf8');
         offset += nameLength;
 
         // Get the dependencies length from the header
+        if (binary.length < offset + 4)
+            throw new PackageLoadError(filePath, 'Package is too short to contain a dependencies length');
         const depsLength = binary.readUInt32LE(offset);
         offset += 4;
 
         // Get the dependencies from the header
+        if (binary.length < offset + depsLength)
+            throw new PackageLoadError(filePath, 'Package is too short to contain dependencies');
         const depsRaw = binary.subarray(offset, offset + depsLength).toString('utf8');
         offset += depsLength;
 
