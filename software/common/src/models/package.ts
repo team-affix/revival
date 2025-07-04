@@ -13,6 +13,7 @@ import PackageNotFoundError from '../errors/package-not-found';
 import FailedToParseDepsError from '../errors/failed-to-parse-deps';
 import VersionMismatchError from '../errors/version-mismatch';
 import FailedToDeserializeDepsError from '../errors/failed-to-deserialize-deps';
+import DraftLoadError from '../errors/draft-load';
 
 // Utility function for async pipeline
 const pipelineAsync = promisify(pipeline);
@@ -55,6 +56,10 @@ class Draft extends PackageBase {
         // Indicate that we are loading a draft
         dbg(`Loading draft from ${dir}`);
 
+        // Check if the directory exists
+        if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory())
+            throw new DraftLoadError(dir, `Path does not exist or is not a directory: ${dir}`);
+
         // Get the name and version of the package
         const name = path.basename(dir);
 
@@ -68,7 +73,7 @@ class Draft extends PackageBase {
         dbg(`DepsPath: ${depsPath}`);
 
         if (!fs.existsSync(depsPath) || !fs.statSync(depsPath).isFile())
-            throw new FailedToParseDepsError(`deps.txt invalid or missing in ${dir}`);
+            throw new DraftLoadError(dir, `deps.txt invalid or missing in ${dir}`);
 
         // Get the deps.txt file
         const depsRaw = fs.readFileSync(depsPath, 'utf8');

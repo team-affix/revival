@@ -8,8 +8,10 @@ import { Package, Draft, PackageBase } from '../../src/models/package';
 import PackageNotFoundError from '../../src/errors/package-not-found';
 import FailedToParseDepsError from '../../src/errors/failed-to-parse-deps';
 import FailedToDeserializeDepsError from '../../src/errors/failed-to-deserialize-deps';
+import DraftLoadError from '../../src/errors/draft-load';
 
 describe('models/package', () => {
+    // HELPER FUNCTIONS
     describe('Draft.parseDeps()', () => {
         describe('success cases', () => {
             it('should parse as an empty map if the string is empty', () => {
@@ -699,6 +701,80 @@ describe('models/package', () => {
         //         const path = 'not-a-directory';
         //     });
         // });
+    });
+
+    // PUBLIC INTERFACE TESTS
+    describe('Draft.load()', () => {
+        const tmpDir = path.join(os.tmpdir(), 'apm-tmp');
+
+        const writeFileInside = (relPath: string, content: string) => {
+            const filePath = path.join(tmpDir, relPath);
+            fs.mkdirSync(path.dirname(filePath), { recursive: true });
+            fs.writeFileSync(filePath, content);
+        };
+
+        beforeEach(() => {
+            // Remove the temporary directory if it exists
+            if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
+
+            // Create the temporary directory
+            fs.mkdirSync(tmpDir, { recursive: true });
+        });
+
+        describe('success cases', () => {
+            // it('should load a draft from a directory', () => {
+            //     const draft = Draft.load(path.join(__dirname, '..', '..', '..', '..', 'test-data', 'draft'));
+            //     expect(draft).toBeInstanceOf(Draft);
+            // });
+        });
+
+        describe('failure cases', () => {
+            it('should throw a DraftLoadError if the path does not exist', () => {
+                const srcPath = path.join(tmpDir, 'does-not-exist');
+
+                expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
+            });
+
+            it('should throw a DraftLoadError if the path is not a directory', () => {
+                const srcPath = path.join(tmpDir, 'not-a-directory');
+
+                // Create the file
+                fs.writeFileSync(srcPath, 'not-a-directory');
+
+                // Expect the file to exist
+                expect(fs.existsSync(srcPath)).toBe(true);
+
+                expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
+            });
+
+            it('should throw a DraftLoadError if the path does not contain a deps.txt file', () => {
+                const srcPath = path.join(tmpDir, 'no-deps-txt');
+
+                // Create the file
+                fs.mkdirSync(srcPath, { recursive: true });
+
+                // Expect the file to exist
+                expect(fs.existsSync(srcPath)).toBe(true);
+
+                expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
+            });
+
+            it('should throw a FailedToParseDepsError if the deps.txt file is invalid', () => {
+                const srcPath = path.join(tmpDir, 'invalid-deps-txt');
+                const depsTxtPath = path.join(srcPath, 'deps.txt');
+
+                // Create the file
+                fs.mkdirSync(srcPath, { recursive: true });
+
+                // Create the deps.txt file
+                fs.writeFileSync(depsTxtPath, 'pkgName');
+
+                // Expect the file to exist
+                expect(fs.existsSync(depsTxtPath)).toBe(true);
+
+                expect(() => Draft.load(srcPath)).toThrow(FailedToParseDepsError);
+            });
+        });
     });
 
     describe('Package.load()', () => {
