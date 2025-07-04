@@ -1338,26 +1338,6 @@ describe('models/package', () => {
     describe('Package.load()', () => {
         const tmpRegistryPath = path.join(os.tmpdir(), 'tmp-registry');
 
-        const getExampleBinary = (pkgName: string, deps: Map<string, string>, payload: Buffer) => {
-            // Serialize the dependencies
-            const depsSerialized = (PackageBase as any).serializeDirectDeps(deps);
-
-            // Construct the header
-            const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
-
-            // Construct the footer
-            const depsOffset = pkgName.length;
-            const payloadOffset = depsOffset + depsSerialized.length;
-            const footer = Buffer.alloc(8);
-            footer.writeUInt32LE(depsOffset, 4);
-            footer.writeUInt32LE(payloadOffset, 0);
-
-            // Create the binary
-            const binary = Buffer.concat([header, payload, footer]);
-
-            return binary;
-        };
-
         beforeEach(() => {
             // Remove the temporary registry if it exists
             if (fs.existsSync(tmpRegistryPath)) fs.rmSync(tmpRegistryPath, { recursive: true, force: true });
@@ -1376,9 +1356,6 @@ describe('models/package', () => {
 
                 const pkgName = 'name';
 
-                // Construct the package path
-                const pkgPath = path.join(tmpRegistryPath, `${pkgName}.tar`);
-
                 // Construct the dependencies
                 const deps = new Map([
                     ['dep0', '1.0.0'],
@@ -1389,21 +1366,11 @@ describe('models/package', () => {
                 // Construct the payload (just a uint8)
                 const payload = Buffer.from([0xff]);
 
-                // Serialize the dependencies
-                const depsSerialized = (Package as any).serializeDirectDeps(deps);
-
-                // Construct the header
-                const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
-
-                // Construct the footer
-                const depsOffset = pkgName.length;
-                const payloadOffset = depsOffset + depsSerialized.length;
-                const footer = Buffer.alloc(8);
-                footer.writeUInt32LE(depsOffset, 4);
-                footer.writeUInt32LE(payloadOffset, 0);
+                // Construct the package path
+                const pkgPath = path.join(tmpRegistryPath, `${pkgName}.apm`);
 
                 // Create the binary
-                const binary = Buffer.concat([header, payload, footer]);
+                const binary = (Package as any).computeBinary(pkgName, deps, payload);
 
                 // Print the binary
                 dbg(`Binary: ${binary.toString('hex')}`);
@@ -1437,30 +1404,17 @@ describe('models/package', () => {
 
                 const pkgName = 'name';
 
-                // Construct the package path
-                const pkgPath = path.join(tmpRegistryPath, `${pkgName}.tar`);
-
                 // Construct the dependencies
                 const deps = new Map();
 
                 // Construct the payload (just a uint8)
                 const payload = Buffer.from([0xff]);
 
-                // Serialize the dependencies
-                const depsSerialized = (Package as any).serializeDirectDeps(deps);
-
-                // Construct the header
-                const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
-
-                // Construct the footer
-                const depsOffset = pkgName.length;
-                const payloadOffset = depsOffset + depsSerialized.length;
-                const footer = Buffer.alloc(8);
-                footer.writeUInt32LE(depsOffset, 4);
-                footer.writeUInt32LE(payloadOffset, 0);
+                // Construct the package path
+                const pkgPath = path.join(tmpRegistryPath, `${pkgName}.apm`);
 
                 // Create the binary
-                const binary = Buffer.concat([header, payload, footer]);
+                const binary = (Package as any).computeBinary(pkgName, deps, payload);
 
                 // Print the binary
                 dbg(`Binary: ${binary.toString('hex')}`);
@@ -1493,9 +1447,6 @@ describe('models/package', () => {
                 dbg('Testing Package.load()');
 
                 const pkgName = 'name';
-
-                // Construct the package path
-                const pkgPath = path.join(tmpRegistryPath, `${pkgName}.tar`);
 
                 // Construct the dependencies
                 const deps = new Map([
@@ -1557,21 +1508,11 @@ describe('models/package', () => {
                 // Construct the payload (just a uint8)
                 const payload = Buffer.from([0xff]);
 
-                // Serialize the dependencies
-                const depsSerialized = (Package as any).serializeDirectDeps(deps);
-
-                // Construct the header
-                const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
-
-                // Construct the footer
-                const depsOffset = pkgName.length;
-                const payloadOffset = depsOffset + depsSerialized.length;
-                const footer = Buffer.alloc(8);
-                footer.writeUInt32LE(depsOffset, 4);
-                footer.writeUInt32LE(payloadOffset, 0);
-
                 // Create the binary
-                const binary = Buffer.concat([header, payload, footer]);
+                const binary = (Package as any).computeBinary(pkgName, deps, payload);
+
+                // Construct the package path
+                const pkgPath = path.join(tmpRegistryPath, `${pkgName}.apm`);
 
                 // Print the binary
                 dbg(`Binary: ${binary.toString('hex')}`);
