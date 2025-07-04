@@ -238,19 +238,28 @@ describe('models/package', () => {
     });
 
     describe('Package.computeBinary()', () => {
-        const produceDesiredBinary = (name: string, deps: Map<string, string>, payload: Buffer) => {
-            // Computed values
-            const depsOffset = name.length;
-            const depsSerialized = (Package as any).serializeDirectDeps(deps);
-            const payloadOffset = depsOffset + depsSerialized.length;
-            const footer = Buffer.alloc(8);
-            footer.writeUInt32LE(depsOffset, 4);
-            footer.writeUint32LE(payloadOffset, 0);
-            const header = Buffer.concat([Buffer.from(name), Buffer.from(depsSerialized)]);
+        // const produceDesiredBinary = (name: string, deps: Map<string, string>, payload: Buffer) => {
+        //     // Create the chunks
+        //     const chunks: Buffer[] = [];
 
-            // Desired value
-            return Buffer.concat([header, payload, footer]);
-        };
+        //     // Write the name length
+        //     const nameLengthBuf = Buffer.alloc(4);
+        //     nameLengthBuf.writeUInt32LE(name.length, 0);
+        //     chunks.push(nameLengthBuf);
+
+        //     // Write the name
+        //     chunks.push(Buffer.from(name));
+
+        //     // Write the dependencies length
+        //     const depsLengthBuf = Buffer.alloc(4);
+        //     depsLengthBuf.writeUInt32LE(depsSerialized.length, 0);
+        //     chunks.push(depsLengthBuf);
+
+        //     // Write the dependencies
+        //     chunks.push(Buffer.from(depsSerialized));
+
+        //     // Write the payload
+        // };
 
         describe('success cases', () => {
             it('should compute the binary correctly for zero dependencies', () => {
@@ -261,8 +270,18 @@ describe('models/package', () => {
                 // Compute the binary
                 const binary = (Package as any).computeBinary(name, deps, payload);
 
+                // Compute the hex
+                const hex = binary.toString('hex');
+
+                let desiredHex = '';
+                desiredHex += '03000000'; // Name length
+                desiredHex += '504b47'; // Name
+                desiredHex += '02000000'; // Dependencies length
+                desiredHex += '7b7d'; // Dependencies
+                desiredHex += 'ff'; // Payload
+
                 // Check the result
-                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+                expect(hex).toEqual(desiredHex);
             });
 
             it('should compute the binary correctly for one dependency', () => {
@@ -273,8 +292,18 @@ describe('models/package', () => {
                 // Compute the binary
                 const binary = (Package as any).computeBinary(name, deps, payload);
 
+                // Compute the hex
+                const hex = binary.toString('hex');
+
+                let desiredHex = '';
+                desiredHex += '03000000'; // Name length
+                desiredHex += '504b47'; // Name
+                desiredHex += '0f000000'; // Dependencies length
+                desiredHex += '7b2264657030223a2276657230227d'; // Dependencies
+                desiredHex += 'ff'; // Payload
+
                 // Check the result
-                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+                expect(hex).toEqual(desiredHex);
             });
 
             it('should compute the binary correctly for empty name and zero dependenciess', () => {
@@ -285,8 +314,18 @@ describe('models/package', () => {
                 // Compute the binary
                 const binary = (Package as any).computeBinary(name, deps, payload);
 
+                // Compute the hex
+                const hex = binary.toString('hex');
+
+                let desiredHex = '';
+                desiredHex += '00000000'; // Name length
+                desiredHex += ''; // Name
+                desiredHex += '02000000'; // Dependencies length
+                desiredHex += '7b7d'; // Dependencies
+                desiredHex += 'ff'; // Payload
+
                 // Check the result
-                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+                expect(hex).toEqual(desiredHex);
             });
 
             it('should compute the binary correctly for empty name, zero dependencies, and large payload', () => {
@@ -298,8 +337,18 @@ describe('models/package', () => {
                 // Compute the binary
                 const binary = (Package as any).computeBinary(name, deps, payload);
 
+                // Compute the hex
+                const hex = binary.toString('hex');
+
+                let desiredHex = '';
+                desiredHex += '00000000'; // Name length
+                desiredHex += ''; // Name
+                desiredHex += '02000000'; // Dependencies length
+                desiredHex += '7b7d'; // Dependencies
+                desiredHex += 'ff'.repeat(1000); // Payload
+
                 // Check the result
-                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+                expect(hex).toEqual(desiredHex);
             });
 
             it('should compute the binary correctly for empty name, one dependency, and large payload', () => {
@@ -311,8 +360,18 @@ describe('models/package', () => {
                 // Compute the binary
                 const binary = (Package as any).computeBinary(name, deps, payload);
 
+                // Compute the hex
+                const hex = binary.toString('hex');
+
+                let desiredHex = '';
+                desiredHex += '00000000'; // Name length
+                desiredHex += ''; // Name
+                desiredHex += '0f000000'; // Dependencies length
+                desiredHex += '7b2264657030223a2276657230227d'; // Dependencies
+                desiredHex += 'ff'.repeat(1000); // Payload
+
                 // Check the result
-                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+                expect(hex).toEqual(desiredHex);
             });
 
             it('should compute the binary correctly for long name, one dependency, and large payload', () => {
@@ -324,8 +383,19 @@ describe('models/package', () => {
                 // Compute the binary
                 const binary = (Package as any).computeBinary(name, deps, payload);
 
+                // Compute the hex
+                const hex = binary.toString('hex');
+
+                let desiredHex = '';
+                desiredHex += '4a000000'; // Name length
+                desiredHex +=
+                    '504b475F574954485F415F4C4F4E475F4E414D455F544841545F455843454544535F414C4C5F4558504543544154494F4E535F414E445F544841545F49535F5245414C4C595F4C4F4E47'.toLowerCase(); // Name
+                desiredHex += '0f000000'; // Dependencies length
+                desiredHex += '7b2264657030223a2276657230227d'; // Dependencies
+                desiredHex += 'ff'.repeat(1000); // Payload
+
                 // Check the result
-                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+                expect(hex).toEqual(desiredHex);
             });
 
             it('should compute the binary correctly for long name, many dependencies, and large payload', () => {
@@ -373,8 +443,21 @@ describe('models/package', () => {
                 // Compute the binary
                 const binary = (Package as any).computeBinary(name, deps, payload);
 
+                // Compute the hex
+                const hex = binary.toString('hex');
+
+                console.log(Buffer.from((Package as any).serializeDirectDeps(deps)).toString('hex'));
+
+                let desiredHex = '';
+                desiredHex += '4a000000'; // Name length
+                desiredHex +=
+                    '504b475f574954485f415f4c4f4e475f4e414d455f544841545f455843454544535f414c4c5f4558504543544154494f4e535f414e445f544841545f49535f5245414c4c595f4c4f4e47'.toLowerCase(); // Name
+                desiredHex += '1d020000'; // Dependencies length
+                desiredHex +=
+                    '7b2264657030223a2276657230222c2264657031223a2276657231222c2264657032223a2276657232222c2264657033223a2276657233222c2264657034223a2276657234222c2264657035223a2276657235222c2264657036223a2276657236222c2264657037223a2276657237222c2264657038223a2276657238222c2264657039223a2276657239222c226465703130223a227665723130222c226465703131223a227665723131222c226465703132223a227665723132222c226465703133223a227665723133222c226465703134223a227665723134222c226465703135223a227665723135222c226465703136223a227665723136222c226465703137223a227665723137222c226465703138223a227665723138222c226465703139223a227665723139222c226465703230223a227665723230222c226465703231223a227665723231222c226465703232223a227665723232222c226465703233223a227665723233222c226465703234223a227665723234222c226465703235223a227665723235222c226465703236223a227665723236222c226465703237223a227665723237222c226465703238223a227665723238222c226465703239223a227665723239222c226465703330223a227665723330222c226465703331223a227665723331222c226465703332223a227665723332222c226465703333223a227665723333222c226465703334223a227665723334227d'; // Dependencies
+                desiredHex += 'ff'.repeat(1000); // Payload
                 // Check the result
-                expect(binary).toEqual(produceDesiredBinary(name, deps, payload));
+                expect(hex).toEqual(desiredHex);
             });
         });
     });

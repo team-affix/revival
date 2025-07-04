@@ -199,15 +199,28 @@ class Package extends PackageBase {
         // Get the version of the package
         const version = Package.computeVersion(binary);
 
-        // Get the offsets from the footer
-        const footerLength = 8;
-        const depsOffset = binary.readUInt32LE(binary.length - 4);
-        const payloadOffset = binary.readUInt32LE(binary.length - 8);
+        // Set the offset
+        let offset = 0;
 
-        // Get the name of the package
-        const name = binary.subarray(0, depsOffset).toString('utf8');
-        const depsRaw = binary.subarray(depsOffset, payloadOffset).toString('utf8');
-        const payload = binary.subarray(payloadOffset, binary.length - footerLength);
+        // Get the name length from the header
+        const nameLength = binary.readUInt32LE(offset);
+        offset += 4;
+
+        // Get the name from the header
+        const name = binary.subarray(offset, offset + nameLength).toString('utf8');
+        offset += nameLength;
+
+        // Get the dependencies length from the header
+        const depsLength = binary.readUInt32LE(offset);
+        offset += 4;
+
+        // Get the dependencies from the header
+        const depsRaw = binary.subarray(offset, offset + depsLength).toString('utf8');
+        offset += depsLength;
+
+        // Get the payload buffer
+        const payload = binary.subarray(offset, binary.length);
+        offset += payload.length;
 
         // Parse the dependencies
         const directDeps = Package.deserializeDirectDeps(depsRaw);
@@ -341,30 +354,30 @@ class Package extends PackageBase {
         // Serialize the dependencies
         const depsSerialized = Package.serializeDirectDeps(deps);
 
-        // Define the offsets
-        const depsOffset = name.length;
-        const payloadOffset = depsOffset + depsSerialized.length;
+        // Create the output buffer
+        const chunks: Buffer[] = [];
 
-        // Define the header/footer lengths
-        const headerLength = name.length + depsSerialized.length;
-        const footerLength = 8;
+        // Write the name length
+        const nameLengthBuf = Buffer.alloc(4);
+        nameLengthBuf.writeUInt32LE(name.length, 0);
+        chunks.push(nameLengthBuf);
 
-        // Construct the binary
-        const binary = Buffer.alloc(headerLength + payload.length + footerLength);
+        // Write the name
+        chunks.push(Buffer.from(name));
 
-        // Write the header
-        binary.write(name, 0);
-        binary.write(depsSerialized, depsOffset);
+        // Write the dependencies length
+        const depsLengthBuf = Buffer.alloc(4);
+        depsLengthBuf.writeUInt32LE(depsSerialized.length, 0);
+        chunks.push(depsLengthBuf);
+
+        // Write the dependencies
+        chunks.push(Buffer.from(depsSerialized));
 
         // Write the payload
-        payload.copy(binary, payloadOffset);
-
-        // Write the footer
-        binary.writeUInt32LE(depsOffset, binary.length - 4);
-        binary.writeUInt32LE(payloadOffset, binary.length - 8);
+        chunks.push(payload);
 
         // Return the binary
-        return binary;
+        return Buffer.concat(chunks);
     }
 
     // Compute the version of the package
