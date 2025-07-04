@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import debug from 'debug';
 import tarFs from 'tar-fs';
-import glob from 'glob';
+import { glob } from 'glob';
 import crypto from 'crypto';
 import { Readable, Writable, pipeline } from 'stream';
 import { promisify } from 'util';

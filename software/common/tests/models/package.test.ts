@@ -731,6 +731,128 @@ describe('models/package', () => {
 
                 // Expect the draft to be an instance of Draft
                 expect(draft).toBeInstanceOf(Draft);
+                expect(draft.getName()).toBe('APMTmpDraft');
+                expect(draft.getDirectDeps()).toEqual(new Map());
+                expect(draft.getSrcDir()).toBe(tmpDir);
+                expect(draft.getAgdaFiles()).toEqual([]);
+                expect(draft.getMdFiles()).toEqual([]);
+            });
+
+            it('empty deps.txt file and one dirt file (.txt)', () => {
+                // Create the file
+                writeFileInside('deps.txt', '');
+
+                // Write the dirt file
+                writeFileInside('file.txt', 'Hello, world!');
+
+                // Load the draft
+                const draft = Draft.load(tmpDir);
+
+                // Expect the draft to be an instance of Draft
+                expect(draft).toBeInstanceOf(Draft);
+                expect(draft.getName()).toBe('APMTmpDraft');
+                expect(draft.getDirectDeps()).toEqual(new Map());
+                expect(draft.getSrcDir()).toBe(tmpDir);
+                expect(draft.getAgdaFiles()).toEqual([]);
+                expect(draft.getMdFiles()).toEqual([]);
+            });
+
+            it('empty deps.txt file and one agda file', () => {
+                // Create the file
+                writeFileInside('deps.txt', '');
+
+                // Write the agda file
+                writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
+
+                // Load the draft
+                const draft = Draft.load(tmpDir);
+
+                // Expect the draft to be an instance of Draft
+                expect(draft).toBeInstanceOf(Draft);
+                expect(draft.getName()).toBe('APMTmpDraft');
+                expect(draft.getDirectDeps()).toEqual(new Map());
+                expect(draft.getSrcDir()).toBe(tmpDir);
+                expect(draft.getAgdaFiles()).toEqual(['file.agda']);
+                expect(draft.getMdFiles()).toEqual([]);
+            });
+
+            it('empty deps.txt file and one md file', () => {
+                // Create the file
+                writeFileInside('deps.txt', '');
+
+                // Write the md file
+                writeFileInside('file.md', '# My Document');
+
+                // Load the draft
+                const draft = Draft.load(tmpDir);
+
+                // Expect the draft to be an instance of Draft
+                expect(draft).toBeInstanceOf(Draft);
+                expect(draft.getName()).toBe('APMTmpDraft');
+                expect(draft.getDirectDeps()).toEqual(new Map());
+                expect(draft.getSrcDir()).toBe(tmpDir);
+                expect(draft.getAgdaFiles()).toEqual([]);
+                expect(draft.getMdFiles()).toEqual(['file.md']);
+            });
+
+            it('empty deps.txt file and one agda file and one md file', () => {
+                // Create the file
+                writeFileInside('deps.txt', '');
+
+                // Write the agda file
+                writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
+
+                // Write the md file
+                writeFileInside('file.md', '# My Document');
+
+                // Load the draft
+                const draft = Draft.load(tmpDir);
+
+                // Expect the draft to be an instance of Draft
+                expect(draft).toBeInstanceOf(Draft);
+                expect(draft.getName()).toBe('APMTmpDraft');
+                expect(draft.getDirectDeps()).toEqual(new Map());
+                expect(draft.getSrcDir()).toBe(tmpDir);
+                expect(draft.getAgdaFiles()).toEqual(['file.agda']);
+                expect(draft.getMdFiles()).toEqual(['file.md']);
+            });
+
+            it('empty deps.txt file and one agda file in nested directory', () => {
+                // Create the file
+                writeFileInside('deps.txt', '');
+
+                // Write the agda file
+                writeFileInside('subdir/file.agda', 'myNat : ℕ\nmyNat = 0');
+
+                // Load the draft
+                const draft = Draft.load(tmpDir);
+
+                // Expect the draft to be an instance of Draft
+                expect(draft).toBeInstanceOf(Draft);
+                expect(draft.getName()).toBe('APMTmpDraft');
+                expect(draft.getDirectDeps()).toEqual(new Map());
+                expect(draft.getSrcDir()).toBe(tmpDir);
+                expect(draft.getAgdaFiles()).toEqual(['subdir/file.agda']);
+                expect(draft.getMdFiles()).toEqual([]);
+            });
+
+            it('empty deps.txt file and one md file in nested directory', () => {
+                // Create the file
+                writeFileInside('deps.txt', '');
+
+                // Write the md file
+                writeFileInside('subdir/file.md', '# My Document');
+
+                // Load the draft
+                const draft = Draft.load(tmpDir);
+
+                // Expect the draft to be an instance of Draft
+                expect(draft).toBeInstanceOf(Draft);
+                expect(draft.getName()).toBe('APMTmpDraft');
+                expect(draft.getDirectDeps()).toEqual(new Map());
+                expect(draft.getSrcDir()).toBe(tmpDir);
+                expect(draft.getAgdaFiles()).toEqual([]);
+                expect(draft.getMdFiles()).toEqual(['subdir/file.md']);
             });
         });
 
