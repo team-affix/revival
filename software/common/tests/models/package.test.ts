@@ -446,8 +446,6 @@ describe('models/package', () => {
                 // Compute the hex
                 const hex = binary.toString('hex');
 
-                console.log(Buffer.from((Package as any).serializeDirectDeps(deps)).toString('hex'));
-
                 let desiredHex = '';
                 desiredHex += '4a000000'; // Name length
                 desiredHex +=
@@ -510,7 +508,6 @@ describe('models/package', () => {
 
         const assertFileInside = (relPath: string, content: string) => {
             const filePath = path.join(extractDir, relPath);
-            console.log(`assertFileInside: ${filePath}`);
             expect(fs.existsSync(filePath)).toBe(true);
             expect(fs.readFileSync(filePath, 'utf8')).toBe(content);
         };
