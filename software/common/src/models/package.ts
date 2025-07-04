@@ -21,7 +21,7 @@ abstract class PackageBase {
     // Constructs a package base
     protected constructor(
         private name: string,
-        private deps: Map<string, string>,
+        private directDeps: Map<string, string>,
     ) {}
 
     // Get the name of the package
@@ -30,8 +30,8 @@ abstract class PackageBase {
     }
 
     // Get the dependencies of the package
-    getDeps(): Map<string, string> {
-        return this.deps;
+    getDirectDeps(): Map<string, string> {
+        return this.directDeps;
     }
 }
 
@@ -39,12 +39,12 @@ class Draft extends PackageBase {
     // Constructs a draft
     private constructor(
         name: string,
-        deps: Map<string, string>,
+        directDeps: Map<string, string>,
         private srcDir: string,
         private agdaFiles: string[],
         private mdFiles: string[],
     ) {
-        super(name, deps);
+        super(name, directDeps);
     }
 
     // Load a draft from a directory
@@ -77,10 +77,10 @@ class Draft extends PackageBase {
         dbg(`DepsRaw: ${depsRaw}`);
 
         // Parse the dependencies
-        const deps = Draft.parseDeps(depsRaw);
+        const directDeps = Draft.parseDeps(depsRaw);
 
         // Indicate the parsed dependencies
-        dbg(`Deps: ${JSON.stringify(Object.fromEntries(deps))}`);
+        dbg(`DirectDeps: ${JSON.stringify(Object.fromEntries(directDeps))}`);
 
         // Get a list of all agda files
         const agdaFiles = glob.sync('**/*.agda', { cwd: dir, nodir: true });
@@ -95,7 +95,7 @@ class Draft extends PackageBase {
         dbg(`MdFiles: ${JSON.stringify(mdFiles)}`);
 
         // Return the draft
-        return new Draft(name, deps, dir, agdaFiles, mdFiles);
+        return new Draft(name, directDeps, dir, agdaFiles, mdFiles);
     }
 
     // Get the source directory
@@ -162,12 +162,12 @@ class Package extends PackageBase {
     // Constructs a package model
     private constructor(
         name: string,
-        deps: Map<string, string>,
+        directDeps: Map<string, string>,
         private binary: Buffer,
         private payload: Buffer,
         private version: string,
     ) {
-        super(name, deps);
+        super(name, directDeps);
     }
 
     // Load from package file
@@ -219,7 +219,7 @@ class Package extends PackageBase {
         const name = draft.getName();
 
         // Get the dependencies of the package
-        const deps = draft.getDeps();
+        const directDeps = draft.getDirectDeps();
 
         // Get the source directory
         const srcDir = draft.getSrcDir();
@@ -247,7 +247,7 @@ class Package extends PackageBase {
         dbg(`Payload length: ${payload.length}`);
 
         // Compute the binary
-        const binary = Package.computeBinary(name, deps, payload);
+        const binary = Package.computeBinary(name, directDeps, payload);
 
         // Indicate the binary
         dbg(`Binary length: ${binary.length}`);
@@ -259,7 +259,7 @@ class Package extends PackageBase {
         dbg(`Version: ${version}`);
 
         // Create the package
-        return new Package(name, deps, binary, payload, version);
+        return new Package(name, directDeps, binary, payload, version);
     }
 
     // Get the binary of the package

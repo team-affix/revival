@@ -789,7 +789,7 @@ describe('models/package', () => {
                 expect(pkg).toBeInstanceOf(Package);
 
                 expect(pkg.getName()).toBe(pkgName);
-                expect(pkg.getDeps()).toEqual(deps);
+                expect(pkg.getDirectDeps()).toEqual(deps);
                 expect(pkg.getVersion()).toBe(version);
                 expect(pkg.getPayload()).toEqual(payload);
             });
@@ -846,7 +846,7 @@ describe('models/package', () => {
                 expect(pkg).toBeInstanceOf(Package);
 
                 expect(pkg.getName()).toBe(pkgName);
-                expect(pkg.getDeps()).toEqual(deps);
+                expect(pkg.getDirectDeps()).toEqual(deps);
                 expect(pkg.getVersion()).toBe(version);
                 expect(pkg.getPayload()).toEqual(payload);
             });
@@ -957,7 +957,7 @@ describe('models/package', () => {
                 expect(pkg).toBeInstanceOf(Package);
 
                 expect(pkg.getName()).toBe(pkgName);
-                expect(pkg.getDeps()).toEqual(deps);
+                expect(pkg.getDirectDeps()).toEqual(deps);
                 expect(pkg.getVersion()).toBe(version);
                 expect(pkg.getPayload()).toEqual(payload);
             });
