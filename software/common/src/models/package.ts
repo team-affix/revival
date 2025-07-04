@@ -82,7 +82,7 @@ class Draft extends PackageBase {
         dbg(`DepsRaw: ${depsRaw}`);
 
         // Parse the dependencies
-        const directDeps = Draft.parseDeps(depsRaw);
+        const directDeps = Draft.parseDirectDeps(depsRaw);
 
         // Indicate the parsed dependencies
         dbg(`DirectDeps: ${JSON.stringify(Object.fromEntries(directDeps))}`);
@@ -119,7 +119,7 @@ class Draft extends PackageBase {
     }
 
     // Parse the dependencies given a raw dependencies file
-    private static parseDeps(raw: string): Map<string, string> {
+    private static parseDirectDeps(raw: string): Map<string, string> {
         // Get the debuggers
         const dbg = debug('apm:common:models:PackageBase:parseDeps');
 

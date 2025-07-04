@@ -12,23 +12,23 @@ import DraftLoadError from '../../src/errors/draft-load';
 
 describe('models/package', () => {
     // HELPER FUNCTIONS
-    describe('Draft.parseDeps()', () => {
+    describe('Draft.parseDirectDeps()', () => {
         describe('success cases', () => {
             it('should parse as an empty map if the string is empty', () => {
                 const raw = '';
-                const deps = (Draft as any).parseDeps(raw);
+                const deps = (Draft as any).parseDirectDeps(raw);
                 expect(deps).toEqual(new Map());
             });
 
             it('should parse correctly with one dependency', () => {
                 const raw = 'dep0 ver0';
-                const deps = (Draft as any).parseDeps(raw);
+                const deps = (Draft as any).parseDirectDeps(raw);
                 expect(deps).toEqual(new Map([['dep0', 'ver0']]));
             });
 
             it('should parse correctly with two dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1';
-                const deps = (Draft as any).parseDeps(raw);
+                const deps = (Draft as any).parseDirectDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -39,7 +39,7 @@ describe('models/package', () => {
 
             it('should parse correctly with many dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2\ndep3 ver3\ndep4 ver4\ndep5 ver5';
-                const deps = (Draft as any).parseDeps(raw);
+                const deps = (Draft as any).parseDirectDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -54,7 +54,7 @@ describe('models/package', () => {
 
             it('should successfully parse if the string contains any redundant newlines', () => {
                 const raw = 'dep0 ver0\n\ndep1 ver1';
-                const deps = (Draft as any).parseDeps(raw);
+                const deps = (Draft as any).parseDirectDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -65,7 +65,7 @@ describe('models/package', () => {
 
             it('should successfully parse if the string contains any redundant newlines', () => {
                 const raw = 'dep0 ver0\n\n\ndep1 ver1\n\n\n\ndep2 ver2\n\n\n';
-                const deps = (Draft as any).parseDeps(raw);
+                const deps = (Draft as any).parseDirectDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -79,42 +79,42 @@ describe('models/package', () => {
         describe('failure cases', () => {
             it('should throw a FailedToParseDepsError if the string contains just a package name', () => {
                 const raw = 'dep0';
-                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any invalid dependencies', () => {
                 const raw = 'dep0 ver0\ndep1';
-                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains only duplicate dependencies', () => {
                 const raw = 'dep0 ver0\ndep0 ver1';
-                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any duplicate dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep0 ver2';
-                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains a single line with more than two parts', () => {
                 const raw = 'dep0 ver0 etc\n';
-                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any lines with more than two parts', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2 etc\ndep3 ver3';
-                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the only line starts with a space', () => {
                 const raw = ' dep0 ver0';
-                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if any lines start with a space', () => {
                 const raw = 'dep0 ver0\n dep1 ver1\ndep2 ver2';
-                expect(() => (Draft as any).parseDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
         });
     });
