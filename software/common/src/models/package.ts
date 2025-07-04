@@ -209,10 +209,10 @@ class Package extends PackageBase {
         const payload = binary.subarray(payloadOffset, binary.length - footerLength);
 
         // Parse the dependencies
-        const deps = Package.deserializeDeps(depsRaw);
+        const directDeps = Package.deserializeDirectDeps(depsRaw);
 
         // Return the package
-        return new Package(name, deps, binary, payload, version);
+        return new Package(name, directDeps, binary, payload, version);
     }
 
     // Create a package from a draft
@@ -286,9 +286,9 @@ class Package extends PackageBase {
     extract(dest: string): void {}
 
     // Serialize the dependencies to be written to the binary
-    private static serializeDeps(deps: Map<string, string>): string {
+    private static serializeDirectDeps(deps: Map<string, string>): string {
         // Get the debuggers
-        const dbg = debug('apm:common:models:PackageBase:serializeDeps');
+        const dbg = debug('apm:common:models:PackageBase:serializeDirectDeps');
 
         // Indicate that we are serializing the deps
         dbg(`Serializing deps: ${JSON.stringify(Object.fromEntries(deps))}`);
@@ -304,9 +304,9 @@ class Package extends PackageBase {
     }
 
     // Deserialize the dependencies region from the binary
-    private static deserializeDeps(deps: string): Map<string, string> {
+    private static deserializeDirectDeps(deps: string): Map<string, string> {
         // Get the debuggers
-        const dbg = debug('apm:common:models:PackageBase:deserializeDeps');
+        const dbg = debug('apm:common:models:PackageBase:deserializeDirectDeps');
 
         // Indicate that we are deserializing the deps
         dbg(`Deserializing deps: ${deps}`);
@@ -338,7 +338,7 @@ class Package extends PackageBase {
         dbg(`Computing binary: ${name}, ${deps}, ${payload.length}`);
 
         // Serialize the dependencies
-        const depsSerialized = Package.serializeDeps(deps);
+        const depsSerialized = Package.serializeDirectDeps(deps);
 
         // Define the offsets
         const depsOffset = name.length;

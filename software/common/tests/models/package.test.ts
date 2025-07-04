@@ -119,16 +119,16 @@ describe('models/package', () => {
         });
     });
 
-    describe('Package.serializeDeps()', () => {
+    describe('Package.serializeDirectDeps()', () => {
         it('should serialize with zero entries', () => {
             const deps = new Map();
-            const serialized = (Package as any).serializeDeps(deps);
+            const serialized = (Package as any).serializeDirectDeps(deps);
             expect(serialized).toBe('{}');
         });
 
         it('should serialize with one entry', () => {
             const deps = new Map([['dep0', 'ver0']]);
-            const serialized = (Package as any).serializeDeps(deps);
+            const serialized = (Package as any).serializeDirectDeps(deps);
             expect(serialized).toBe('{"dep0":"ver0"}');
         });
 
@@ -137,7 +137,7 @@ describe('models/package', () => {
                 ['dep0', 'ver0'],
                 ['dep1', 'ver1'],
             ]);
-            const serialized = (Package as any).serializeDeps(deps);
+            const serialized = (Package as any).serializeDirectDeps(deps);
             expect(serialized).toBe('{"dep0":"ver0","dep1":"ver1"}');
         });
 
@@ -161,31 +161,31 @@ describe('models/package', () => {
                 ['dep15', 'ver15'],
             ]);
 
-            const serialized = (Package as any).serializeDeps(deps);
+            const serialized = (Package as any).serializeDirectDeps(deps);
             expect(serialized).toBe(
                 '{"dep0":"ver0","dep1":"ver1","dep2":"ver2","dep3":"ver3","dep4":"ver4","dep5":"ver5","dep6":"ver6","dep7":"ver7","dep8":"ver8","dep9":"ver9","dep10":"ver10","dep11":"ver11","dep12":"ver12","dep13":"ver13","dep14":"ver14","dep15":"ver15"}',
             );
         });
     });
 
-    describe('Package.deserializeDeps()', () => {
+    describe('Package.deserializeDirectDeps()', () => {
         describe('success cases', () => {
             it('should deserialize correctly with zero entries', () => {
                 const serialized = '{}';
-                const deps = (Package as any).deserializeDeps(serialized);
+                const deps = (Package as any).deserializeDirectDeps(serialized);
                 expect(deps).toEqual(new Map());
             });
 
             it('should deserialize correctly with one entry', () => {
                 const serialized = '{"dep0":"ver0"}';
-                const deps = (Package as any).deserializeDeps(serialized);
+                const deps = (Package as any).deserializeDirectDeps(serialized);
                 expect(deps).toEqual(new Map([['dep0', 'ver0']]));
             });
 
             it('should deserialize correctly with many entries', () => {
                 const serialized =
                     '{"dep0":"ver0","dep1":"ver1","dep2":"ver2","dep3":"ver3","dep4":"ver4","dep5":"ver5","dep6":"ver6","dep7":"ver7","dep8":"ver8","dep9":"ver9","dep10":"ver10","dep11":"ver11","dep12":"ver12","dep13":"ver13","dep14":"ver14","dep15":"ver15"}';
-                const deps = (Package as any).deserializeDeps(serialized);
+                const deps = (Package as any).deserializeDirectDeps(serialized);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -212,27 +212,27 @@ describe('models/package', () => {
         describe('failure cases', () => {
             it('should throw a FailedToDeserializeDepsError if the string is empty', () => {
                 const serialized = '';
-                expect(() => (Package as any).deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON', () => {
                 const serialized = 'invalid';
-                expect(() => (Package as any).deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing a closing brace)', () => {
                 const serialized = '{"dep0":"ver0"';
-                expect(() => (Package as any).deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing an opening brace)', () => {
                 const serialized = '"dep0":"ver0"}';
-                expect(() => (Package as any).deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing a colon)', () => {
                 const serialized = '{"dep0" "ver0"}';
-                expect(() => (Package as any).deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
         });
     });
@@ -241,7 +241,7 @@ describe('models/package', () => {
         const produceDesiredBinary = (name: string, deps: Map<string, string>, payload: Buffer) => {
             // Computed values
             const depsOffset = name.length;
-            const depsSerialized = (Package as any).serializeDeps(deps);
+            const depsSerialized = (Package as any).serializeDirectDeps(deps);
             const payloadOffset = depsOffset + depsSerialized.length;
             const footer = Buffer.alloc(8);
             footer.writeUInt32LE(depsOffset, 4);
@@ -782,7 +782,7 @@ describe('models/package', () => {
 
         const getExampleBinary = (pkgName: string, deps: Map<string, string>, payload: Buffer) => {
             // Serialize the dependencies
-            const depsSerialized = (PackageBase as any).serializeDeps(deps);
+            const depsSerialized = (PackageBase as any).serializeDirectDeps(deps);
 
             // Construct the header
             const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
@@ -832,7 +832,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Serialize the dependencies
-                const depsSerialized = (Package as any).serializeDeps(deps);
+                const depsSerialized = (Package as any).serializeDirectDeps(deps);
 
                 // Construct the header
                 const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
@@ -889,7 +889,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Serialize the dependencies
-                const depsSerialized = (Package as any).serializeDeps(deps);
+                const depsSerialized = (Package as any).serializeDirectDeps(deps);
 
                 // Construct the header
                 const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
@@ -1000,7 +1000,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Serialize the dependencies
-                const depsSerialized = (Package as any).serializeDeps(deps);
+                const depsSerialized = (Package as any).serializeDirectDeps(deps);
 
                 // Construct the header
                 const header = Buffer.concat([Buffer.from(pkgName), Buffer.from(depsSerialized)]);
