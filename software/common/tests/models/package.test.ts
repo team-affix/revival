@@ -4,7 +4,8 @@ import fs from 'fs';
 import { glob } from 'glob';
 import debug from 'debug';
 import { expect, describe, it, beforeEach } from '@jest/globals';
-import { Package, Draft, PackageBase, Packer } from '../../src/models/package';
+import { __test__ } from '../../src/models/bundle';
+import type { Draft, Package } from '../../src/models/bundle';
 import FailedToParseDepsError from '../../src/errors/failed-to-parse-deps';
 import FailedToDeserializeDepsError from '../../src/errors/failed-to-deserialize-deps';
 import DraftLoadError from '../../src/errors/draft-load';
@@ -16,19 +17,19 @@ describe('models/package', () => {
         describe('success cases', () => {
             it('should parse as an empty map if the string is empty', () => {
                 const raw = '';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = __test__.DraftModule.parseDeps(raw);
                 expect(deps).toEqual(new Map());
             });
 
             it('should parse correctly with one dependency', () => {
                 const raw = 'dep0 ver0';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = __test__.DraftModule.parseDeps(raw);
                 expect(deps).toEqual(new Map([['dep0', 'ver0']]));
             });
 
             it('should parse correctly with two dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = __test__.DraftModule.parseDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -39,7 +40,7 @@ describe('models/package', () => {
 
             it('should parse correctly with many dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2\ndep3 ver3\ndep4 ver4\ndep5 ver5';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = __test__.DraftModule.parseDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -54,7 +55,7 @@ describe('models/package', () => {
 
             it('should successfully parse if the string contains any redundant newlines', () => {
                 const raw = 'dep0 ver0\n\ndep1 ver1';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = __test__.DraftModule.parseDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -65,7 +66,7 @@ describe('models/package', () => {
 
             it('should successfully parse if the string contains any redundant newlines', () => {
                 const raw = 'dep0 ver0\n\n\ndep1 ver1\n\n\n\ndep2 ver2\n\n\n';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = __test__.DraftModule.parseDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -79,42 +80,42 @@ describe('models/package', () => {
         describe('failure cases', () => {
             it('should throw a FailedToParseDepsError if the string contains just a package name', () => {
                 const raw = 'dep0';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => __test__.DraftModule.parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any invalid dependencies', () => {
                 const raw = 'dep0 ver0\ndep1';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => __test__.DraftModule.parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains only duplicate dependencies', () => {
                 const raw = 'dep0 ver0\ndep0 ver1';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => __test__.DraftModule.parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any duplicate dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep0 ver2';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => __test__.DraftModule.parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains a single line with more than two parts', () => {
                 const raw = 'dep0 ver0 etc\n';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => __test__.DraftModule.parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any lines with more than two parts', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2 etc\ndep3 ver3';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => __test__.DraftModule.parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the only line starts with a space', () => {
                 const raw = ' dep0 ver0';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => __test__.DraftModule.parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if any lines start with a space', () => {
                 const raw = 'dep0 ver0\n dep1 ver1\ndep2 ver2';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => __test__.DraftModule.parseDeps(raw)).toThrow(FailedToParseDepsError);
             });
         });
     });
@@ -122,13 +123,13 @@ describe('models/package', () => {
     describe('Package.serializeDirectDeps()', () => {
         it('should serialize with zero entries', () => {
             const deps = new Map();
-            const serialized = (Package as any).serializeDirectDeps(deps);
+            const serialized = __test__.PackageModule.serializeDeps(deps);
             expect(serialized).toBe('{}');
         });
 
         it('should serialize with one entry', () => {
             const deps = new Map([['dep0', 'ver0']]);
-            const serialized = (Package as any).serializeDirectDeps(deps);
+            const serialized = __test__.PackageModule.serializeDeps(deps);
             expect(serialized).toBe('{"dep0":"ver0"}');
         });
 
@@ -137,7 +138,7 @@ describe('models/package', () => {
                 ['dep0', 'ver0'],
                 ['dep1', 'ver1'],
             ]);
-            const serialized = (Package as any).serializeDirectDeps(deps);
+            const serialized = __test__.PackageModule.serializeDeps(deps);
             expect(serialized).toBe('{"dep0":"ver0","dep1":"ver1"}');
         });
 
@@ -161,7 +162,7 @@ describe('models/package', () => {
                 ['dep15', 'ver15'],
             ]);
 
-            const serialized = (Package as any).serializeDirectDeps(deps);
+            const serialized = __test__.PackageModule.serializeDeps(deps);
             expect(serialized).toBe(
                 '{"dep0":"ver0","dep1":"ver1","dep2":"ver2","dep3":"ver3","dep4":"ver4","dep5":"ver5","dep6":"ver6","dep7":"ver7","dep8":"ver8","dep9":"ver9","dep10":"ver10","dep11":"ver11","dep12":"ver12","dep13":"ver13","dep14":"ver14","dep15":"ver15"}',
             );
@@ -172,20 +173,20 @@ describe('models/package', () => {
         describe('success cases', () => {
             it('should deserialize correctly with zero entries', () => {
                 const serialized = '{}';
-                const deps = (Package as any).deserializeDirectDeps(serialized);
+                const deps = __test__.PackageModule.deserializeDeps(serialized);
                 expect(deps).toEqual(new Map());
             });
 
             it('should deserialize correctly with one entry', () => {
                 const serialized = '{"dep0":"ver0"}';
-                const deps = (Package as any).deserializeDirectDeps(serialized);
+                const deps = __test__.PackageModule.deserializeDeps(serialized);
                 expect(deps).toEqual(new Map([['dep0', 'ver0']]));
             });
 
             it('should deserialize correctly with many entries', () => {
                 const serialized =
                     '{"dep0":"ver0","dep1":"ver1","dep2":"ver2","dep3":"ver3","dep4":"ver4","dep5":"ver5","dep6":"ver6","dep7":"ver7","dep8":"ver8","dep9":"ver9","dep10":"ver10","dep11":"ver11","dep12":"ver12","dep13":"ver13","dep14":"ver14","dep15":"ver15"}';
-                const deps = (Package as any).deserializeDirectDeps(serialized);
+                const deps = __test__.PackageModule.deserializeDeps(serialized);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -212,27 +213,27 @@ describe('models/package', () => {
         describe('failure cases', () => {
             it('should throw a FailedToDeserializeDepsError if the string is empty', () => {
                 const serialized = '';
-                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => __test__.PackageModule.deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON', () => {
                 const serialized = 'invalid';
-                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => __test__.PackageModule.deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing a closing brace)', () => {
                 const serialized = '{"dep0":"ver0"';
-                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => __test__.PackageModule.deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing an opening brace)', () => {
                 const serialized = '"dep0":"ver0"}';
-                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => __test__.PackageModule.deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing a colon)', () => {
                 const serialized = '{"dep0" "ver0"}';
-                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => __test__.PackageModule.deserializeDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
         });
     });
@@ -268,7 +269,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = __test__.PackageModule.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -290,7 +291,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = __test__.PackageModule.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -312,7 +313,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = __test__.PackageModule.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -335,7 +336,7 @@ describe('models/package', () => {
                 payload.fill(0xff);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = __test__.PackageModule.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -358,7 +359,7 @@ describe('models/package', () => {
                 payload.fill(0xff);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = __test__.PackageModule.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -381,7 +382,7 @@ describe('models/package', () => {
                 payload.fill(0xff);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = __test__.PackageModule.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -441,7 +442,7 @@ describe('models/package', () => {
                 payload.fill(0xff);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = __test__.PackageModule.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -463,7 +464,7 @@ describe('models/package', () => {
     describe('Package.computeVersion()', () => {
         it('should compute the version correctly for small binary', () => {
             const binary = Buffer.from([0x01, 0x02, 0x03, 0x04]);
-            const version = (Package as any).computeVersion(binary);
+            const version = __test__.PackageModule.computeVersion(binary);
             // The version is the SHA256 hash of the binary (sourced from https://emn178.github.io/online-tools/sha256.html)
             expect(version).toBe('9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a');
         });
@@ -472,7 +473,7 @@ describe('models/package', () => {
             const binary = Buffer.from([
                 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
             ]);
-            const version = (Package as any).computeVersion(binary);
+            const version = __test__.PackageModule.computeVersion(binary);
             // The version is the SHA256 hash of the binary (sourced from https://emn178.github.io/online-tools/sha256.html)
             expect(version).toBe('5dfbabeedf318bf33c0927c43d7630f51b82f351740301354fa3d7fc51f0132e');
         });
@@ -485,7 +486,7 @@ describe('models/package', () => {
                 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f, 0x40, 0x41, 0x42, 0x43, 0x44,
                 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
             ]);
-            const version = (Package as any).computeVersion(binary);
+            const version = __test__.PackageModule.computeVersion(binary);
             // The version is the SHA256 hash of the binary (sourced from https://emn178.github.io/online-tools/sha256.html)
             expect(version).toBe('ce266517af1f9b2272e176703395a24fe91eba54fef1c05a9c57c2a215b182b6');
         });
@@ -542,11 +543,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -560,11 +561,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -581,11 +582,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -599,11 +600,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -620,11 +621,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -640,11 +641,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -661,11 +662,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -682,11 +683,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -700,11 +701,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -721,11 +722,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -739,11 +740,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -766,11 +767,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await __test__.packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await __test__.extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -807,15 +808,14 @@ describe('models/package', () => {
                 writeFileInside('deps.txt', '');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual([]);
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual([]);
+                expect(draft.mdFiles).toEqual([]);
             });
 
             it('empty deps.txt file and one dirt file (.txt)', () => {
@@ -826,15 +826,14 @@ describe('models/package', () => {
                 writeFileInside('file.txt', 'Hello, world!');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual([]);
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual([]);
+                expect(draft.mdFiles).toEqual([]);
             });
 
             it('empty deps.txt file and one agda file', () => {
@@ -845,15 +844,14 @@ describe('models/package', () => {
                 writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-                expect(draft.getMdFiles()).toEqual([]);
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual(['file.agda']);
+                expect(draft.mdFiles).toEqual([]);
             });
 
             it('empty deps.txt file and one md file', () => {
@@ -864,15 +862,14 @@ describe('models/package', () => {
                 writeFileInside('file.md', '# My Document');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual(['file.md']);
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual([]);
+                expect(draft.mdFiles).toEqual(['file.md']);
             });
 
             it('empty deps.txt file and one agda file and one md file', () => {
@@ -886,15 +883,14 @@ describe('models/package', () => {
                 writeFileInside('file.md', '# My Document');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-                expect(draft.getMdFiles()).toEqual(['file.md']);
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual(['file.agda']);
+                expect(draft.mdFiles).toEqual(['file.md']);
             });
 
             it('empty deps.txt file and one agda file in nested directory', () => {
@@ -905,15 +901,14 @@ describe('models/package', () => {
                 writeFileInside('subdir/file.agda', 'myNat : ℕ\nmyNat = 0');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['subdir/file.agda']);
-                expect(draft.getMdFiles()).toEqual([]);
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual(['subdir/file.agda']);
+                expect(draft.mdFiles).toEqual([]);
             });
 
             it('empty deps.txt file and one md file in nested directory', () => {
@@ -924,15 +919,14 @@ describe('models/package', () => {
                 writeFileInside('subdir/file.md', '# My Document');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual(['subdir/file.md']);
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual([]);
+                expect(draft.mdFiles).toEqual(['subdir/file.md']);
             });
 
             it('empty deps.txt file and one agda file and one md file in nested directory', () => {
@@ -946,15 +940,14 @@ describe('models/package', () => {
                 writeFileInside('subdir/file2.md', '# My Document');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['subdir/file1.agda']);
-                expect(draft.getMdFiles()).toEqual(['subdir/file2.md']);
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual(['subdir/file1.agda']);
+                expect(draft.mdFiles).toEqual(['subdir/file2.md']);
             });
 
             it('empty deps.txt file and one agda file in doubly-nested directory', () => {
@@ -965,15 +958,14 @@ describe('models/package', () => {
                 writeFileInside('subdir/subdir2/file.agda', 'myNat : ℕ\nmyNat = 0');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['subdir/subdir2/file.agda']);
-                expect(draft.getMdFiles()).toEqual([]);
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual(['subdir/subdir2/file.agda']);
+                expect(draft.mdFiles).toEqual([]);
             });
 
             it('empty deps.txt file and multiple agda files', () => {
@@ -986,15 +978,14 @@ describe('models/package', () => {
                 writeFileInside('file3.agda', 'myNat : ℕ\nmyNat = 0');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
-                expect(draft.getMdFiles().sort()).toEqual([]);
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles.sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
+                expect(draft.mdFiles.sort()).toEqual([]);
             });
 
             it('empty deps.txt file and multiple md files', () => {
@@ -1007,15 +998,14 @@ describe('models/package', () => {
                 writeFileInside('file3.md', '# My Document');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual([]);
-                expect(draft.getMdFiles().sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles.sort()).toEqual([]);
+                expect(draft.mdFiles.sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
             });
 
             it('empty deps.txt file and multiple agda files and multiple md files', () => {
@@ -1033,15 +1023,14 @@ describe('models/package', () => {
                 writeFileInside('file3.md', '# My Document');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
-                expect(draft.getMdFiles().sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles.sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
+                expect(draft.mdFiles.sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
             });
 
             it('empty deps.txt file and multiple agda files and multiple md files in nested directories', () => {
@@ -1057,17 +1046,16 @@ describe('models/package', () => {
                 writeFileInside('subdir2/subdir3/README.md', '# My Document');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual(
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map());
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles.sort()).toEqual(
                     ['subdir1/file1.agda', 'subdir2/file2.agda', 'subdir2/subdir3/file3.agda'].sort(),
                 );
-                expect(draft.getMdFiles().sort()).toEqual(
+                expect(draft.mdFiles.sort()).toEqual(
                     ['subdir1/README.md', 'subdir2/README.md', 'subdir2/subdir3/README.md'].sort(),
                 );
             });
@@ -1077,15 +1065,14 @@ describe('models/package', () => {
                 writeFileInside('deps.txt', 'name 1.0.0');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map([['name', '1.0.0']]));
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual([]);
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(new Map([['name', '1.0.0']]));
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual([]);
+                expect(draft.mdFiles).toEqual([]);
             });
 
             it('two package deps.txt file and no source files', () => {
@@ -1093,20 +1080,19 @@ describe('models/package', () => {
                 writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
                     ]),
                 );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual([]);
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual([]);
+                expect(draft.mdFiles).toEqual([]);
             });
 
             it('two package deps.txt file and one agda file', () => {
@@ -1117,20 +1103,19 @@ describe('models/package', () => {
                 writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
                     ]),
                 );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-                expect(draft.getMdFiles()).toEqual([]);
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual(['file.agda']);
+                expect(draft.mdFiles).toEqual([]);
             });
 
             it('two package deps.txt file and one md file', () => {
@@ -1141,20 +1126,19 @@ describe('models/package', () => {
                 writeFileInside('file.md', '# My Document');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
                     ]),
                 );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual(['file.md']);
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual([]);
+                expect(draft.mdFiles).toEqual(['file.md']);
             });
 
             it('two package deps.txt file and one agda file and one md file', () => {
@@ -1168,20 +1152,19 @@ describe('models/package', () => {
                 writeFileInside('file.md', '# My Document');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
                     ]),
                 );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-                expect(draft.getMdFiles()).toEqual(['file.md']);
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles).toEqual(['file.agda']);
+                expect(draft.mdFiles).toEqual(['file.md']);
             });
 
             it('many package deps.txt file and multiple agda files', () => {
@@ -1196,12 +1179,11 @@ describe('models/package', () => {
                 writeFileInside('file5.agda', 'myNat : ℕ\nmyNat = 0');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
@@ -1210,11 +1192,11 @@ describe('models/package', () => {
                         ['name4', '1.0.4'],
                     ]),
                 );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual(
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles.sort()).toEqual(
                     ['file1.agda', 'file2.agda', 'file3.agda', 'file4.agda', 'file5.agda'].sort(),
                 );
-                expect(draft.getMdFiles().sort()).toEqual([]);
+                expect(draft.mdFiles.sort()).toEqual([]);
             });
 
             it('many package deps.txt file and multiple agda files in random nested directories', () => {
@@ -1229,12 +1211,11 @@ describe('models/package', () => {
                 writeFileInside('subdir3/file5.agda', 'myNat : ℕ\nmyNat = 0');
 
                 // Load the draft
-                const draft = Draft.load(tmpDir);
+                const draft = __test__.DraftModule.load(tmpDir);
 
                 // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
+                expect(draft.name).toBe('APMTmpDraft');
+                expect(draft.deps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
@@ -1243,8 +1224,8 @@ describe('models/package', () => {
                         ['name4', '1.0.4'],
                     ]),
                 );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual(
+                expect(draft.srcDir).toBe(tmpDir);
+                expect(draft.agdaFiles.sort()).toEqual(
                     [
                         'subdir1/file1.agda',
                         'subdir1/subdir2/subdir3/subdir4/file2.agda',
@@ -1253,7 +1234,7 @@ describe('models/package', () => {
                         'subdir3/file5.agda',
                     ].sort(),
                 );
-                expect(draft.getMdFiles().sort()).toEqual([]);
+                expect(draft.mdFiles.sort()).toEqual([]);
             });
         });
 
@@ -1271,7 +1252,7 @@ describe('models/package', () => {
             it('should throw a DraftLoadError if the path does not exist', () => {
                 const srcPath = path.join(tmpDir, 'does-not-exist');
 
-                expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
+                expect(() => __test__.DraftModule.load(srcPath)).toThrow(DraftLoadError);
             });
 
             it('should throw a DraftLoadError if the path is not a directory', () => {
@@ -1283,7 +1264,7 @@ describe('models/package', () => {
                 // Expect the file to exist
                 expect(fs.existsSync(srcPath)).toBe(true);
 
-                expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
+                expect(() => __test__.DraftModule.load(srcPath)).toThrow(DraftLoadError);
             });
 
             it('should throw a DraftLoadError if the path does not contain a deps.txt file', () => {
@@ -1295,7 +1276,7 @@ describe('models/package', () => {
                 // Expect the file to exist
                 expect(fs.existsSync(srcPath)).toBe(true);
 
-                expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
+                expect(() => __test__.DraftModule.load(srcPath)).toThrow(DraftLoadError);
             });
 
             it('should throw a DraftLoadError if the deps.txt is not a file', () => {
@@ -1311,7 +1292,7 @@ describe('models/package', () => {
                 // Expect the folder to exist
                 expect(fs.existsSync(depsTxtPath)).toBe(true);
 
-                expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
+                expect(() => __test__.DraftModule.load(srcPath)).toThrow(DraftLoadError);
             });
 
             it('should throw a FailedToParseDepsError if the deps.txt file is invalid', () => {
@@ -1327,7 +1308,7 @@ describe('models/package', () => {
                 // Expect the file to exist
                 expect(fs.existsSync(depsTxtPath)).toBe(true);
 
-                expect(() => Draft.load(srcPath)).toThrow(FailedToParseDepsError);
+                expect(() => __test__.DraftModule.load(srcPath)).toThrow(FailedToParseDepsError);
             });
         });
     });
@@ -1355,13 +1336,13 @@ describe('models/package', () => {
                 if (fs.existsSync(pkgPath)) fs.unlinkSync(pkgPath);
 
                 // Create the binary
-                const binary = (Package as any).computeBinary(pkgName, deps, payload);
+                const binary = __test__.PackageModule.computeBinary(pkgName, deps, payload);
 
                 // Print the binary
                 dbg(`Binary: ${binary.toString('hex')}`);
 
                 // Get the version of the package
-                const version = (Package as any).computeVersion(binary);
+                const version = __test__.PackageModule.computeVersion(binary);
 
                 // Print the version
                 dbg(`Version: ${version}`);
@@ -1370,14 +1351,12 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, binary);
 
                 // Find the package
-                const pkg = Package.load(pkgPath);
+                const pkg = __test__.PackageModule.load(pkgPath);
 
-                expect(pkg).toBeInstanceOf(Package);
-
-                expect(pkg.getName()).toBe(pkgName);
-                expect(pkg.getDirectDeps()).toEqual(deps);
-                expect(pkg.getVersion()).toBe(version);
-                expect(pkg.getPayload()).toEqual(payload);
+                expect(pkg.name).toBe(pkgName);
+                expect(pkg.deps).toEqual(deps);
+                expect(pkg.version).toBe(version);
+                expect(pkg.payload).toEqual(payload);
             };
 
             it('4-char name, 3 dependencies, 1-byte payload', () =>
@@ -1462,7 +1441,7 @@ describe('models/package', () => {
         describe('failure cases', () => {
             it('Package.load() should throw PackageLoadError if the path does not exist', () => {
                 const pkgPath = path.join(tmpRegistryPath, 'does-not-exist.tar');
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+                expect(() => __test__.PackageModule.load(pkgPath)).toThrow(PackageLoadError);
             });
 
             it('Package.load() should throw PackageNotFoundError if the path is a directory', () => {
@@ -1475,7 +1454,7 @@ describe('models/package', () => {
                 expect(fs.existsSync(dirPath)).toBe(true);
 
                 // Expect the package to not be found
-                expect(() => Package.load(dirPath)).toThrow(PackageLoadError);
+                expect(() => __test__.PackageModule.load(dirPath)).toThrow(PackageLoadError);
             });
 
             it('Package.load() should throw PackageLoadError if the package is too short to contain a name length', () => {
@@ -1485,7 +1464,7 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, Buffer.from([]));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+                expect(() => __test__.PackageModule.load(pkgPath)).toThrow(PackageLoadError);
             });
 
             it('Package.load() should throw PackageLoadError if the package name length is nonzero but the name is empty', () => {
@@ -1522,7 +1501,7 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, Buffer.concat(chunks));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+                expect(() => __test__.PackageModule.load(pkgPath)).toThrow(PackageLoadError);
             });
 
             it('Package.load() should throw PackageLoadError if the package dependencies length is missing', () => {
@@ -1544,7 +1523,7 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, Buffer.concat(chunks));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+                expect(() => __test__.PackageModule.load(pkgPath)).toThrow(PackageLoadError);
             });
 
             it('Package.load() should throw PackageLoadError if the package dependencies are missing', () => {
@@ -1571,7 +1550,7 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, Buffer.concat(chunks));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+                expect(() => __test__.PackageModule.load(pkgPath)).toThrow(PackageLoadError);
             });
 
             it('Package.load() should throw PackageLoadError if the package dependencies are smaller than the designated dependencies length', () => {
@@ -1602,7 +1581,7 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, Buffer.concat(chunks));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+                expect(() => __test__.PackageModule.load(pkgPath)).toThrow(PackageLoadError);
             });
 
             it('Package.load() should throw FailedToDeserializeDepsError if the package dependencies are not a valid JSON object', () => {
@@ -1633,10 +1612,36 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, Buffer.concat(chunks));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(FailedToDeserializeDepsError);
+                expect(() => __test__.PackageModule.load(pkgPath)).toThrow(FailedToDeserializeDepsError);
             });
         });
     });
+
+    // describe('Packer.pack()', () => {
+    //     const tmpDir = path.join(os.tmpdir(), 'TmpDraft');
+
+    //     beforeEach(() => {
+    //         // Remove the temporary directory if it exists
+    //         if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
+
+    //         // Create the temporary directory
+    //         fs.mkdirSync(tmpDir, { recursive: true });
+    //     });
+
+    //     const genericTest = (name: string, deps: Map<string, string>, files: Map<string, string>) => {
+    //         // Create the draft
+    //         const draft = new Draft(name, deps, payload);
+
+    //         // Pack the draft
+    //         const pkg = Packer.pack(draft);
+    //     };
+
+    //     it('small name, zero dependencies, no source files', () => {
+    //         const draft = new Draft('name', new Map(), Buffer.from([0xff]));
+    //         const pkg = Packer.pack(draft);
+    //         expect(pkg).toBeInstanceOf(Package);
+    //     });
+    // });
 
     // describe('Package.fromDraft()', () => {
     //     const genericTest = (name: string, deps: Map<string, string>, payload: Buffer) => {
