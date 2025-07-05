@@ -542,11 +542,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -560,11 +560,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -581,11 +581,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -599,11 +599,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -620,11 +620,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -640,11 +640,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -661,11 +661,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -682,11 +682,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -700,11 +700,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -721,11 +721,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -739,11 +739,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -766,11 +766,11 @@ describe('models/package', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                const tar = await (Packer as any).packTar(packDir, fileRelPaths);
+                const tar = await (Package as any).packTar(packDir, fileRelPaths);
 
                 expect(tar).toBeDefined();
 
-                await (Packer as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
