@@ -193,7 +193,7 @@ class Draft extends PackageBase {
             if (!fs.existsSync(dir)) throw new WriteDepsFileError(dir, 'Directory does not exist');
 
             // Check if the file/folder exists, and remove it if it does
-            if (fs.existsSync(depsPath)) fs.rmSync(depsPath, { force: true, recursive: true });
+            if (fs.existsSync(depsPath)) throw new WriteDepsFileError(dir, 'File already exists');
 
             // Create the write stream
             const writeStream = fs.createWriteStream(depsPath);

@@ -177,19 +177,15 @@ describe('models/package', () => {
                 fs.mkdirSync(depsPath);
                 expect(() => (Draft as any).readDirectDepsFile(tmpDir)).toThrow(ReadDepsFileError);
             });
-        });
 
-        // it('should read the direct dependencies file correctly', () => {
-        //     const deps = (Package as any).readDirectDepsFile(
-        //         path.join(__dirname, '..', '..', '..', '..', 'test-data', 'deps.txt'),
-        //     );
-        //     expect(deps).toEqual(
-        //         new Map([
-        //             ['dep0', 'ver0'],
-        //             ['dep1', 'ver1'],
-        //         ]),
-        //     );
-        // });
+            it('should throw a FailedToParseDepsError if the file is not valid', () => {
+                // Write the dependencies file
+                fs.writeFileSync(depsPath, 'pkgName');
+
+                // Read the dependencies file
+                expect(() => (Draft as any).readDirectDepsFile(tmpDir)).toThrow(FailedToParseDepsError);
+            });
+        });
     });
 
     describe('Draft.writeDirectDepsFile()', () => {
@@ -219,12 +215,57 @@ describe('models/package', () => {
                 // Check the result
                 expect(depsRaw).toBe('');
             });
+
+            it('one dependency', async () => {
+                // Construct the dependencies
+                const deps = new Map([['dep0', 'ver0']]);
+
+                // Write the dependencies file
+                await (Draft as any).writeDirectDepsFile(tmpDir, deps);
+
+                // Read the dependencies file
+                const depsRaw = fs.readFileSync(depsPath, 'utf8');
+
+                // Check the result
+                expect(depsRaw).toBe('dep0 ver0\n');
+            });
+
+            it('many dependencies', async () => {
+                // Construct the dependencies
+                const deps = new Map([
+                    ['dep0', 'ver0'],
+                    ['dep1', 'ver1'],
+                    ['dep2', 'ver2'],
+                ]);
+
+                // Write the dependencies file
+                await (Draft as any).writeDirectDepsFile(tmpDir, deps);
+
+                // Read the dependencies file
+                const depsRaw = fs.readFileSync(depsPath, 'utf8');
+
+                // Check the result
+                expect(depsRaw).toBe('dep0 ver0\ndep1 ver1\ndep2 ver2\n');
+            });
         });
 
         describe('failure cases', () => {
             it('should throw a WriteDepsFileError if the directory does not exist', () => {
                 // Remove the directory if it exists
                 if (fs.existsSync(tmpDir)) fs.rmdirSync(tmpDir, { recursive: true });
+
+                // Expect rejection
+                expect(async () => await (Draft as any).writeDirectDepsFile(tmpDir, new Map())).rejects.toThrow(
+                    WriteDepsFileError,
+                );
+            });
+
+            it('should throw a WriteDepsFileError if the file already exists', () => {
+                // Create the directory
+                fs.mkdirSync(tmpDir);
+
+                // Create the file
+                fs.writeFileSync(depsPath, 'dep0 ver0');
 
                 // Expect rejection
                 expect(async () => await (Draft as any).writeDirectDepsFile(tmpDir, new Map())).rejects.toThrow(
