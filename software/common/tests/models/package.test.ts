@@ -491,7 +491,7 @@ describe('models/package', () => {
         });
     });
 
-    describe('Package.packTar() and Package.extractTar()', () => {
+    describe('Package.packTar() and Draft.extractTar()', () => {
         const packDir = path.join(os.tmpdir(), 'apm-pack-tar-tmp-dir');
         const extractDir = path.join(os.tmpdir(), 'apm-extract-tar-tmp-dir');
 
@@ -546,7 +546,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -564,7 +564,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -585,7 +585,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -603,7 +603,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -624,7 +624,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -644,7 +644,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -665,7 +665,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -686,7 +686,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -704,7 +704,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -725,7 +725,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -743,7 +743,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -770,7 +770,7 @@ describe('models/package', () => {
 
                 expect(tar).toBeDefined();
 
-                await (Package as any).extractTar(tar, extractDir);
+                await (Draft as any).extractTar(tar, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             });
@@ -1637,6 +1637,20 @@ describe('models/package', () => {
             });
         });
     });
+
+    // describe('Package.fromDraft()', () => {
+    //     const genericTest = (name: string, deps: Map<string, string>, payload: Buffer) => {
+    //         const draft = new Draft(name, deps, payload);
+    //         const pkg = Package.fromDraft(draft);
+    //         expect(pkg).toBeInstanceOf(Package);
+    //     };
+
+    //     it('empty name, no dependencies, no payload', () => {
+    //         const draft = new Draft('name', new Map(), Buffer.from([0xff]));
+    //         const pkg = Package.fromDraft(draft);
+    //         expect(pkg).toBeInstanceOf(Package);
+    //     });
+    // });
 
     // it('Package.save() should break if the package was invalid to begin with', () => {
     //     // Get the debugger

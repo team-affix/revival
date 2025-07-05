@@ -14,6 +14,7 @@ import VersionMismatchError from '../errors/version-mismatch';
 import FailedToDeserializeDepsError from '../errors/failed-to-deserialize-deps';
 import DraftLoadError from '../errors/draft-load';
 import PackageLoadError from '../errors/package-load';
+import DraftCreateError from '../errors/draft-create';
 
 // Utility function for async pipeline
 const pipelineAsync = promisify(pipeline);
@@ -37,6 +38,9 @@ abstract class PackageBase {
 }
 
 class Draft extends PackageBase {
+    // The name of the deps file
+    private static readonly DEPS_FILE_NAME = 'deps.txt';
+
     // Constructs a draft
     private constructor(
         name: string,
@@ -103,6 +107,38 @@ class Draft extends PackageBase {
         return new Draft(name, directDeps, dir, agdaFiles, mdFiles);
     }
 
+    // Create a draft from a name, direct dependencies, and a tarfile
+    // static async create(
+    //     parentDir: string,
+    //     name: string,
+    //     directDeps: Map<string, string>,
+    //     tarFile: Buffer,
+    // ): Promise<Draft> {
+    //     // Get the debugger
+    //     const dbg = debug('apm:common:models:Draft:create');
+
+    //     // Indicate that we are creating a draft
+    //     dbg(`Creating draft: ${name}`);
+
+    //     // Create the draft directory
+    //     const draftDir = path.join(parentDir, name);
+
+    //     // If the draft directory already exists, throw an error
+    //     if (fs.existsSync(draftDir)) throw new DraftCreateError(draftDir, name, 'Draft directory already exists');
+
+    //     // Create the draft directory
+    //     fs.mkdirSync(draftDir, { recursive: true });
+
+    //     // Write the deps.txt file
+    //     Draft.writeDirectDepsFile(draftDir, directDeps);
+
+    //     // Extract the tar file
+    //     await Draft.extractTar(tarFile, draftDir);
+
+    //     // Return the draft
+    //     return new Draft(name, directDeps, draftDir, [], []);
+    // }
+
     // Get the source directory
     getSrcDir(): string {
         return this.srcDir;
@@ -160,6 +196,40 @@ class Draft extends PackageBase {
 
         // Return the map
         return result;
+    }
+
+    // // Read the direct dependencies from the deps file
+    // private static readDirectDepsFile(dir: string): Map<string, string> {
+    //     // Get the deps.txt file
+    //     const depsPath = path.join(dir, 'deps.txt');
+
+    //     // Read the deps.txt file
+    //     const depsRaw = fs.readFileSync(depsPath, 'utf8');
+    // }
+
+    // // Write the direct dependencies to the deps file
+    // private static writeDirectDepsFile(draftDir: string, deps: Map<string, string>): void {
+    //     // Get the deps.txt file
+    //     const depsPath = path.join(draftDir, Draft.DEPS_FILE_NAME);
+
+    //     // Check if the file exists
+    //     if (fs.existsSync(depsPath)) fs.unlinkSync(depsPath);
+
+    //     // Create the write stream
+    //     const writeStream = fs.createWriteStream(depsPath);
+
+    //     // For each dependency, write the dependency to the file
+    //     for (const [name, version] of deps.entries()) {
+    //         writeStream.write(`${name} ${version}\n`);
+    //     }
+
+    //     // Close the write stream
+    //     writeStream.end();
+    // }
+
+    // Extract a tar
+    private static async extractTar(tar: Buffer, cwd: string): Promise<void> {
+        return await pipelineAsync(Readable.from(tar), tarFs.extract(cwd));
     }
 }
 
@@ -303,8 +373,10 @@ class Package extends PackageBase {
         return this.version;
     }
 
-    // Extract the package to a destination directory
-    extract(dest: string): void {}
+    // // Extract the package to a destination directory
+    // async unpack(parentDir: string): Promise<Draft> {
+    //     return await Draft.create(parentDir, this.getName(), this.getDirectDeps(), this.getPayload());
+    // }
 
     // Serialize the dependencies to be written to the binary
     private static serializeDirectDeps(deps: Map<string, string>): string {
@@ -428,11 +500,6 @@ class Package extends PackageBase {
             result.on('data', (chunk) => chunks.push(chunk));
             result.on('end', () => resolve(Buffer.concat(chunks)));
         });
-    }
-
-    // Extract a tar
-    private static async extractTar(tar: Buffer, cwd: string): Promise<void> {
-        return await pipelineAsync(Readable.from(tar), tarFs.extract(cwd));
     }
 }
 
