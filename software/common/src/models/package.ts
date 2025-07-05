@@ -15,6 +15,8 @@ import FailedToDeserializeDepsError from '../errors/failed-to-deserialize-deps';
 import DraftLoadError from '../errors/draft-load';
 import PackageLoadError from '../errors/package-load';
 import DraftCreateError from '../errors/draft-create';
+import ReadDepsFileError from '../errors/read-deps-file';
+import WriteDepsFileError from '../errors/write-deps-file';
 
 // Utility function for async pipeline
 const pipelineAsync = promisify(pipeline);
@@ -93,31 +95,26 @@ class Draft extends PackageBase {
     }
 
     // Create draft from package
-    static async createFromPackage(dest: string, pkg: Package): Promise<Draft> {
+    static async create(name: string, deps: Map<string, string>, dest: string, payload: Buffer): Promise<Draft> {
         // Get the debugger
         const dbg = debug('apm:common:models:Draft:createFromPackage');
 
         // Indicate that we are creating a draft from a package
-        dbg(`Creating draft from package: ${pkg.getName()} at ${dest}`);
+        dbg(`Creating draft from package: ${name} at ${dest}`);
 
         // Ensure the desination directory has the same name as the package
-        if (path.basename(dest) !== pkg.getName())
-            throw new DraftCreateError(
-                dest,
-                pkg.getName(),
-                `Destination directory name must match package name: ${pkg.getName()}`,
-            );
+        if (path.basename(dest) !== name)
+            throw new DraftCreateError(dest, name, `Destination directory name must match package name: ${name}`);
 
         // Check if the destination directory exists
         if (fs.existsSync(dest))
-            throw new DraftCreateError(dest, pkg.getName(), `Destination directory already exists: ${dest}`);
+            throw new DraftCreateError(dest, name, `Destination directory already exists: ${dest}`);
 
         // Create the destination directory
         fs.mkdirSync(dest, { recursive: true });
 
         // Get the required fields from the package
-        const directDeps = pkg.getDirectDeps();
-        const payload = pkg.getPayload();
+        const directDeps = deps;
 
         // Indicate that we are extracting the payload
         dbg(`Extracting payload: (${payload.length} bytes)`);
@@ -145,6 +142,84 @@ class Draft extends PackageBase {
     // Get the md files
     getMdFiles(): string[] {
         return this.mdFiles;
+    }
+
+    // Read the direct dependencies from the deps file
+    private static readDirectDepsFile(dir: string): Map<string, string> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:Draft:readDirectDepsFile');
+
+        // Indicate that we are reading the deps.txt file
+        dbg(`Reading deps.txt file in ${dir}`);
+
+        // Get the path to the deps.txt file
+        const depsPath = path.join(dir, Draft.DEPS_FILE_NAME);
+
+        // Indicate the path to the deps.txt file
+        dbg(`DepsPath: ${depsPath}`);
+
+        if (!fs.existsSync(depsPath) || !fs.statSync(depsPath).isFile())
+            throw new ReadDepsFileError(dir, `deps.txt invalid or missing in ${dir}`);
+
+        // Get the deps.txt file
+        const depsRaw = fs.readFileSync(depsPath, 'utf8');
+
+        // Indicate that we have read the deps.txt file
+        dbg(`DepsRaw: ${depsRaw}`);
+
+        // Parse the dependencies
+        const directDeps = Draft.parseDirectDeps(depsRaw);
+
+        // Indicate the parsed dependencies
+        dbg(`DirectDeps: ${JSON.stringify(Object.fromEntries(directDeps))}`);
+
+        // Return the parsed dependencies
+        return directDeps;
+    }
+
+    // Write the direct dependencies to the deps file
+    private static async writeDirectDepsFile(dir: string, deps: Map<string, string>): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Get the debugger
+            const dbg = debug('apm:common:models:Draft:writeDirectDepsFile');
+
+            // Get the deps.txt file
+            const depsPath = path.join(dir, Draft.DEPS_FILE_NAME);
+
+            // Indicate that we are writing the deps.txt file
+            dbg(`Writing deps.txt file to ${depsPath}`);
+
+            // If the directory does not exist, throw an error
+            if (!fs.existsSync(dir)) throw new WriteDepsFileError(dir, 'Directory does not exist');
+
+            // Check if the file/folder exists, and remove it if it does
+            if (fs.existsSync(depsPath)) fs.rmSync(depsPath, { force: true, recursive: true });
+
+            // Create the write stream
+            const writeStream = fs.createWriteStream(depsPath);
+
+            // Handle errors
+            writeStream.on('error', (err) => {
+                reject(new WriteDepsFileError(dir, err.message));
+            });
+
+            // Handle the finish event
+            writeStream.on('finish', () => {
+                // Indicate that we have written the deps.txt file
+                dbg(`Deps.txt successfully written to: ${depsPath}`);
+
+                // Resolve the promise
+                resolve();
+            });
+
+            // For each dependency, write the dependency to the file
+            for (const [name, version] of deps.entries()) {
+                writeStream.write(`${name} ${version}\n`);
+            }
+
+            // Close the write stream
+            writeStream.end();
+        });
     }
 
     // Parse the dependencies given a raw dependencies file
@@ -189,59 +264,6 @@ class Draft extends PackageBase {
 
         // Return the map
         return result;
-    }
-
-    // Read the direct dependencies from the deps file
-    private static readDirectDepsFile(dir: string): Map<string, string> {
-        // Get the debugger
-        const dbg = debug('apm:common:models:Draft:readDirectDepsFile');
-
-        // Indicate that we are reading the deps.txt file
-        dbg(`Reading deps.txt file in ${dir}`);
-
-        // Get the path to the deps.txt file
-        const depsPath = path.join(dir, Draft.DEPS_FILE_NAME);
-
-        // Indicate the path to the deps.txt file
-        dbg(`DepsPath: ${depsPath}`);
-
-        if (!fs.existsSync(depsPath) || !fs.statSync(depsPath).isFile())
-            throw new DraftLoadError(dir, `deps.txt invalid or missing in ${dir}`);
-
-        // Get the deps.txt file
-        const depsRaw = fs.readFileSync(depsPath, 'utf8');
-
-        // Indicate that we have read the deps.txt file
-        dbg(`DepsRaw: ${depsRaw}`);
-
-        // Parse the dependencies
-        const directDeps = Draft.parseDirectDeps(depsRaw);
-
-        // Indicate the parsed dependencies
-        dbg(`DirectDeps: ${JSON.stringify(Object.fromEntries(directDeps))}`);
-
-        // Return the parsed dependencies
-        return directDeps;
-    }
-
-    // Write the direct dependencies to the deps file
-    private static writeDirectDepsFile(draftDir: string, deps: Map<string, string>): void {
-        // Get the deps.txt file
-        const depsPath = path.join(draftDir, Draft.DEPS_FILE_NAME);
-
-        // Check if the file exists
-        if (fs.existsSync(depsPath)) fs.unlinkSync(depsPath);
-
-        // Create the write stream
-        const writeStream = fs.createWriteStream(depsPath);
-
-        // For each dependency, write the dependency to the file
-        for (const [name, version] of deps.entries()) {
-            writeStream.write(`${name} ${version}\n`);
-        }
-
-        // Close the write stream
-        writeStream.end();
     }
 
     // Extract a tar
@@ -324,13 +346,17 @@ class Package extends PackageBase {
     }
 
     // Create a package from a name, direct dependencies, and a payload
-    static async fromDraft(draft: Draft): Promise<Package> {
-        const name = draft.getName();
-        const directDeps = draft.getDirectDeps();
-        const payload = await Package.packTar(draft.getSrcDir(), draft.getAgdaFiles().concat(draft.getMdFiles()));
-        const binary = Package.computeBinary(name, directDeps, payload);
+    static async create(
+        name: string,
+        deps: Map<string, string>,
+        srcDir: string,
+        agdaFiles: string[],
+        mdFiles: string[],
+    ): Promise<Package> {
+        const payload = await Package.packTar(srcDir, agdaFiles.concat(mdFiles));
+        const binary = Package.computeBinary(name, deps, payload);
         const version = Package.computeVersion(binary);
-        return new Package(name, directDeps, binary, payload, version);
+        return new Package(name, deps, binary, payload, version);
     }
 
     // Get the binary of the package
@@ -461,55 +487,12 @@ class Package extends PackageBase {
     }
 }
 
-class Packer {
-    // // Pack the draft into a package
-    // static async pack(draft: Draft): Promise<Package> {
-    //     // Get the debugger
-    //     const dbg = debug('apm:common:models:Packer:pack');
-    //     // Indicate that we are packing the draft
-    //     dbg(`Packing draft: ${draft.getName()}`);
-    //     // Get the name and version of the package
-    //     const name = draft.getName();
-    //     // Get the dependencies of the package
-    //     const directDeps = draft.getDirectDeps();
-    //     // Get the source directory
-    //     const srcDir = draft.getSrcDir();
-    //     // Get the agda files
-    //     const agdaFiles = draft.getAgdaFiles();
-    //     // Get the md files
-    //     const mdFiles = draft.getMdFiles();
-    //     // Indicate the agda and md files
-    //     dbg(`AgdaFiles: ${JSON.stringify(agdaFiles)}`);
-    //     dbg(`MdFiles: ${JSON.stringify(mdFiles)}`);
-    //     // Concatenate the agda and md files
-    //     const files = agdaFiles.concat(mdFiles);
-    //     // Indicate the files
-    //     dbg(`Files: ${JSON.stringify(files)}`);
-    //     // Construct the tar binary
-    //     const payload = await Packer.packTar(srcDir, files);
-    //     // Indicate the payload
-    //     dbg(`Payload length: ${payload.length}`);
-    //     // Create the package
-    //     return Package.create(name, directDeps, payload);
-    // }
-    // // Unpack the package into a draft
-    // static async unpack(pkg: Package): Promise<Draft> {
-    //     // Get the debugger
-    //     const dbg = debug('apm:common:models:Packer:unpack');
-    //     // Indicate that we are unpacking the package
-    //     dbg(`Unpacking package: ${package.getName()}`);
-    // }
-    // // Pack the files into a tar
-    // private static async packTar(basePath: string, files: string[]): Promise<Buffer> {
-    //     // Use tar-fs to create the pack stream
-    //     const result = await tarFs.pack(basePath, { entries: files });
-    //     // Pipe the stream contents to a buffer
-    //     return new Promise<Buffer>((resolve, reject) => {
-    //         const chunks: Buffer[] = [];
-    //         result.on('data', (chunk) => chunks.push(chunk));
-    //         result.on('end', () => resolve(Buffer.concat(chunks)));
-    //     });
-    // }
+async function pack(dr: Draft): Promise<Package> {
+    return await Package.create(dr.getName(), dr.getDirectDeps(), dr.getSrcDir(), dr.getAgdaFiles(), dr.getMdFiles());
 }
 
-export { PackageBase, Draft, Package, Packer };
+async function unpack(pkg: Package, dest: string): Promise<Draft> {
+    return await Draft.create(pkg.getName(), pkg.getDirectDeps(), dest, pkg.getPayload());
+}
+
+export { PackageBase, Draft, Package, pack, unpack };

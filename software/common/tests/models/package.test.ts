@@ -4,11 +4,13 @@ import fs from 'fs';
 import { glob } from 'glob';
 import debug from 'debug';
 import { expect, describe, it, beforeEach } from '@jest/globals';
-import { Package, Draft, PackageBase, Packer } from '../../src/models/package';
+import { Package, Draft, PackageBase, pack, unpack } from '../../src/models/package';
 import FailedToParseDepsError from '../../src/errors/failed-to-parse-deps';
 import FailedToDeserializeDepsError from '../../src/errors/failed-to-deserialize-deps';
 import DraftLoadError from '../../src/errors/draft-load';
 import PackageLoadError from '../../src/errors/package-load';
+import ReadDepsFileError from '../../src/errors/read-deps-file';
+import WriteDepsFileError from '../../src/errors/write-deps-file';
 
 describe('models/package', () => {
     // HELPER FUNCTIONS
@@ -117,6 +119,131 @@ describe('models/package', () => {
                 expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
         });
+    });
+
+    describe('Draft.readDirectDepsFile()', () => {
+        const tmpDir = path.join(os.tmpdir(), 'apm-test-read-deps-file');
+        const depsPath = path.join(tmpDir, 'deps.txt');
+
+        beforeEach(() => {
+            // Remove the directory if it exists
+            if (fs.existsSync(tmpDir)) fs.rmdirSync(tmpDir, { recursive: true });
+            // Create a directory
+            fs.mkdirSync(tmpDir);
+        });
+
+        describe('success cases', () => {
+            it('empty dependencies file', () => {
+                // Write the empty dependencies file
+                fs.writeFileSync(depsPath, '');
+
+                // Read the dependencies file
+                const deps = (Draft as any).readDirectDepsFile(tmpDir);
+                expect(deps).toEqual(new Map());
+            });
+
+            it('one dependency', () => {
+                // Write the dependencies file
+                fs.writeFileSync(depsPath, 'dep0 ver0');
+
+                // Read the dependencies file
+                const deps = (Draft as any).readDirectDepsFile(tmpDir);
+                expect(deps).toEqual(new Map([['dep0', 'ver0']]));
+            });
+
+            it('many dependencies', () => {
+                // Write the dependencies file
+                fs.writeFileSync(depsPath, 'dep0 ver0\ndep1 ver1\ndep2 ver2');
+
+                // Read the dependencies file
+                const deps = (Draft as any).readDirectDepsFile(tmpDir);
+                expect(deps).toEqual(
+                    new Map([
+                        ['dep0', 'ver0'],
+                        ['dep1', 'ver1'],
+                        ['dep2', 'ver2'],
+                    ]),
+                );
+            });
+        });
+
+        describe('failure cases', () => {
+            it('should throw a ReadDepsFileError if the file does not exist', () => {
+                expect(() => (Draft as any).readDirectDepsFile(tmpDir)).toThrow(ReadDepsFileError);
+            });
+
+            it('should throw a ReadDepsFileError if the file is not a file', () => {
+                // Create deps.txt folder
+                fs.mkdirSync(depsPath);
+                expect(() => (Draft as any).readDirectDepsFile(tmpDir)).toThrow(ReadDepsFileError);
+            });
+        });
+
+        // it('should read the direct dependencies file correctly', () => {
+        //     const deps = (Package as any).readDirectDepsFile(
+        //         path.join(__dirname, '..', '..', '..', '..', 'test-data', 'deps.txt'),
+        //     );
+        //     expect(deps).toEqual(
+        //         new Map([
+        //             ['dep0', 'ver0'],
+        //             ['dep1', 'ver1'],
+        //         ]),
+        //     );
+        // });
+    });
+
+    describe('Draft.writeDirectDepsFile()', () => {
+        const tmpDir = path.join(os.tmpdir(), 'apm-test-write-deps-file');
+        const depsPath = path.join(tmpDir, 'deps.txt');
+
+        describe('success cases', () => {
+            beforeEach(async () => {
+                // Remove the directory if it exists
+                if (fs.existsSync(tmpDir)) fs.rmdirSync(tmpDir, { recursive: true });
+                // Create a directory
+                fs.mkdirSync(tmpDir);
+                // sleep for 15 seconds
+                // await new Promise((resolve) => setTimeout(resolve, 15000));
+            });
+
+            it('empty dependencies file', async () => {
+                // Construct the dependencies
+                const deps = new Map();
+
+                // Write the empty dependencies file
+                await (Draft as any).writeDirectDepsFile(tmpDir, deps);
+
+                // Read the dependencies file
+                const depsRaw = fs.readFileSync(depsPath, 'utf8');
+
+                // Check the result
+                expect(depsRaw).toBe('');
+            });
+        });
+
+        describe('failure cases', () => {
+            it('should throw a WriteDepsFileError if the directory does not exist', () => {
+                // Remove the directory if it exists
+                if (fs.existsSync(tmpDir)) fs.rmdirSync(tmpDir, { recursive: true });
+
+                // Expect rejection
+                expect(async () => await (Draft as any).writeDirectDepsFile(tmpDir, new Map())).rejects.toThrow(
+                    WriteDepsFileError,
+                );
+            });
+        });
+
+        // it('should read the direct dependencies file correctly', () => {
+        //     const deps = (Package as any).readDirectDepsFile(
+        //         path.join(__dirname, '..', '..', '..', '..', 'test-data', 'deps.txt'),
+        //     );
+        //     expect(deps).toEqual(
+        //         new Map([
+        //             ['dep0', 'ver0'],
+        //             ['dep1', 'ver1'],
+        //         ]),
+        //     );
+        // });
     });
 
     describe('Package.serializeDirectDeps()', () => {
@@ -1286,7 +1413,7 @@ describe('models/package', () => {
                 expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
             });
 
-            it('should throw a DraftLoadError if the path does not contain a deps.txt file', () => {
+            it('should throw a ReadDepsFileError if the path does not contain a deps.txt file', () => {
                 const srcPath = path.join(tmpDir, 'no-deps-txt');
 
                 // Create the file
@@ -1295,10 +1422,10 @@ describe('models/package', () => {
                 // Expect the file to exist
                 expect(fs.existsSync(srcPath)).toBe(true);
 
-                expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
+                expect(() => Draft.load(srcPath)).toThrow(ReadDepsFileError);
             });
 
-            it('should throw a DraftLoadError if the deps.txt is not a file', () => {
+            it('should throw a ReadDepsFileError if the deps.txt is not a file', () => {
                 const srcPath = path.join(tmpDir, 'no-deps-txt');
                 const depsTxtPath = path.join(srcPath, 'deps.txt');
 
@@ -1311,7 +1438,7 @@ describe('models/package', () => {
                 // Expect the folder to exist
                 expect(fs.existsSync(depsTxtPath)).toBe(true);
 
-                expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
+                expect(() => Draft.load(srcPath)).toThrow(ReadDepsFileError);
             });
 
             it('should throw a FailedToParseDepsError if the deps.txt file is invalid', () => {
