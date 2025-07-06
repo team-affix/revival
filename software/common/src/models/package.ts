@@ -95,7 +95,7 @@ class Draft extends PackageBase {
     }
 
     // Create draft from package
-    static async create(name: string, deps: Map<string, string>, dest: string, payload: Buffer): Promise<Draft> {
+    static async create(name: string, deps: Map<string, string>, payload: Buffer, dest: string): Promise<Draft> {
         // Get the debugger
         const dbg = debug('apm:common:models:Draft:createFromPackage');
 
@@ -123,7 +123,7 @@ class Draft extends PackageBase {
         await Draft.extractTar(payload, dest);
 
         // Write the deps.txt file
-        Draft.writeDirectDepsFile(dest, directDeps);
+        await Draft.writeDirectDepsFile(dest, directDeps);
 
         // Return the draft
         return Draft.load(dest);
@@ -492,7 +492,7 @@ async function pack(dr: Draft): Promise<Package> {
 }
 
 async function unpack(pkg: Package, dest: string): Promise<Draft> {
-    return await Draft.create(pkg.getName(), pkg.getDirectDeps(), dest, pkg.getPayload());
+    return await Draft.create(pkg.getName(), pkg.getDirectDeps(), pkg.getPayload(), dest);
 }
 
 export { PackageBase, Draft, Package, pack, unpack };
