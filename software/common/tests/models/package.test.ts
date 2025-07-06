@@ -1537,6 +1537,11 @@ describe('models/package', () => {
         };
 
         describe('success cases', () => {
+            // JUST TO DOCUMENT THIS BRIEFLY:
+            //
+            // The genericTest function is used to test the Draft.create() function.
+            // It writes the files to packDir (does not have the basename of the package), creates the tar, and then
+            // creates the draft in extractDir/packageName, which is why we must prefix all the relPaths with the package name.
             const genericTest = async (
                 name: string,
                 deps: Map<string, string>,
