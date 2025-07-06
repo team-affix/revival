@@ -8,10 +8,10 @@ export function greeting(name: string): string {
 }
 
 // Import Node.js child_process module for executing shell commands
-import { spawn } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as glob from 'glob';
+import { spawn } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import * as glob from "glob";
 
 /**
  * Executes a shell command using spawn for better handling of interactive commands
@@ -19,16 +19,19 @@ import * as glob from 'glob';
  * @param args - Command arguments as an array
  * @returns Promise that resolves when the command completes
  */
-export function spawnCommand(command: string, args: string[] = []): Promise<void> {
+export function spawnCommand(
+  command: string,
+  args: string[] = []
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    console.log(`Running: ${command} ${args.join(' ')}`);
-    
+    console.log(`Running: ${command} ${args.join(" ")}`);
+
     const process = spawn(command, args, {
-      stdio: 'inherit', // This passes through stdin/stdout/stderr to the parent process
-      shell: true
+      stdio: "inherit", // This passes through stdin/stdout/stderr to the parent process
+      shell: true,
     });
-    
-    process.on('close', (code) => {
+
+    process.on("close", (code) => {
       if (code === 0) {
         console.log(`Command completed successfully`);
         resolve();
@@ -37,8 +40,8 @@ export function spawnCommand(command: string, args: string[] = []): Promise<void
         reject(new Error(`Command failed with code ${code}`));
       }
     });
-    
-    process.on('error', (err) => {
+
+    process.on("error", (err) => {
       console.error(`Failed to start command: ${err}`);
       reject(err);
     });
@@ -53,13 +56,13 @@ export function spawnCommand(command: string, args: string[] = []): Promise<void
  * @returns Array of copied file paths
  */
 export function copyFilesWithExtension(
-  sourceDir: string, 
-  targetDir: string, 
+  sourceDir: string,
+  targetDir: string,
   extension: string
 ): string[] {
   // Make sure the extension starts with a dot
-  const ext = extension.startsWith('.') ? extension : `.${extension}`;
-  
+  const ext = extension.startsWith(".") ? extension : `.${extension}`;
+
   // If the target directory already exists, throw an error
   if (fs.existsSync(targetDir)) {
     throw new Error(`Target directory already exists: ${targetDir}`);
@@ -67,28 +70,28 @@ export function copyFilesWithExtension(
 
   // Create the target directory
   fs.mkdirSync(targetDir, { recursive: true });
-  
+
   // Find all files with the specified extension using glob
   const pattern = path.join(sourceDir, `**/*${ext}`);
   const matchingFiles = glob.sync(pattern);
-  
+
   const copiedFiles: string[] = [];
-   
+
   // Copy each matching file to the target directory
   for (const sourcePath of matchingFiles) {
     // Get the relative path from the source directory
     const relativePath = path.relative(sourceDir, sourcePath);
     const targetPath = path.join(targetDir, relativePath);
-    
+
     // Create the target directory structure
     fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-    
+
     // Copy the file
     fs.copyFileSync(sourcePath, targetPath);
     copiedFiles.push(targetPath);
     console.log(`Copied: ${sourcePath} → ${targetPath}`);
   }
-  
+
   return copiedFiles;
 }
 
@@ -98,4 +101,4 @@ export default {
   greeting,
   spawnCommand,
   copyFilesWithExtension,
-}; 
+};

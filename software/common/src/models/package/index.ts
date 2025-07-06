@@ -7,7 +7,7 @@ async function pack(dr: Draft): Promise<Package> {
 }
 
 async function unpack(pkg: Package, dest: string): Promise<Draft> {
-    return await Draft.create(pkg.getName(), pkg.getDirectDeps(), pkg.getPayload(), dest);
+    return await Draft.create(dest, pkg.getName(), pkg.getDirectDeps(), pkg.getPayload());
 }
 
 export { PackageBase, Draft, Package, pack, unpack };

@@ -1,54 +1,80 @@
-// import fs from 'fs';
-// import path from 'path';
-// import ProjectAlreadyExistsError from '../errors/project-already-exists';
-// import Package from './package';
+import fs from 'fs';
+import path from 'path';
+import debug from 'debug';
+import { Package, Draft, pack, unpack } from './package';
+import ProjectLoadError from '../errors/project-load';
+import ProjectCreationError from '../errors/project-creation';
 
-// class Project {
-//     // Constructs a project model given the project path
-//     private constructor(private projectPath: string) {}
+export class Project {
+    // Constructs a project model given the project path
+    private constructor(
+        private projectPath: string,
+        private drafts: Draft[],
+        private rootDraft: Draft,
+    ) {}
 
-//     // Find a project given the project path
-//     static find(projectPath: string): Project | null {
-//         if (!fs.existsSync(projectPath) || !fs.statSync(projectPath).isDirectory()) return null;
-//         return new Project(projectPath);
-//     }
+    // Load a project given the project path
+    static load(projectPath: string): Project {
+        // Get the debugger
+        const dbg = debug('apm:common:models:project:load');
+        // Indicate that we are loading a project
+        dbg(`Loading project at ${projectPath}`);
+        // Check if the project path exists and is a directory
+        if (!fs.existsSync(projectPath) || !fs.statSync(projectPath).isDirectory())
+            throw new ProjectLoadError(projectPath, 'Project path does not exist or is not a directory');
+        // Get the project name
+        const projectName = path.basename(projectPath);
+        // Indicate the package name
+        dbg(`Project name: ${projectName}`);
+        // Load the all drafts (all directories)
+        const draftPaths = fs
+            .readdirSync(projectPath)
+            .map((p) => path.join(projectPath, p))
+            .filter((p) => fs.statSync(p).isDirectory());
+        // Indicate all drafts that were found
+        dbg(`Found ${draftPaths.length} drafts`);
+        // Load the drafts
+        const drafts = draftPaths.map((p) => Draft.load(p));
+        // Get the root draft
+        const rootDraft = drafts.find((d) => d.getName() === projectName);
+        // Check if the root draft was found
+        if (!rootDraft) throw new ProjectLoadError(projectPath, 'Root draft not found');
+        // Return the project model
+        return new Project(projectPath, drafts, rootDraft);
+    }
 
-//     // Create a project
-//     static createEmpty(parentPath: string, projectName: string): Project {
-//         // Check if the project path exists and is a directory
-//         const projectPath = path.join(parentPath, projectName);
-//         if (fs.existsSync(projectPath)) throw new ProjectAlreadyExistsError(projectPath);
-//         // Create the project directory
-//         fs.mkdirSync(projectPath, { recursive: true });
-//         // Create the root package directory
-//         const projectBasename = path.basename(projectPath);
-//         const rootPackagePath = path.join(projectPath, projectBasename);
-//         fs.mkdirSync(rootPackagePath, { recursive: true });
-//         // Create the deps.txt file
-//         const depsPath = path.join(rootPackagePath, 'deps.txt');
-//         fs.writeFileSync(depsPath, '');
-//         // Return the project model
-//         return new Project(projectPath);
-//     }
+    // Create a project
+    static async create(cwd: string, projectName: string): Promise<Project> {
+        // Check if the project path exists and is a directory
+        const projectPath = path.join(cwd, projectName);
+        if (fs.existsSync(projectPath)) throw new ProjectCreationError(projectName, cwd, 'Project path already exists');
+        // Create the project directory
+        fs.mkdirSync(projectPath, { recursive: true });
+        // Create the root draft directory
+        const rootDraftPath = path.join(projectPath, projectName);
+        await Draft.create(rootDraftPath, projectName, new Map());
+        // Return the project model
+        return Project.load(projectPath);
+    }
 
-//     static createFromRootPackage(parentPath: string, rootPackage: Package): Project {
-//         // Get the project name from the package name
-//         const projectName = rootPackage.getName();
-//         // Check if the project path exists and is a directory
-//         const projectPath = path.join(parentPath, projectName);
-//         if (fs.existsSync(projectPath)) throw new ProjectAlreadyExistsError(projectPath);
-//         // Create the project directory
-//         fs.mkdirSync(projectPath, { recursive: true });
-//         // Create the root package directory
-//     }
+    // static createFromRootPackage(parentPath: string, rootPackage: Package): Project {
+    //     // Get the project name from the package name
+    //     const projectName = rootPackage.getName();
+    //     // Check if the project path exists and is a directory
+    //     const projectPath = path.join(parentPath, projectName);
+    //     if (fs.existsSync(projectPath)) throw new ProjectAlreadyExistsError(projectPath);
+    //     // Create the project directory
+    //     fs.mkdirSync(projectPath, { recursive: true });
+    //     // Create the root package directory
+    // }
 
-//     // Define installation logic
-//     install(): void {
-//         // Get the root package
-//         const rootPackage = this.getRootPackage();
-//         // Install the root package
-//         rootPackage.install();
-//     }
-// }
+    // // Define installation logic
+    // install(): void {
+    //     // Get the root package
+    //     const rootPackage = this.getRootPackage();
+    //     // Install the root package
+    //     rootPackage.install();
+    // }
+}
 
-// export default Project;
+export default Project;

@@ -1565,7 +1565,7 @@ describe('models/package', () => {
                 const outDir = path.join(extractDir, name);
 
                 // Create the draft
-                const draft = await Draft.create(name, deps, tar, outDir);
+                const draft = await Draft.create(outDir, name, deps, tar);
 
                 // Glob literally all files in the output directory
                 const files = glob.sync('**/*', { cwd: extractDir, nodir: true });

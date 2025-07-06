@@ -72,7 +72,7 @@ export class Draft extends PackageBase {
     }
 
     // Create draft from package
-    static async create(name: string, deps: Map<string, string>, payload: Buffer, dest: string): Promise<Draft> {
+    static async create(dest: string, name: string, deps: Map<string, string>, payload?: Buffer): Promise<Draft> {
         // Get the debugger
         const dbg = debug('apm:common:models:Draft:createFromPackage');
 
@@ -93,11 +93,14 @@ export class Draft extends PackageBase {
         // Get the required fields from the package
         const directDeps = deps;
 
-        // Indicate that we are extracting the payload
-        dbg(`Extracting payload: (${payload.length} bytes)`);
+        // If there is a payload, extract it
+        if (payload) {
+            // Indicate that we are extracting the payload
+            dbg(`Extracting payload: (${payload.length} bytes)`);
 
-        // Extract the payload
-        await Draft.extractTar(payload, dest);
+            // Extract the payload
+            await Draft.extractTar(payload, dest);
+        }
 
         // Write the deps.txt file
         await Draft.writeDirectDepsFile(dest, directDeps);
