@@ -6,7 +6,7 @@ import { expect, describe, it, beforeEach } from '@jest/globals';
 import { Source, __test__ as SourceTest } from '../../src/models/source';
 
 describe('models/Source', () => {
-    describe('Source.pack() and Source.extract()', () => {
+    describe('Source.packTar() and Source.extractTar()', () => {
         const packDir = path.join(os.tmpdir(), 'apm-pack-tar-tmp-dir');
         const extractDir = path.join(os.tmpdir(), 'apm-extract-tar-tmp-dir');
 
@@ -54,16 +54,13 @@ describe('models/Source', () => {
 
                 const fileRelPaths: string[] = Array.from(fileEntries.keys());
 
-                // Construct source object
-                const source = await Source.load(packDir);
-
                 // Pack the source
-                const payload = await Source.pack(source);
+                const payload = await SourceTest.packTar(packDir, fileRelPaths);
 
                 expect(payload).toBeDefined();
 
                 // Extract the source
-                await Source.extract(extractDir, payload);
+                await SourceTest.extractTar(payload, extractDir);
 
                 assertFilesMatchExactly(fileEntries);
             };
