@@ -6,9 +6,12 @@ import ProjectCreationError from '../errors/project-creation';
 import ReadDepsFileError from '../errors/read-deps-file';
 import WriteDepsFileError from '../errors/write-deps-file';
 import FailedToParseDepsError from '../errors/failed-to-parse-deps';
+import { Source } from './source';
 
 // The name of the deps file
 const DEPS_FILE_NAME = 'deps.txt';
+const DEPS_FOLDER_NAME = 'deps';
+const AGDA_LIB_FILE_NAME = '.agda-lib';
 
 // Parse the dependencies given a raw dependencies file
 function parseDirectDeps(raw: string): Map<string, string> {
@@ -53,21 +56,21 @@ function parseDirectDeps(raw: string): Map<string, string> {
 }
 
 // Read the direct dependencies from the deps file
-function readDirectDepsFile(dir: string): Map<string, string> {
+function readDirectDepsFile(cwd: string): Map<string, string> {
     // Get the debugger
     const dbg = debug('apm:common:models:Project:readDirectDepsFile');
 
     // Indicate that we are reading the deps.txt file
-    dbg(`Reading deps.txt file in ${dir}`);
+    dbg(`Reading deps.txt file in ${cwd}`);
 
     // Get the path to the deps.txt file
-    const depsPath = path.join(dir, DEPS_FILE_NAME);
+    const depsPath = path.join(cwd, DEPS_FILE_NAME);
 
     // Indicate the path to the deps.txt file
     dbg(`DepsPath: ${depsPath}`);
 
     if (!fs.existsSync(depsPath) || !fs.statSync(depsPath).isFile())
-        throw new ReadDepsFileError(dir, `deps.txt invalid or missing in ${dir}`);
+        throw new ReadDepsFileError(cwd, `deps.txt invalid or missing in ${cwd}`);
 
     // Get the deps.txt file
     const depsRaw = fs.readFileSync(depsPath, 'utf8');
@@ -86,29 +89,29 @@ function readDirectDepsFile(dir: string): Map<string, string> {
 }
 
 // Write the direct dependencies to the deps file
-async function writeDirectDepsFile(dir: string, deps: Map<string, string>): Promise<void> {
+async function writeDirectDepsFile(cwd: string, deps: Map<string, string>): Promise<void> {
     return new Promise((resolve, reject) => {
         // Get the debugger
         const dbg = debug('apm:common:models:Project:writeDirectDepsFile');
 
         // Get the deps.txt file
-        const depsPath = path.join(dir, DEPS_FILE_NAME);
+        const depsPath = path.join(cwd, DEPS_FILE_NAME);
 
         // Indicate that we are writing the deps.txt file
         dbg(`Writing deps.txt file to ${depsPath}`);
 
         // If the directory does not exist, throw an error
-        if (!fs.existsSync(dir)) throw new WriteDepsFileError(dir, 'Directory does not exist');
+        if (!fs.existsSync(cwd)) throw new WriteDepsFileError(cwd, 'Directory does not exist');
 
         // Check if the file/folder exists, and remove it if it does
-        if (fs.existsSync(depsPath)) throw new WriteDepsFileError(dir, 'File already exists');
+        if (fs.existsSync(depsPath)) throw new WriteDepsFileError(cwd, 'File already exists');
 
         // Create the write stream
         const writeStream = fs.createWriteStream(depsPath);
 
         // Handle errors
         writeStream.on('error', (err) => {
-            reject(new WriteDepsFileError(dir, err.message));
+            reject(new WriteDepsFileError(cwd, err.message));
         });
 
         // Handle the finish event
@@ -130,92 +133,118 @@ async function writeDirectDepsFile(dir: string, deps: Map<string, string>): Prom
     });
 }
 
-// export class Project {
-//     // Constructs a project model given the project path
-//     private constructor(
-//         private projectPath: string,
-//         private drafts: Draft[],
-//         private rootDraft: Draft,
-//     ) {}
+export class Project {
+    // Constructs a project model given the project path
+    private constructor(
+        private cwd: string,
+        private name: string,
+        private directDeps: Map<string, string>,
+        private rootSource: Source,
+        private dependencySources: Source[],
+    ) {}
 
-//     // Load a project given the project path
-//     static load(projectPath: string): Project {
-//         // Get the debugger
-//         const dbg = debug('apm:common:models:project:load');
-//         // Indicate that we are loading a project
-//         dbg(`Loading project at ${projectPath}`);
-//         // Check if the project path exists and is a directory
-//         if (!fs.existsSync(projectPath) || !fs.statSync(projectPath).isDirectory())
-//             throw new ProjectLoadError(projectPath, 'Project path does not exist or is not a directory');
-//         // Get the project name
-//         const projectName = path.basename(projectPath);
-//         // Indicate the package name
-//         dbg(`Project name: ${projectName}`);
-//         // Load the all drafts (all directories)
-//         const draftPaths = fs
-//             .readdirSync(projectPath)
-//             .map((p) => path.join(projectPath, p))
-//             .filter((p) => fs.statSync(p).isDirectory());
-//         // Indicate all drafts that were found
-//         dbg(`Found ${draftPaths.length} drafts`);
-//         // Load the drafts
-//         const drafts = draftPaths.map((p) => Draft.load(p));
-//         // Get the root draft
-//         const rootDraft = drafts.find((d) => d.getName() === projectName);
-//         // Check if the root draft was found
-//         if (!rootDraft) throw new ProjectLoadError(projectPath, 'Root draft not found');
-//         // Return the project model
-//         return new Project(projectPath, drafts, rootDraft);
-//     }
+    // Load a project given the project path
+    static async load(cwd: string): Promise<Project> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:project:load');
+        // Indicate that we are loading a project
+        dbg(`Loading project at ${cwd}`);
+        // Check if the project path exists and is a directory
+        if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory())
+            throw new ProjectLoadError(cwd, 'Project path does not exist or is not a directory');
+        // Get the project name
+        const projectName = path.basename(cwd);
+        // Indicate the project name
+        dbg(`Project name: ${projectName}`);
+        // Load the direct dependencies
+        const directDeps = readDirectDepsFile(cwd);
+        // Indicate the direct dependencies
+        dbg(`Direct deps: ${JSON.stringify(Object.fromEntries(directDeps))}`);
+        // Load the root source
+        const rootSourcePath: string = path.join(cwd, projectName);
+        const rootSource: Source = await Source.load(rootSourcePath);
+        // Indicate the root source
+        dbg(`Root source: ${JSON.stringify(rootSource.getAgdaFiles().concat(rootSource.getMdFiles()))}`);
+        // Load the dependency sources (if deps folder exists)
+        const depsFolder: string = path.join(cwd, DEPS_FOLDER_NAME);
+        let dependencySources: Source[] = [];
+        if (fs.existsSync(depsFolder)) {
+            const depRelPaths: string[] = fs.readdirSync(depsFolder);
+            dependencySources = await Promise.all(depRelPaths.map((p) => Source.load(path.join(depsFolder, p))));
+        }
+        // Indicate the dependency sources
+        dbg(`Dependency sources: ${JSON.stringify(dependencySources.map((s) => s.getCwd()))}`);
+        // Return the project model
+        return new Project(cwd, projectName, directDeps, rootSource, dependencySources);
+    }
 
-//     // Create a project
-//     static async create(cwd: string, projectName: string): Promise<Project> {
-//         // Check if the project path exists and is a directory
-//         const projectPath = path.join(cwd, projectName);
-//         if (fs.existsSync(projectPath)) throw new ProjectCreationError(projectName, cwd, 'Project path already exists');
-//         // Create the project directory
-//         fs.mkdirSync(projectPath, { recursive: true });
-//         // Create the root draft directory
-//         const rootDraftPath = path.join(projectPath, projectName);
-//         await Draft.create(rootDraftPath, projectName, new Map());
-//         // Return the project model
-//         return Project.load(projectPath);
-//     }
+    // Create a project
+    static async create(cwd: string): Promise<Project> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:project:create');
+        // Get the project name
+        const projectName = path.basename(cwd);
+        // Indicate the project name
+        dbg(`Project name: ${projectName}`);
+        // Check if the project path exists and is a directory
+        if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory())
+            throw new ProjectCreationError(projectName, cwd, 'Path does not exist or is not a directory');
+        // Create the deps.txt file
+        const depsPath = path.join(cwd, DEPS_FILE_NAME);
+        if (!fs.existsSync(depsPath)) await writeDirectDepsFile(cwd, new Map());
+        // Get the root source path
+        const rootSourcePath = path.join(cwd, projectName);
+        // Indicate the root source path
+        dbg(`Root source path: ${rootSourcePath}`);
+        // Create the root source directory if it does not already exist
+        if (!fs.existsSync(rootSourcePath)) fs.mkdirSync(rootSourcePath, { recursive: true });
+        // Create the .agda-lib file if it does not already exist
+        const agdaLibPath = path.join(cwd, AGDA_LIB_FILE_NAME);
+        if (!fs.existsSync(agdaLibPath)) fs.writeFileSync(agdaLibPath, `name: ${projectName}\ninclude: . deps`);
+        // Return the project model
+        return await Project.load(cwd);
+    }
 
-//     // Getter for the project path
-//     getProjectPath(): string {
-//         return this.projectPath;
-//     }
+    // Install the project
+    async install(): Promise<void> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:project:install');
+        // Indicate that we are installing the project
+        dbg(`Installing project at ${this.getCwd()}`);
+        // Create deps folder if it does not already exist
+        const depsFolderPath = path.join(this.getCwd(), DEPS_FOLDER_NAME);
+        if (!fs.existsSync(depsFolderPath)) fs.mkdirSync(depsFolderPath, { recursive: true });
+        // // Install the direct dependencies
+        // for (const [name, version] of this.directDeps.entries()) {
+        //     const depPath = path.join(depsFolderPath, name);
+        // }
+    }
 
-//     // Getter for the drafts
-//     getDrafts(): Draft[] {
-//         return this.drafts;
-//     }
+    // Getter for the project path
+    getCwd(): string {
+        return this.cwd;
+    }
 
-//     // Getter for the root draft
-//     getRootDraft(): Draft {
-//         return this.rootDraft;
-//     }
+    // Getter for the project name
+    getName(): string {
+        return this.name;
+    }
 
-//     // static createFromRootPackage(parentPath: string, rootPackage: Package): Project {
-//     //     // Get the project name from the package name
-//     //     const projectName = rootPackage.getName();
-//     //     // Check if the project path exists and is a directory
-//     //     const projectPath = path.join(parentPath, projectName);
-//     //     if (fs.existsSync(projectPath)) throw new ProjectAlreadyExistsError(projectPath);
-//     //     // Create the project directory
-//     //     fs.mkdirSync(projectPath, { recursive: true });
-//     //     // Create the root package directory
-//     // }
+    // Getter for the direct dependencies
+    getDirectDeps(): Map<string, string> {
+        return this.directDeps;
+    }
 
-//     // // Define installation logic
-//     // install(): void {
-//     //     // Get the root package
-//     //     const rootPackage = this.getRootPackage();
-//     //     // Install the root package
-//     //     rootPackage.install();
-//     // }
-// }
+    // Getter for the root source
+    getRootSource(): Source {
+        return this.rootSource;
+    }
+
+    // Getter for the dependency sources
+    getDependencySources(): Source[] {
+        return this.dependencySources;
+    }
+}
 
 export const __test__ = {
     parseDirectDeps,

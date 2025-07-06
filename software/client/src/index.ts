@@ -84,11 +84,9 @@ program.name('apm').description('Agda Package Manager - A tool for managing Agda
 //   });
 
 program
-    .command('project')
-    .command('create')
-    .description('Creates a new project and root draft to work in')
-    .argument('<projectName>', 'The name of the project to create')
-    .action(async (projectName: string) => {
+    .command('init')
+    .description('Initializes an apm project in the current directory')
+    .action(async () => {
         // Create debug logger
         const dbg = debug('apm:project:create');
 
@@ -96,7 +94,7 @@ program
             // Get the current working directory
             const cwd = process.cwd();
             // Create the project
-            await common.Project.create(cwd, projectName);
+            await common.Project.create(cwd);
         } catch (error: unknown) {
             if (error instanceof Error) {
                 console.error(error.message);
@@ -104,6 +102,25 @@ program
                 console.error(error);
             }
             process.exit(1);
+        }
+    });
+
+program
+    .command('install')
+    .description('Installs the dependencies for the current project')
+    .action(async () => {
+        // Create debug logger
+        const dbg = debug('apm:project:install');
+
+        try {
+            // Get the current working directory
+            const cwd = process.cwd();
+            // Get the project
+            const project = await common.Project.load(cwd);
+            // Install the dependencies
+            await project.install();
+        } catch (error: unknown) {
+            console.error(error);
         }
     });
 
