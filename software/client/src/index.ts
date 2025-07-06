@@ -5,7 +5,7 @@ import { greeting, spawnCommand, copyFilesWithExtension } from './utils.js';
 import * as path from 'path';
 import * as fs from 'fs';
 import { debug } from 'debug';
-import { Project } from 'common';
+import * as common from 'common';
 
 // Set version manually (can be updated during build)
 const VERSION = '1.0.0';
@@ -93,6 +93,11 @@ program
         const dbg = debug('apm:project:create');
 
         try {
+            // Get the current working directory
+            // const cwd = process.cwd();
+            // Create the project
+            await common.Project.create(cwd, projectName);
+            // const project = await common.Project.create(cwd, projectName);
         } catch (error: unknown) {
             if (error instanceof Error) {
                 console.error(error.message);

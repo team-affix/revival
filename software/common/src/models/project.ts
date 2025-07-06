@@ -76,5 +76,3 @@ export class Project {
     //     rootPackage.install();
     // }
 }
-
-export default Project;
