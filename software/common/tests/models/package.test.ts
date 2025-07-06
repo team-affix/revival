@@ -4,7 +4,9 @@ import fs from 'fs';
 import { glob } from 'glob';
 import debug from 'debug';
 import { expect, describe, it, beforeEach } from '@jest/globals';
-import { Package, Draft, PackageBase, pack, unpack } from '../../src/models/package';
+import { __test__ as PackageTest, Package } from '../../src/models/package';
+import { __test__ as ProjectTest } from '../../src/models/project';
+import { __test__ as SourceTest } from '../../src/models/source';
 import FailedToParseDepsError from '../../src/errors/failed-to-parse-deps';
 import FailedToDeserializeDepsError from '../../src/errors/failed-to-deserialize-deps';
 import DraftLoadError from '../../src/errors/draft-load';
@@ -15,23 +17,23 @@ import DraftCreateError from '../../src/errors/draft-create';
 
 describe('models/package', () => {
     // HELPER FUNCTIONS
-    describe('Draft.parseDirectDeps()', () => {
+    describe('parseDirectDeps()', () => {
         describe('success cases', () => {
             it('should parse as an empty map if the string is empty', () => {
                 const raw = '';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = ProjectTest.parseDirectDeps(raw);
                 expect(deps).toEqual(new Map());
             });
 
             it('should parse correctly with one dependency', () => {
                 const raw = 'dep0 ver0';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = ProjectTest.parseDirectDeps(raw);
                 expect(deps).toEqual(new Map([['dep0', 'ver0']]));
             });
 
             it('should parse correctly with two dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = ProjectTest.parseDirectDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -42,7 +44,7 @@ describe('models/package', () => {
 
             it('should parse correctly with many dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2\ndep3 ver3\ndep4 ver4\ndep5 ver5';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = ProjectTest.parseDirectDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -57,7 +59,7 @@ describe('models/package', () => {
 
             it('should successfully parse if the string contains any redundant newlines', () => {
                 const raw = 'dep0 ver0\n\ndep1 ver1';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = ProjectTest.parseDirectDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -68,7 +70,7 @@ describe('models/package', () => {
 
             it('should successfully parse if the string contains any redundant newlines', () => {
                 const raw = 'dep0 ver0\n\n\ndep1 ver1\n\n\n\ndep2 ver2\n\n\n';
-                const deps = (Draft as any).parseDirectDeps(raw);
+                const deps = ProjectTest.parseDirectDeps(raw);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -82,42 +84,42 @@ describe('models/package', () => {
         describe('failure cases', () => {
             it('should throw a FailedToParseDepsError if the string contains just a package name', () => {
                 const raw = 'dep0';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any invalid dependencies', () => {
                 const raw = 'dep0 ver0\ndep1';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains only duplicate dependencies', () => {
                 const raw = 'dep0 ver0\ndep0 ver1';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any duplicate dependencies', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep0 ver2';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains a single line with more than two parts', () => {
                 const raw = 'dep0 ver0 etc\n';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the string contains any lines with more than two parts', () => {
                 const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2 etc\ndep3 ver3';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the only line starts with a space', () => {
                 const raw = ' dep0 ver0';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if any lines start with a space', () => {
                 const raw = 'dep0 ver0\n dep1 ver1\ndep2 ver2';
-                expect(() => (Draft as any).parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
+                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
         });
     });
@@ -139,7 +141,7 @@ describe('models/package', () => {
                 fs.writeFileSync(depsPath, '');
 
                 // Read the dependencies file
-                const deps = (Draft as any).readDirectDepsFile(tmpDir);
+                const deps = ProjectTest.readDirectDepsFile(tmpDir);
                 expect(deps).toEqual(new Map());
             });
 
@@ -148,7 +150,7 @@ describe('models/package', () => {
                 fs.writeFileSync(depsPath, 'dep0 ver0');
 
                 // Read the dependencies file
-                const deps = (Draft as any).readDirectDepsFile(tmpDir);
+                const deps = ProjectTest.readDirectDepsFile(tmpDir);
                 expect(deps).toEqual(new Map([['dep0', 'ver0']]));
             });
 
@@ -157,7 +159,7 @@ describe('models/package', () => {
                 fs.writeFileSync(depsPath, 'dep0 ver0\ndep1 ver1\ndep2 ver2');
 
                 // Read the dependencies file
-                const deps = (Draft as any).readDirectDepsFile(tmpDir);
+                const deps = ProjectTest.readDirectDepsFile(tmpDir);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -170,13 +172,13 @@ describe('models/package', () => {
 
         describe('failure cases', () => {
             it('should throw a ReadDepsFileError if the file does not exist', () => {
-                expect(() => (Draft as any).readDirectDepsFile(tmpDir)).toThrow(ReadDepsFileError);
+                expect(() => ProjectTest.readDirectDepsFile(tmpDir)).toThrow(ReadDepsFileError);
             });
 
             it('should throw a ReadDepsFileError if the file is not a file', () => {
                 // Create deps.txt folder
                 fs.mkdirSync(depsPath);
-                expect(() => (Draft as any).readDirectDepsFile(tmpDir)).toThrow(ReadDepsFileError);
+                expect(() => ProjectTest.readDirectDepsFile(tmpDir)).toThrow(ReadDepsFileError);
             });
 
             it('should throw a FailedToParseDepsError if the file is not valid', () => {
@@ -184,7 +186,7 @@ describe('models/package', () => {
                 fs.writeFileSync(depsPath, 'pkgName');
 
                 // Read the dependencies file
-                expect(() => (Draft as any).readDirectDepsFile(tmpDir)).toThrow(FailedToParseDepsError);
+                expect(() => ProjectTest.readDirectDepsFile(tmpDir)).toThrow(FailedToParseDepsError);
             });
         });
     });
@@ -208,7 +210,7 @@ describe('models/package', () => {
                 const deps = new Map();
 
                 // Write the empty dependencies file
-                await (Draft as any).writeDirectDepsFile(tmpDir, deps);
+                await ProjectTest.writeDirectDepsFile(tmpDir, deps);
 
                 // Read the dependencies file
                 const depsRaw = fs.readFileSync(depsPath, 'utf8');
@@ -222,7 +224,7 @@ describe('models/package', () => {
                 const deps = new Map([['dep0', 'ver0']]);
 
                 // Write the dependencies file
-                await (Draft as any).writeDirectDepsFile(tmpDir, deps);
+                await ProjectTest.writeDirectDepsFile(tmpDir, deps);
 
                 // Read the dependencies file
                 const depsRaw = fs.readFileSync(depsPath, 'utf8');
@@ -240,7 +242,7 @@ describe('models/package', () => {
                 ]);
 
                 // Write the dependencies file
-                await (Draft as any).writeDirectDepsFile(tmpDir, deps);
+                await ProjectTest.writeDirectDepsFile(tmpDir, deps);
 
                 // Read the dependencies file
                 const depsRaw = fs.readFileSync(depsPath, 'utf8');
@@ -256,7 +258,7 @@ describe('models/package', () => {
                 if (fs.existsSync(tmpDir)) fs.rmdirSync(tmpDir, { recursive: true });
 
                 // Expect rejection
-                expect(async () => await (Draft as any).writeDirectDepsFile(tmpDir, new Map())).rejects.toThrow(
+                expect(async () => await ProjectTest.writeDirectDepsFile(tmpDir, new Map())).rejects.toThrow(
                     WriteDepsFileError,
                 );
             });
@@ -269,7 +271,7 @@ describe('models/package', () => {
                 fs.writeFileSync(depsPath, 'dep0 ver0');
 
                 // Expect rejection
-                expect(async () => await (Draft as any).writeDirectDepsFile(tmpDir, new Map())).rejects.toThrow(
+                expect(async () => await ProjectTest.writeDirectDepsFile(tmpDir, new Map())).rejects.toThrow(
                     WriteDepsFileError,
                 );
             });
@@ -291,13 +293,13 @@ describe('models/package', () => {
     describe('Package.serializeDirectDeps()', () => {
         it('should serialize with zero entries', () => {
             const deps = new Map();
-            const serialized = (Package as any).serializeDirectDeps(deps);
+            const serialized = PackageTest.serializeDirectDeps(deps);
             expect(serialized).toBe('{}');
         });
 
         it('should serialize with one entry', () => {
             const deps = new Map([['dep0', 'ver0']]);
-            const serialized = (Package as any).serializeDirectDeps(deps);
+            const serialized = PackageTest.serializeDirectDeps(deps);
             expect(serialized).toBe('{"dep0":"ver0"}');
         });
 
@@ -306,7 +308,7 @@ describe('models/package', () => {
                 ['dep0', 'ver0'],
                 ['dep1', 'ver1'],
             ]);
-            const serialized = (Package as any).serializeDirectDeps(deps);
+            const serialized = PackageTest.serializeDirectDeps(deps);
             expect(serialized).toBe('{"dep0":"ver0","dep1":"ver1"}');
         });
 
@@ -330,7 +332,7 @@ describe('models/package', () => {
                 ['dep15', 'ver15'],
             ]);
 
-            const serialized = (Package as any).serializeDirectDeps(deps);
+            const serialized = PackageTest.serializeDirectDeps(deps);
             expect(serialized).toBe(
                 '{"dep0":"ver0","dep1":"ver1","dep2":"ver2","dep3":"ver3","dep4":"ver4","dep5":"ver5","dep6":"ver6","dep7":"ver7","dep8":"ver8","dep9":"ver9","dep10":"ver10","dep11":"ver11","dep12":"ver12","dep13":"ver13","dep14":"ver14","dep15":"ver15"}',
             );
@@ -341,20 +343,20 @@ describe('models/package', () => {
         describe('success cases', () => {
             it('should deserialize correctly with zero entries', () => {
                 const serialized = '{}';
-                const deps = (Package as any).deserializeDirectDeps(serialized);
+                const deps = PackageTest.deserializeDirectDeps(serialized);
                 expect(deps).toEqual(new Map());
             });
 
             it('should deserialize correctly with one entry', () => {
                 const serialized = '{"dep0":"ver0"}';
-                const deps = (Package as any).deserializeDirectDeps(serialized);
+                const deps = PackageTest.deserializeDirectDeps(serialized);
                 expect(deps).toEqual(new Map([['dep0', 'ver0']]));
             });
 
             it('should deserialize correctly with many entries', () => {
                 const serialized =
                     '{"dep0":"ver0","dep1":"ver1","dep2":"ver2","dep3":"ver3","dep4":"ver4","dep5":"ver5","dep6":"ver6","dep7":"ver7","dep8":"ver8","dep9":"ver9","dep10":"ver10","dep11":"ver11","dep12":"ver12","dep13":"ver13","dep14":"ver14","dep15":"ver15"}';
-                const deps = (Package as any).deserializeDirectDeps(serialized);
+                const deps = PackageTest.deserializeDirectDeps(serialized);
                 expect(deps).toEqual(
                     new Map([
                         ['dep0', 'ver0'],
@@ -381,27 +383,27 @@ describe('models/package', () => {
         describe('failure cases', () => {
             it('should throw a FailedToDeserializeDepsError if the string is empty', () => {
                 const serialized = '';
-                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => PackageTest.deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON', () => {
                 const serialized = 'invalid';
-                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => PackageTest.deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing a closing brace)', () => {
                 const serialized = '{"dep0":"ver0"';
-                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => PackageTest.deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing an opening brace)', () => {
                 const serialized = '"dep0":"ver0"}';
-                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => PackageTest.deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing a colon)', () => {
                 const serialized = '{"dep0" "ver0"}';
-                expect(() => (Package as any).deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
+                expect(() => PackageTest.deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
         });
     });
@@ -437,7 +439,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = PackageTest.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -459,7 +461,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = PackageTest.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -481,7 +483,7 @@ describe('models/package', () => {
                 const payload = Buffer.from([0xff]);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = PackageTest.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -504,7 +506,7 @@ describe('models/package', () => {
                 payload.fill(0xff);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = PackageTest.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -527,7 +529,7 @@ describe('models/package', () => {
                 payload.fill(0xff);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = PackageTest.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -550,7 +552,7 @@ describe('models/package', () => {
                 payload.fill(0xff);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = PackageTest.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -610,7 +612,7 @@ describe('models/package', () => {
                 payload.fill(0xff);
 
                 // Compute the binary
-                const binary = (Package as any).computeBinary(name, deps, payload);
+                const binary = PackageTest.computeBinary(name, deps, payload);
 
                 // Compute the hex
                 const hex = binary.toString('hex');
@@ -632,7 +634,7 @@ describe('models/package', () => {
     describe('Package.computeVersion()', () => {
         it('should compute the version correctly for small binary', () => {
             const binary = Buffer.from([0x01, 0x02, 0x03, 0x04]);
-            const version = (Package as any).computeVersion(binary);
+            const version = PackageTest.computeVersion(binary);
             // The version is the SHA256 hash of the binary (sourced from https://emn178.github.io/online-tools/sha256.html)
             expect(version).toBe('9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a');
         });
@@ -641,7 +643,7 @@ describe('models/package', () => {
             const binary = Buffer.from([
                 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
             ]);
-            const version = (Package as any).computeVersion(binary);
+            const version = PackageTest.computeVersion(binary);
             // The version is the SHA256 hash of the binary (sourced from https://emn178.github.io/online-tools/sha256.html)
             expect(version).toBe('5dfbabeedf318bf33c0927c43d7630f51b82f351740301354fa3d7fc51f0132e');
         });
@@ -654,1131 +656,9 @@ describe('models/package', () => {
                 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f, 0x40, 0x41, 0x42, 0x43, 0x44,
                 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
             ]);
-            const version = (Package as any).computeVersion(binary);
+            const version = PackageTest.computeVersion(binary);
             // The version is the SHA256 hash of the binary (sourced from https://emn178.github.io/online-tools/sha256.html)
             expect(version).toBe('ce266517af1f9b2272e176703395a24fe91eba54fef1c05a9c57c2a215b182b6');
-        });
-    });
-
-    describe('Packer.packTar() and Packer.extractTar()', () => {
-        const packDir = path.join(os.tmpdir(), 'apm-pack-tar-tmp-dir');
-        const extractDir = path.join(os.tmpdir(), 'apm-extract-tar-tmp-dir');
-
-        const writeFileInside = (relPath: string, content: string) => {
-            // Write the file inside the temporary directory
-            const filePath = path.join(packDir, relPath);
-            fs.mkdirSync(path.dirname(filePath), { recursive: true });
-            fs.writeFileSync(filePath, content);
-        };
-
-        const writeFilesInside = (entries: Map<string, string>) => {
-            for (const [relPath, content] of entries) writeFileInside(relPath, content);
-        };
-
-        const assertFileInside = (relPath: string, content: string) => {
-            const filePath = path.join(extractDir, relPath);
-            expect(fs.existsSync(filePath)).toBe(true);
-            expect(fs.readFileSync(filePath, 'utf8')).toBe(content);
-        };
-
-        const assertFilesMatchExactly = (entries: Map<string, string>) => {
-            for (const [relPath, content] of entries) assertFileInside(relPath, content);
-            // Get the list of files in the extract directory using glob
-            const extractDirRelFiles = glob.sync('**/*', { cwd: extractDir, nodir: true }).sort();
-            // Get the list of files in the pack directory using glob
-            const expectedRelFiles = Array.from(entries.keys()).sort();
-            // Assert that the list of files in the extract directory matches the list of files in the pack directory
-            expect(extractDirRelFiles).toEqual(expectedRelFiles);
-        };
-
-        beforeEach(() => {
-            // Remove the temporary directory if it exists
-            if (fs.existsSync(packDir)) fs.rmSync(packDir, { recursive: true, force: true });
-            if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true });
-
-            // Create the temporary directory
-            fs.mkdirSync(packDir, { recursive: true });
-            fs.mkdirSync(extractDir, { recursive: true });
-        });
-
-        describe('success cases', () => {
-            it('zero files', async () => {
-                // Create the file
-
-                const fileEntries = new Map<string, string>();
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-
-            it('a single file', async () => {
-                // Create the file
-
-                const fileEntries = new Map<string, string>([['file.txt', 'Hello, world!']]);
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-
-            it('two files with different names', async () => {
-                // Create the file
-
-                const fileEntries = new Map<string, string>([
-                    ['file1.txt', 'Hello, world!'],
-                    ['file2.txt', 'Hello, world!'],
-                ]);
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-
-            it('one file in a subdirectory', async () => {
-                // Create the file
-
-                const fileEntries = new Map<string, string>([['subdir/file.txt', 'Hello, world!']]);
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-
-            it('two files in a subdirectory', async () => {
-                // Create the file
-
-                const fileEntries = new Map<string, string>([
-                    ['subdir/file1.txt', 'Hello, world!'],
-                    ['subdir/file2.txt', 'Hello, world!'],
-                ]);
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-
-            it('two files, but only one is included in the tar', async () => {
-                // Create the file
-
-                writeFileInside('file1.txt', 'Hello, world!');
-
-                const fileEntries = new Map<string, string>([['file2.txt', 'Hello, world!']]);
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-
-            it('two files with different contents', async () => {
-                // Create the file
-
-                const fileEntries = new Map<string, string>([
-                    ['file1.txt', 'My name is Jake'],
-                    ['file2.txt', 'My name is Adam'],
-                ]);
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-
-            it('two files with different extensions', async () => {
-                // Create the file
-
-                const fileEntries = new Map<string, string>([
-                    ['file1.md', 'My name is Jake'],
-                    ['file2.txt', 'My name is Adam'],
-                ]);
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-
-            it('files with unicode characters (specifically agda files)', async () => {
-                // Create the file
-
-                const fileEntries = new Map<string, string>([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-
-            it('two files in different directories', async () => {
-                // Create the file
-
-                const fileEntries = new Map<string, string>([
-                    ['subdir1/file1.txt', 'Hello, world1!'],
-                    ['subdir2/file2.txt', 'Hello, world2!'],
-                ]);
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-
-            it('a file in doubly-nested directories', async () => {
-                // Create the file
-
-                const fileEntries = new Map<string, string>([['subdir1/subdir2/file.txt', 'Hello, world!']]);
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-
-            it('many files in different directories', async () => {
-                // Create the file
-
-                const fileEntries = new Map<string, string>([
-                    ['subdir1/subdir2/file1.txt', 'Hello, world1!'],
-                    ['subdir1/subdir2/file2.txt', 'Hello, world2!'],
-                    ['subdir1/subdir2/file3.txt', 'Hello, world3!'],
-                    ['subdir1/file4.txt', 'Hello, world4!'],
-                    ['subdir1/file5.txt', 'Hello, world5!'],
-                    ['subdir1/subdir3/file6.txt', 'Hello, world6!'],
-                    ['subdir1/subdir4/file7.txt', 'Hello, world7!'],
-                    ['file8.txt', 'Hello, world8!'],
-                ]);
-
-                writeFilesInside(fileEntries);
-
-                const fileRelPaths: string[] = Array.from(fileEntries.keys());
-
-                const tar = await (Package as any).packTar(packDir, fileRelPaths);
-
-                expect(tar).toBeDefined();
-
-                await (Draft as any).extractTar(tar, extractDir);
-
-                assertFilesMatchExactly(fileEntries);
-            });
-        });
-
-        // describe('failure cases', () => {
-        //     it('should throw an error if the path is not a directory', () => {
-        //         const path = 'not-a-directory';
-        //     });
-        // });
-    });
-
-    // PUBLIC INTERFACE TESTS
-    describe('Draft.load()', () => {
-        describe('success cases', () => {
-            const tmpDir = path.join(os.tmpdir(), 'APMTmpDraft');
-
-            const writeFileInside = (relPath: string, content: string) => {
-                const filePath = path.join(tmpDir, relPath);
-                fs.mkdirSync(path.dirname(filePath), { recursive: true });
-                fs.writeFileSync(filePath, content);
-            };
-
-            beforeEach(() => {
-                // Remove the temporary directory if it exists
-                if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
-
-                // Create the temporary directory
-                fs.mkdirSync(tmpDir, { recursive: true });
-            });
-
-            it('empty deps.txt file and no source files', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual([]);
-            });
-
-            it('empty deps.txt file and one dirt file (.txt)', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the dirt file
-                writeFileInside('file.txt', 'Hello, world!');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual([]);
-            });
-
-            it('empty deps.txt file and one agda file', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the agda file
-                writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-                expect(draft.getMdFiles()).toEqual([]);
-            });
-
-            it('empty deps.txt file and one md file', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the md file
-                writeFileInside('file.md', '# My Document');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual(['file.md']);
-            });
-
-            it('empty deps.txt file and one agda file and one md file', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the agda file
-                writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
-
-                // Write the md file
-                writeFileInside('file.md', '# My Document');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-                expect(draft.getMdFiles()).toEqual(['file.md']);
-            });
-
-            it('empty deps.txt file and one agda file in nested directory', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the agda file
-                writeFileInside('subdir/file.agda', 'myNat : ℕ\nmyNat = 0');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['subdir/file.agda']);
-                expect(draft.getMdFiles()).toEqual([]);
-            });
-
-            it('empty deps.txt file and one md file in nested directory', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the md file
-                writeFileInside('subdir/file.md', '# My Document');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual(['subdir/file.md']);
-            });
-
-            it('empty deps.txt file and one agda file and one md file in nested directory', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the agda file
-                writeFileInside('subdir/file1.agda', 'myNat : ℕ\nmyNat = 0');
-
-                // Write the md file
-                writeFileInside('subdir/file2.md', '# My Document');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['subdir/file1.agda']);
-                expect(draft.getMdFiles()).toEqual(['subdir/file2.md']);
-            });
-
-            it('empty deps.txt file and one agda file in doubly-nested directory', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the agda file
-                writeFileInside('subdir/subdir2/file.agda', 'myNat : ℕ\nmyNat = 0');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['subdir/subdir2/file.agda']);
-                expect(draft.getMdFiles()).toEqual([]);
-            });
-
-            it('empty deps.txt file and multiple agda files', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the agda files
-                writeFileInside('file1.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('file2.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('file3.agda', 'myNat : ℕ\nmyNat = 0');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
-                expect(draft.getMdFiles().sort()).toEqual([]);
-            });
-
-            it('empty deps.txt file and multiple md files', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the md files
-                writeFileInside('file1.md', '# My Document');
-                writeFileInside('file2.md', '# My Document');
-                writeFileInside('file3.md', '# My Document');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual([]);
-                expect(draft.getMdFiles().sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
-            });
-
-            it('empty deps.txt file and multiple agda files and multiple md files', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the agda files
-                writeFileInside('file1.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('file2.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('file3.agda', 'myNat : ℕ\nmyNat = 0');
-
-                // Write the md files
-                writeFileInside('file1.md', '# My Document');
-                writeFileInside('file2.md', '# My Document');
-                writeFileInside('file3.md', '# My Document');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
-                expect(draft.getMdFiles().sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
-            });
-
-            it('empty deps.txt file and multiple agda files and multiple md files in nested directories', () => {
-                // Create the file
-                writeFileInside('deps.txt', '');
-
-                // Write the agda files
-                writeFileInside('subdir1/file1.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('subdir1/README.md', '# My Document');
-                writeFileInside('subdir2/file2.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('subdir2/README.md', '# My Document');
-                writeFileInside('subdir2/subdir3/file3.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('subdir2/subdir3/README.md', '# My Document');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map());
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual(
-                    ['subdir1/file1.agda', 'subdir2/file2.agda', 'subdir2/subdir3/file3.agda'].sort(),
-                );
-                expect(draft.getMdFiles().sort()).toEqual(
-                    ['subdir1/README.md', 'subdir2/README.md', 'subdir2/subdir3/README.md'].sort(),
-                );
-            });
-
-            it('single package deps.txt file and no source files', () => {
-                // Create the file
-                writeFileInside('deps.txt', 'name 1.0.0');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(new Map([['name', '1.0.0']]));
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual([]);
-            });
-
-            it('two package deps.txt file and no source files', () => {
-                // Create the file
-                writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual([]);
-            });
-
-            it('two package deps.txt file and one agda file', () => {
-                // Create the file
-                writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1');
-
-                // Write the agda file
-                writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-                expect(draft.getMdFiles()).toEqual([]);
-            });
-
-            it('two package deps.txt file and one md file', () => {
-                // Create the file
-                writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1');
-
-                // Write the md file
-                writeFileInside('file.md', '# My Document');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual([]);
-                expect(draft.getMdFiles()).toEqual(['file.md']);
-            });
-
-            it('two package deps.txt file and one agda file and one md file', () => {
-                // Create the file
-                writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1');
-
-                // Write the agda file
-                writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
-
-                // Write the md file
-                writeFileInside('file.md', '# My Document');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-                expect(draft.getMdFiles()).toEqual(['file.md']);
-            });
-
-            it('many package deps.txt file and multiple agda files', () => {
-                // Create the file
-                writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1\nname2 1.0.2\nname3 1.0.3\nname4 1.0.4');
-
-                // Write the agda files
-                writeFileInside('file1.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('file2.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('file3.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('file4.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('file5.agda', 'myNat : ℕ\nmyNat = 0');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                        ['name2', '1.0.2'],
-                        ['name3', '1.0.3'],
-                        ['name4', '1.0.4'],
-                    ]),
-                );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual(
-                    ['file1.agda', 'file2.agda', 'file3.agda', 'file4.agda', 'file5.agda'].sort(),
-                );
-                expect(draft.getMdFiles().sort()).toEqual([]);
-            });
-
-            it('many package deps.txt file and multiple agda files in random nested directories', () => {
-                // Create the file
-                writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1\nname2 1.0.2\nname3 1.0.3\nname4 1.0.4');
-
-                // Write the agda files
-                writeFileInside('subdir1/file1.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('subdir1/subdir2/subdir3/subdir4/file2.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('subdir2/file3.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('subdir4/file4.agda', 'myNat : ℕ\nmyNat = 0');
-                writeFileInside('subdir3/file5.agda', 'myNat : ℕ\nmyNat = 0');
-
-                // Load the draft
-                const draft = Draft.load(tmpDir);
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe('APMTmpDraft');
-                expect(draft.getDirectDeps()).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                        ['name2', '1.0.2'],
-                        ['name3', '1.0.3'],
-                        ['name4', '1.0.4'],
-                    ]),
-                );
-                expect(draft.getSrcDir()).toBe(tmpDir);
-                expect(draft.getAgdaFiles().sort()).toEqual(
-                    [
-                        'subdir1/file1.agda',
-                        'subdir1/subdir2/subdir3/subdir4/file2.agda',
-                        'subdir2/file3.agda',
-                        'subdir4/file4.agda',
-                        'subdir3/file5.agda',
-                    ].sort(),
-                );
-                expect(draft.getMdFiles().sort()).toEqual([]);
-            });
-        });
-
-        describe('failure cases', () => {
-            const tmpDir = path.join(os.tmpdir(), 'failure-cases');
-
-            beforeEach(() => {
-                // Remove the temporary directory if it exists
-                if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
-
-                // Create the temporary directory
-                fs.mkdirSync(tmpDir, { recursive: true });
-            });
-
-            it('should throw a DraftLoadError if the path does not exist', () => {
-                const srcPath = path.join(tmpDir, 'does-not-exist');
-
-                expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
-            });
-
-            it('should throw a DraftLoadError if the path is not a directory', () => {
-                const srcPath = path.join(tmpDir, 'not-a-directory');
-
-                // Create the file
-                fs.writeFileSync(srcPath, 'not-a-directory');
-
-                // Expect the file to exist
-                expect(fs.existsSync(srcPath)).toBe(true);
-
-                expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
-            });
-
-            it('should throw a ReadDepsFileError if the path does not contain a deps.txt file', () => {
-                const srcPath = path.join(tmpDir, 'no-deps-txt');
-
-                // Create the file
-                fs.mkdirSync(srcPath, { recursive: true });
-
-                // Expect the file to exist
-                expect(fs.existsSync(srcPath)).toBe(true);
-
-                expect(() => Draft.load(srcPath)).toThrow(ReadDepsFileError);
-            });
-
-            it('should throw a ReadDepsFileError if the deps.txt is not a file', () => {
-                const srcPath = path.join(tmpDir, 'no-deps-txt');
-                const depsTxtPath = path.join(srcPath, 'deps.txt');
-
-                // Create the file
-                fs.mkdirSync(srcPath, { recursive: true });
-
-                // Create the deps.txt folder (yes, this is strange, but it's just for testing)
-                fs.mkdirSync(depsTxtPath, { recursive: true });
-
-                // Expect the folder to exist
-                expect(fs.existsSync(depsTxtPath)).toBe(true);
-
-                expect(() => Draft.load(srcPath)).toThrow(ReadDepsFileError);
-            });
-
-            it('should throw a FailedToParseDepsError if the deps.txt file is invalid', () => {
-                const srcPath = path.join(tmpDir, 'invalid-deps-txt');
-                const depsTxtPath = path.join(srcPath, 'deps.txt');
-
-                // Create the file
-                fs.mkdirSync(srcPath, { recursive: true });
-
-                // Create the deps.txt file
-                fs.writeFileSync(depsTxtPath, 'pkgName');
-
-                // Expect the file to exist
-                expect(fs.existsSync(depsTxtPath)).toBe(true);
-
-                expect(() => Draft.load(srcPath)).toThrow(FailedToParseDepsError);
-            });
-        });
-    });
-
-    describe('Draft.create()', () => {
-        const packDir = path.join(os.tmpdir(), 'apm-pack');
-        const extractDir = path.join(os.tmpdir(), 'apm-extract');
-
-        beforeEach(() => {
-            // Remove the temporary directory if it exists
-            if (fs.existsSync(packDir)) fs.rmSync(packDir, { recursive: true, force: true });
-            if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true });
-
-            // Create the temporary directory
-            fs.mkdirSync(packDir, { recursive: true });
-            fs.mkdirSync(extractDir, { recursive: true });
-        });
-
-        const writeFileInside = (relPath: string, content: string) => {
-            // Write the file inside the temporary directory
-            const filePath = path.join(packDir, relPath);
-            fs.mkdirSync(path.dirname(filePath), { recursive: true });
-            fs.writeFileSync(filePath, content);
-        };
-
-        const writeFilesInside = (entries: Map<string, string>) => {
-            for (const [relPath, content] of entries) writeFileInside(relPath, content);
-        };
-
-        const assertFileInside = (relPath: string, content: string) => {
-            const filePath = path.join(extractDir, relPath);
-            expect(fs.existsSync(filePath)).toBe(true);
-            expect(fs.readFileSync(filePath, 'utf8')).toBe(content);
-        };
-
-        const assertFilesPresent = (name: string, entries: Map<string, string>) => {
-            for (const [relPath, content] of entries) assertFileInside(path.join(name, relPath), content);
-        };
-
-        describe('success cases', () => {
-            // JUST TO DOCUMENT THIS BRIEFLY:
-            //
-            // The genericTest function is used to test the Draft.create() function.
-            // It writes the files to packDir (does not have the basename of the package), creates the tar, and then
-            // creates the draft in extractDir/packageName, which is why we must prefix all the relPaths with the package name.
-            const genericTest = async (
-                name: string,
-                deps: Map<string, string>,
-                agdaFiles: Map<string, string>,
-                mdFiles: Map<string, string>,
-            ) => {
-                // Get the debugger
-                const dbg = debug('apm:common:tests:models:Draft:create');
-
-                // Write all files
-                writeFilesInside(agdaFiles);
-                writeFilesInside(mdFiles);
-
-                // Get the file names contained list
-                const fileNames = [...agdaFiles.keys(), ...mdFiles.keys()];
-
-                // Create the tar using the original file names
-                const tar = await (Package as any).packTar(packDir, fileNames);
-
-                // Create the output directory
-                const outDir = path.join(extractDir, name);
-
-                // Create the draft
-                const draft = await Draft.create(outDir, name, deps, tar);
-
-                // Glob literally all files in the output directory
-                const files = glob.sync('**/*', { cwd: extractDir, nodir: true });
-                dbg(`Output Files: ${files}`);
-
-                // sleep for 15 seconds
-                // await new Promise((resolve) => setTimeout(resolve, 15000));
-
-                // Expect the draft to be an instance of Draft
-                expect(draft).toBeInstanceOf(Draft);
-                expect(draft.getName()).toBe(name);
-                expect(draft.getDirectDeps()).toEqual(deps);
-                expect(draft.getSrcDir()).toBe(outDir);
-
-                // Assert the files are loaded correctly (should use original file names)
-                expect(draft.getAgdaFiles().sort()).toEqual(Array.from(agdaFiles.keys()).sort());
-                expect(draft.getMdFiles().sort()).toEqual(Array.from(mdFiles.keys()).sort());
-
-                // Assert the files are present INSIDE THE OUTPUT DRAFT DIRECTORY
-                assertFilesPresent(name, agdaFiles);
-                assertFilesPresent(name, mdFiles);
-
-                // Construct the expected deps.txt file content
-                let expectedDepsContent = '';
-                for (const [name, version] of deps.entries()) expectedDepsContent += `${name} ${version}\n`;
-
-                assertFilesPresent(name, new Map([['deps.txt', expectedDepsContent]]));
-
-                // Print the actual deps.txt file content
-                const actualDepsContent = fs.readFileSync(path.join(outDir, 'deps.txt'), 'utf8');
-                dbg(`Actual Deps Content: ${actualDepsContent}`);
-            };
-
-            it('small name, no dependencies, no files', async () => {
-                // Create the files map
-                const name = 'Calculus';
-                const deps: Map<string, string> = new Map();
-                const agdaFiles: Map<string, string> = new Map();
-                const mdFiles: Map<string, string> = new Map();
-
-                // Run the generic test
-                await genericTest(name, deps, agdaFiles, mdFiles);
-            });
-
-            it('small name, 1 dependency, no files', async () => {
-                // Create the files map
-                const name = 'Calculus';
-                const deps: Map<string, string> = new Map([['dep0', '1.0.0']]);
-                const agdaFiles: Map<string, string> = new Map();
-                const mdFiles: Map<string, string> = new Map();
-
-                // Run the generic test
-                await genericTest(name, deps, agdaFiles, mdFiles);
-            });
-
-            it('small name, 0 dependencies, 1 agda file', async () => {
-                // Create the files map
-                const name = 'Calculus';
-                const deps: Map<string, string> = new Map();
-                const agdaFiles: Map<string, string> = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
-                const mdFiles: Map<string, string> = new Map();
-
-                // Run the generic test
-                await genericTest(name, deps, agdaFiles, mdFiles);
-            });
-
-            it('small name, 0 dependencies, 1 md file', async () => {
-                // Create the files map
-                const name = 'Calculus';
-                const deps: Map<string, string> = new Map();
-                const agdaFiles: Map<string, string> = new Map();
-                const mdFiles: Map<string, string> = new Map([['file.md', '# Hello, World!']]);
-
-                // Run the generic test
-                await genericTest(name, deps, agdaFiles, mdFiles);
-            });
-
-            it('small name, 1 dependency, 1 agda file', async () => {
-                // Create the files map
-                const name = 'WorldLeaders';
-                const deps: Map<string, string> = new Map([['dep0', '1.0.0']]);
-                const agdaFiles: Map<string, string> = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
-                const mdFiles: Map<string, string> = new Map();
-
-                // Run the generic test
-                await genericTest(name, deps, agdaFiles, mdFiles);
-            });
-
-            it('small name, 1 dependency, 1 agda file, 1 md file, 1 subdir', async () => {
-                // Create the files map
-                const name = 'JurrasicPark';
-                const deps: Map<string, string> = new Map([['dep0', '1.0.0']]);
-                const agdaFiles: Map<string, string> = new Map([['subdir/file.agda', 'myNat : ℕ\nmyNat = 0']]);
-                const mdFiles: Map<string, string> = new Map([['file.md', '# Hello, World!']]);
-
-                // Run the generic test
-                await genericTest(name, deps, agdaFiles, mdFiles);
-            });
-
-            it('small name, 3 dependencies, 1 agda file, 1 md file', async () => {
-                // Create the files map
-                const name = 'WorldLeaders';
-                const deps: Map<string, string> = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                    ['dep2', '1.0.2'],
-                ]);
-                const agdaFiles: Map<string, string> = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
-                const mdFiles: Map<string, string> = new Map([['file.md', '# Hello, World!']]);
-
-                // Run the generic test
-                await genericTest(name, deps, agdaFiles, mdFiles);
-            });
-
-            it('small name, 3 dependencies, 5 agda files, 1 md file, 2 subdirs with many nested subdirs', async () => {
-                // Create the files map
-                const name = 'WorldLeaders';
-                const deps: Map<string, string> = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                    ['dep2', '1.0.2'],
-                ]);
-                const agdaFiles: Map<string, string> = new Map([
-                    ['subdir1/file1.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir2/file2.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir1/subdir3/file3.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir1/subdir4/file4.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir2/subdir5/file5.agda', 'myNat : ℕ\nmyNat = 0'],
-                ]);
-                const mdFiles: Map<string, string> = new Map([['file.md', '# Hello, World!']]);
-
-                // Run the generic test
-                await genericTest(name, deps, agdaFiles, mdFiles);
-            });
-
-            it('small name, 4 dependencies, 15 agda files, 5 md files, 5 subdirs with 1 md file each', async () => {
-                // Create the files map
-                const name = 'WorldLeaders';
-                const deps: Map<string, string> = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                    ['dep2', '1.0.2'],
-                    ['dep3', '1.0.3'],
-                ]);
-                const agdaFiles: Map<string, string> = new Map([
-                    ['subdir1/file1.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir1/file2.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir1/file3.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir2/file4.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir2/file5.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir2/file6.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir3/file7.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir3/file8.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir3/file9.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir4/file10.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir4/file11.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir4/file12.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir5/file13.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir5/file14.agda', 'myNat : ℕ\nmyNat = 0'],
-                    ['subdir5/file15.agda', 'myNat : ℕ\nmyNat = 0'],
-                ]);
-                const mdFiles: Map<string, string> = new Map([
-                    ['subdir1/file1.md', '# dir1!'],
-                    ['subdir2/file2.md', '# dir2!'],
-                    ['subdir3/file3.md', '# dir3!'],
-                    ['subdir4/file4.md', '# dir4!'],
-                    ['subdir5/file5.md', '# dir5!'],
-                ]);
-
-                // Run the generic test
-                await genericTest(name, deps, agdaFiles, mdFiles);
-            });
-        });
-
-        describe('failure cases', () => {
-            it('throws DraftCreateError if the directory already exists', async () => {
-                const pkgName = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                    ['dep2', '1.0.2'],
-                ]);
-                const payload = Buffer.from([]);
-
-                // Compute the draft path
-                const draftPath = path.join(extractDir, pkgName);
-
-                // Create the directory
-                fs.mkdirSync(draftPath, { recursive: true });
-
-                // Create the package and expect it to throw a DraftCreateError
-                await expect((Draft as any).create(pkgName, deps, payload, draftPath)).rejects.toThrow(
-                    DraftCreateError,
-                );
-            });
-
-            it('throws DraftCreateError if the directory name does not match the package name', async () => {
-                const pkgName = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                    ['dep2', '1.0.2'],
-                ]);
-                const payload = Buffer.from([]);
-
-                // Compute the draft path
-                const draftPath = path.join(extractDir, 'DifferentName');
-
-                // Create the package and expect it to throw a DraftCreateError
-                await expect((Draft as any).create(pkgName, deps, payload, draftPath)).rejects.toThrow(
-                    DraftCreateError,
-                );
-            });
         });
     });
 
@@ -1794,7 +674,7 @@ describe('models/package', () => {
         });
 
         describe('success cases', () => {
-            const genericTest = (pkgName: string, deps: Map<string, string>, payload: Buffer) => {
+            const genericTest = async (pkgName: string, deps: Map<string, string>, payload: Buffer) => {
                 // Get the debugger
                 const dbg = debug('apm:common:tests:models:Package:load');
 
@@ -1805,13 +685,13 @@ describe('models/package', () => {
                 if (fs.existsSync(pkgPath)) fs.unlinkSync(pkgPath);
 
                 // Create the binary
-                const binary = (Package as any).computeBinary(pkgName, deps, payload);
+                const binary = PackageTest.computeBinary(pkgName, deps, payload);
 
                 // Print the binary
                 dbg(`Binary: ${binary.toString('hex')}`);
 
                 // Get the version of the package
-                const version = (Package as any).computeVersion(binary);
+                const version = PackageTest.computeVersion(binary);
 
                 // Print the version
                 dbg(`Version: ${version}`);
@@ -1820,7 +700,7 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, binary);
 
                 // Find the package
-                const pkg = Package.load(pkgPath);
+                const pkg = await Package.load(pkgPath);
 
                 expect(pkg).toBeInstanceOf(Package);
 
@@ -1910,12 +790,13 @@ describe('models/package', () => {
         });
 
         describe('failure cases', () => {
-            it('Package.load() should throw PackageLoadError if the path does not exist', () => {
-                const pkgPath = path.join(tmpRegistryPath, 'does-not-exist.tar');
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+            it('Package.load() should throw PackageLoadError if the path does not exist', async () => {
+                const pkgPath = path.join(tmpRegistryPath, 'does-not-exist.apm');
+                // it rejects
+                await expect(Package.load(pkgPath)).rejects.toThrow(PackageLoadError);
             });
 
-            it('Package.load() should throw PackageNotFoundError if the path is a directory', () => {
+            it('Package.load() should throw PackageNotFoundError if the path is a directory', async () => {
                 const dirPath = path.join(tmpRegistryPath, 'dir');
 
                 // Create the directory
@@ -1925,20 +806,20 @@ describe('models/package', () => {
                 expect(fs.existsSync(dirPath)).toBe(true);
 
                 // Expect the package to not be found
-                expect(() => Package.load(dirPath)).toThrow(PackageLoadError);
+                await expect(Package.load(dirPath)).rejects.toThrow(PackageLoadError);
             });
 
-            it('Package.load() should throw PackageLoadError if the package is too short to contain a name length', () => {
+            it('Package.load() should throw PackageLoadError if the package is too short to contain a name length', async () => {
                 const pkgPath = path.join(tmpRegistryPath, 'too-short-name-length.apm');
 
                 // Create the package file
                 fs.writeFileSync(pkgPath, Buffer.from([]));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+                await expect(Package.load(pkgPath)).rejects.toThrow(PackageLoadError);
             });
 
-            it('Package.load() should throw PackageLoadError if the package name length is nonzero but the name is empty', () => {
+            it('Package.load() should throw PackageLoadError if the package name length is nonzero but the name is empty', async () => {
                 const pkgPath = path.join(tmpRegistryPath, 'too-short-name.apm');
 
                 // Create binary
@@ -1951,9 +832,12 @@ describe('models/package', () => {
 
                 // Create the package file
                 fs.writeFileSync(pkgPath, Buffer.concat(chunks));
+
+                // Expect the package to not be found
+                await expect(Package.load(pkgPath)).rejects.toThrow(PackageLoadError);
             });
 
-            it('Package.load() should throw PackageLoadError if the package name is smaller than the designated name length', () => {
+            it('Package.load() should throw PackageLoadError if the package name is smaller than the designated name length', async () => {
                 const pkgPath = path.join(tmpRegistryPath, 'too-short-name.apm');
 
                 // Create binary
@@ -1972,10 +856,10 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, Buffer.concat(chunks));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+                await expect(Package.load(pkgPath)).rejects.toThrow(PackageLoadError);
             });
 
-            it('Package.load() should throw PackageLoadError if the package dependencies length is missing', () => {
+            it('Package.load() should throw PackageLoadError if the package dependencies length is missing', async () => {
                 const pkgPath = path.join(tmpRegistryPath, 'missing-deps-length.apm');
 
                 // Create binary
@@ -1994,10 +878,10 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, Buffer.concat(chunks));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+                await expect(Package.load(pkgPath)).rejects.toThrow(PackageLoadError);
             });
 
-            it('Package.load() should throw PackageLoadError if the package dependencies are missing', () => {
+            it('Package.load() should throw PackageLoadError if the package dependencies are missing', async () => {
                 const pkgPath = path.join(tmpRegistryPath, 'missing-deps.apm');
 
                 // Create binary
@@ -2021,10 +905,10 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, Buffer.concat(chunks));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+                await expect(Package.load(pkgPath)).rejects.toThrow(PackageLoadError);
             });
 
-            it('Package.load() should throw PackageLoadError if the package dependencies are smaller than the designated dependencies length', () => {
+            it('Package.load() should throw PackageLoadError if the package dependencies are smaller than the designated dependencies length', async () => {
                 const pkgPath = path.join(tmpRegistryPath, 'too-short-deps.apm');
 
                 // Create binary
@@ -2052,10 +936,10 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, Buffer.concat(chunks));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(PackageLoadError);
+                await expect(Package.load(pkgPath)).rejects.toThrow(PackageLoadError);
             });
 
-            it('Package.load() should throw FailedToDeserializeDepsError if the package dependencies are not a valid JSON object', () => {
+            it('Package.load() should throw FailedToDeserializeDepsError if the package dependencies are not a valid JSON object', async () => {
                 const pkgPath = path.join(tmpRegistryPath, 'invalid-deps.apm');
 
                 // Create binary
@@ -2083,7 +967,7 @@ describe('models/package', () => {
                 fs.writeFileSync(pkgPath, Buffer.concat(chunks));
 
                 // Expect the package to not be found
-                expect(() => Package.load(pkgPath)).toThrow(FailedToDeserializeDepsError);
+                await expect(Package.load(pkgPath)).rejects.toThrow(FailedToDeserializeDepsError);
             });
         });
     });
@@ -2147,8 +1031,11 @@ describe('models/package', () => {
                 const agdaFilenames = Array.from(agdaFiles.keys());
                 const mdFilenames = Array.from(mdFiles.keys());
 
+                // Create an archive
+                const payload = await SourceTest.packTar(packDir, [...agdaFilenames, ...mdFilenames]);
+
                 // Construct the package from the arguments
-                const pkg = await Package.create(name, deps, packDir, agdaFilenames, mdFilenames);
+                const pkg = await Package.create(name, deps, payload);
 
                 // Indicate the deps that came back
                 dbg(`Deps: ${JSON.stringify(Object.fromEntries(pkg.getDirectDeps()))}`);
@@ -2161,7 +1048,7 @@ describe('models/package', () => {
                 expect(pkg.getPayload()).toBeDefined();
 
                 // Extract the payload
-                await (Draft as any).extractTar(pkg.getPayload(), extractDir);
+                await SourceTest.extractTar(pkg.getPayload(), extractDir);
 
                 // Get all files using glob
                 const dbgAllFiles = glob.sync('**/*', { cwd: extractDir, nodir: true }).sort();
