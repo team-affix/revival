@@ -57,6 +57,21 @@ export class Project {
         return Project.load(projectPath);
     }
 
+    // Getter for the project path
+    getProjectPath(): string {
+        return this.projectPath;
+    }
+
+    // Getter for the drafts
+    getDrafts(): Draft[] {
+        return this.drafts;
+    }
+
+    // Getter for the root draft
+    getRootDraft(): Draft {
+        return this.rootDraft;
+    }
+
     // static createFromRootPackage(parentPath: string, rootPackage: Package): Project {
     //     // Get the project name from the package name
     //     const projectName = rootPackage.getName();
