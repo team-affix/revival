@@ -200,11 +200,17 @@ describe('models/Source', () => {
 
                 assertFilesMatchExactly(filteredFiles);
             };
+
             it('zero files', async () => genericTest(new Map()));
 
-            it('a single file', async () => genericTest(new Map([['file.txt', 'Hello, world!']])));
+            it('a single dirt file', async () => genericTest(new Map([['file.txt', 'Hello, world!']])));
 
-            it('two files with different names', async () =>
+            it('a single agda file', async () =>
+                genericTest(new Map<string, string>([['file.agda', 'myNat : ℕ\nmyNat = 0']])));
+
+            it('a single md file', async () => genericTest(new Map<string, string>([['file.md', '# Hello, world!']])));
+
+            it('two dirt files with different names', async () =>
                 genericTest(
                     new Map([
                         ['file1.txt', 'Hello, world!'],
@@ -212,10 +218,26 @@ describe('models/Source', () => {
                     ]),
                 ));
 
-            it('one file in a subdirectory', async () =>
+            it('two agda files with different names', async () =>
+                genericTest(
+                    new Map([
+                        ['file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file2.agda', 'myNat : ℕ\nmyNat = 0'],
+                    ]),
+                ));
+
+            it('two md files with different names', async () =>
+                genericTest(
+                    new Map([
+                        ['file1.md', '# Hello, world!'],
+                        ['file2.md', '# Hello, world!'],
+                    ]),
+                ));
+
+            it('one dirt file in a subdirectory', async () =>
                 genericTest(new Map<string, string>([['subdir/file.txt', 'Hello, world!']])));
 
-            it('two files in a subdirectory', async () =>
+            it('two dirt files in a subdirectory', async () =>
                 genericTest(
                     new Map<string, string>([
                         ['subdir/file1.txt', 'Hello, world!'],
@@ -223,49 +245,79 @@ describe('models/Source', () => {
                     ]),
                 ));
 
-            it('two files, but only one is included in the tar', async () =>
-                genericTest(new Map<string, string>([['file2.txt', 'Hello, world!']])));
+            it('one agda file in a subdirectory', async () =>
+                genericTest(new Map<string, string>([['subdir/file.agda', 'myNat : ℕ\nmyNat = 0']])));
 
-            it('two files with different contents', async () =>
+            it('one md file in a subdirectory', async () =>
+                genericTest(new Map<string, string>([['subdir/file.md', '# Hello, world!']])));
+
+            it('two agda files in a subdirectory', async () =>
                 genericTest(
                     new Map<string, string>([
-                        ['file1.txt', 'My name is Jake'],
-                        ['file2.txt', 'My name is Adam'],
+                        ['subdir/file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['subdir/file2.agda', 'myNat : ℕ\nmyNat = 0'],
                     ]),
                 ));
 
-            it('two files with different extensions', async () =>
+            it('two md files in a subdirectory', async () =>
                 genericTest(
                     new Map<string, string>([
-                        ['file1.md', 'My name is Jake'],
-                        ['file2.txt', 'My name is Adam'],
+                        ['subdir/file1.md', '# Hello, world!'],
+                        ['subdir/file2.md', '# Hello, world!'],
                     ]),
                 ));
 
-            it('files with unicode characters (specifically agda files)', async () =>
-                genericTest(new Map<string, string>([['file.agda', 'myNat : ℕ\nmyNat = 0']])));
-
-            it('two files in different directories', async () =>
+            it('dirt file AND agda file', async () =>
                 genericTest(
                     new Map<string, string>([
-                        ['subdir1/file1.txt', 'Hello, world1!'],
-                        ['subdir2/file2.txt', 'Hello, world2!'],
+                        ['file1.txt', 'Hello, world!'],
+                        ['file2.agda', 'myNat : ℕ\nmyNat = 0'],
                     ]),
                 ));
 
-            it('a file in doubly-nested directories', async () =>
+            it('two agda files with different contents', async () =>
+                genericTest(
+                    new Map<string, string>([
+                        ['file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file2.agda', 'myNat : ℕ\nmyNat = 1'],
+                    ]),
+                ));
+
+            it('two md files with different contents', async () =>
+                genericTest(
+                    new Map<string, string>([
+                        ['file1.md', '# Hello, world!'],
+                        ['file2.md', '# Hello, world!'],
+                    ]),
+                ));
+
+            it('two md files in different directories', async () =>
+                genericTest(
+                    new Map<string, string>([
+                        ['subdir1/file1.md', '# Hello, world1!'],
+                        ['subdir2/file2.md', '# Hello, world2!'],
+                    ]),
+                ));
+
+            it('a dirt file in doubly-nested directories', async () =>
                 genericTest(new Map<string, string>([['subdir1/subdir2/file.txt', 'Hello, world!']])));
 
-            it('many files in different directories', async () =>
+            it('an agda file in doubly-nested directories', async () =>
+                genericTest(new Map<string, string>([['subdir1/subdir2/file.agda', 'myNat : ℕ\nmyNat = 0']])));
+
+            it('a md file in doubly-nested directories', async () =>
+                genericTest(new Map<string, string>([['subdir1/subdir2/file.md', '# Hello, world!']])));
+
+            it('many different types of files in different directories', async () =>
                 genericTest(
                     new Map<string, string>([
                         ['subdir1/subdir2/file1.txt', 'Hello, world1!'],
-                        ['subdir1/subdir2/file2.txt', 'Hello, world2!'],
-                        ['subdir1/subdir2/file3.txt', 'Hello, world3!'],
+                        ['subdir1/subdir2/file2.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['subdir1/subdir2/file3.md', '# Hello, world3!'],
                         ['subdir1/file4.txt', 'Hello, world4!'],
                         ['subdir1/file5.txt', 'Hello, world5!'],
-                        ['subdir1/subdir3/file6.txt', 'Hello, world6!'],
-                        ['subdir1/subdir4/file7.txt', 'Hello, world7!'],
+                        ['subdir1/subdir3/file6.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['subdir1/subdir4/file7.md', '# Hello, world7!'],
                         ['file8.txt', 'Hello, world8!'],
                     ]),
                 ));
