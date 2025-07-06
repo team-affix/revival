@@ -1048,7 +1048,7 @@ describe('models/package', () => {
                 expect(pkg.getPayload()).toBeDefined();
 
                 // Extract the payload
-                await SourceTest.extractTar(pkg.getPayload(), extractDir);
+                await SourceTest.extractTar(extractDir, pkg.getPayload());
 
                 // Get all files using glob
                 const dbgAllFiles = glob.sync('**/*', { cwd: extractDir, nodir: true }).sort();

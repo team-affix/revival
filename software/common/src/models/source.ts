@@ -7,9 +7,9 @@ import { promisify } from 'util';
 const pipelineAsync = promisify(pipeline);
 
 // Pack the files into a tar
-async function packTar(basePath: string, files: string[]): Promise<Buffer> {
+async function packTar(cwd: string, files: string[]): Promise<Buffer> {
     // Use tar-fs to create the pack stream
-    const result = await tarFs.pack(basePath, { entries: files });
+    const result = await tarFs.pack(cwd, { entries: files });
 
     // Pipe the stream contents to a buffer
     return new Promise<Buffer>((resolve, reject) => {
@@ -20,7 +20,7 @@ async function packTar(basePath: string, files: string[]): Promise<Buffer> {
 }
 
 // Extract a tar
-async function extractTar(tar: Buffer, cwd: string): Promise<void> {
+async function extractTar(cwd: string, tar: Buffer): Promise<void> {
     return await pipelineAsync(Readable.from(tar), tarFs.extract(cwd));
 }
 
@@ -47,7 +47,7 @@ export class Source {
     // Create a source from a payload
     static async extract(cwd: string, payload: Buffer): Promise<Source> {
         // Extract the payload
-        await extractTar(payload, cwd);
+        await extractTar(cwd, payload);
 
         // Return the source
         return Source.load(cwd);
