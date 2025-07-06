@@ -2088,6 +2088,294 @@ describe('models/package', () => {
         });
     });
 
+    describe('Package.create()', () => {
+        const packDir = path.join(os.tmpdir(), 'apm-pack');
+        const extractDir = path.join(os.tmpdir(), 'apm-extract');
+
+        beforeEach(() => {
+            // Remove the temporary directory if it exists
+            if (fs.existsSync(packDir)) fs.rmSync(packDir, { recursive: true, force: true });
+            if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true });
+
+            // Create the temporary directory
+            fs.mkdirSync(packDir, { recursive: true });
+            fs.mkdirSync(extractDir, { recursive: true });
+        });
+
+        const writeFileInside = (relPath: string, content: string) => {
+            // Write the file inside the temporary directory
+            const filePath = path.join(packDir, relPath);
+            fs.mkdirSync(path.dirname(filePath), { recursive: true });
+            fs.writeFileSync(filePath, content);
+        };
+
+        const writeFilesInside = (entries: Map<string, string>) => {
+            for (const [relPath, content] of entries) writeFileInside(relPath, content);
+        };
+
+        const assertFileInside = (relPath: string, content: string) => {
+            const filePath = path.join(extractDir, relPath);
+            expect(fs.existsSync(filePath)).toBe(true);
+            expect(fs.readFileSync(filePath, 'utf8')).toBe(content);
+        };
+
+        const assertFilesMatchExactly = (entries: Map<string, string>) => {
+            for (const [relPath, content] of entries) assertFileInside(relPath, content);
+            // Get the list of files in the extract directory using glob
+            const extractDirRelFiles = glob.sync('**/*', { cwd: extractDir, nodir: true }).sort();
+            // Get the list of files in the pack directory using glob
+            const expectedRelFiles = Array.from(entries.keys()).sort();
+            // Assert that the list of files in the extract directory matches the list of files in the pack directory
+            expect(extractDirRelFiles).toEqual(expectedRelFiles);
+        };
+
+        describe('success cases', () => {
+            const genericTest = async (
+                name: string,
+                deps: Map<string, string>,
+                agdaFiles: Map<string, string>,
+                mdFiles: Map<string, string>,
+            ) => {
+                // Get the debugger
+                const dbg = debug('apm:common:tests:models:Package:create');
+
+                // Write the files to the temporary directory
+                writeFilesInside(agdaFiles);
+                writeFilesInside(mdFiles);
+
+                // Get the filenames
+                const agdaFilenames = Array.from(agdaFiles.keys());
+                const mdFilenames = Array.from(mdFiles.keys());
+
+                // Construct the package from the arguments
+                const pkg = await Package.create(name, deps, packDir, agdaFilenames, mdFilenames);
+
+                // Indicate the deps that came back
+                dbg(`Deps: ${JSON.stringify(Object.fromEntries(pkg.getDirectDeps()))}`);
+
+                // Check fields of pkg
+                expect(pkg).toBeInstanceOf(Package);
+                expect(pkg.getName()).toBe(name);
+                expect(pkg.getDirectDeps()).toEqual(deps);
+                expect(pkg.getVersion()).toBeDefined();
+                expect(pkg.getPayload()).toBeDefined();
+
+                // Extract the payload
+                await (Draft as any).extractTar(pkg.getPayload(), extractDir);
+
+                // Get all files using glob
+                const dbgAllFiles = glob.sync('**/*', { cwd: extractDir, nodir: true }).sort();
+                dbg(`All files after extractTar: ${JSON.stringify(dbgAllFiles)}`);
+
+                // Concatenate the agda and md files (don't read from fs)
+                const concatenatedFiles = new Map<string, string>();
+                for (const [filename, content] of agdaFiles) concatenatedFiles.set(filename, content);
+                for (const [filename, content] of mdFiles) concatenatedFiles.set(filename, content);
+
+                // Assert the files are present
+                assertFilesMatchExactly(concatenatedFiles);
+            };
+
+            it('small name, no dependencies, no files', async () => {
+                const name = 'Calculus';
+                const deps = new Map();
+                const agdaFiles = new Map();
+                const mdFiles = new Map();
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 1 dependency, no files', async () => {
+                const name = 'Calculus';
+                const deps = new Map([['dep0', '1.0.0']]);
+                const agdaFiles = new Map();
+                const mdFiles = new Map();
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 2 dependencies, no files', async () => {
+                const name = 'Calculus';
+                const deps = new Map([
+                    ['dep0', '1.0.0'],
+                    ['dep1', '1.0.1'],
+                ]);
+                const agdaFiles = new Map();
+                const mdFiles = new Map();
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 0 dependencies, 1 agda file', async () => {
+                const name = 'Calculus';
+                const deps = new Map();
+                const agdaFiles = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
+                const mdFiles = new Map();
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 0 dependencies, 1 md file', async () => {
+                const name = 'Calculus';
+                const deps = new Map();
+                const agdaFiles = new Map();
+                const mdFiles = new Map([['file.md', '# MyNat']]);
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 1 dependency, 1 agda file', async () => {
+                const name = 'Calculus';
+                const deps = new Map([['dep0', '1.0.0']]);
+                const agdaFiles = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
+                const mdFiles = new Map();
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 1 dependency, 1 md file', async () => {
+                const name = 'Calculus';
+                const deps = new Map([['dep0', '1.0.0']]);
+                const agdaFiles = new Map();
+                const mdFiles = new Map([['file.md', '# MyNat']]);
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 2 dependencies, 1 agda file, 1 md file', async () => {
+                const name = 'Calculus';
+                const deps = new Map([
+                    ['dep0', '1.0.0'],
+                    ['dep1', '1.0.1'],
+                ]);
+                const agdaFiles = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
+                const mdFiles = new Map([['file.md', '# MyNat']]);
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 2 dependencies, 1 agda file in subdir', async () => {
+                const name = 'Calculus';
+                const deps = new Map([
+                    ['dep0', '1.0.0'],
+                    ['dep1', '1.0.1'],
+                ]);
+                const agdaFiles = new Map([['subdir/file.agda', 'myNat : ℕ\nmyNat = 0']]);
+                const mdFiles = new Map();
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 2 dependencies, 1 md file in subdir', async () => {
+                const name = 'Calculus';
+                const deps = new Map([
+                    ['dep0', '1.0.0'],
+                    ['dep1', '1.0.1'],
+                ]);
+                const agdaFiles = new Map();
+                const mdFiles = new Map([['subdir/file.md', '# MyNat']]);
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 2 dependencies, 1 agda file in subdir, 1 md file in subdir', async () => {
+                const name = 'Calculus';
+                const deps = new Map([
+                    ['dep0', '1.0.0'],
+                    ['dep1', '1.0.1'],
+                ]);
+                const agdaFiles = new Map([['subdir/file.agda', 'myNat : ℕ\nmyNat = 0']]);
+                const mdFiles = new Map([['subdir/file.md', '# MyNat']]);
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 2 dependencies, 10 agda files each in their own subdir', async () => {
+                const name = 'Calculus';
+                const deps = new Map([
+                    ['dep0', '1.0.0'],
+                    ['dep1', '1.0.1'],
+                ]);
+                const agdaFiles = new Map();
+                for (let i = 0; i < 10; i++) agdaFiles.set(`subdir${i}/file${i}.agda`, `myNat${i} : ℕ\nmyNat${i} = 0`);
+
+                const mdFiles = new Map();
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 2 dependencies, 10 md files each in their own subdir', async () => {
+                const name = 'Calculus';
+                const deps = new Map([
+                    ['dep0', '1.0.0'],
+                    ['dep1', '1.0.1'],
+                ]);
+                const agdaFiles = new Map();
+                const mdFiles = new Map();
+                for (let i = 0; i < 10; i++) mdFiles.set(`subdir${i}/file${i}.md`, `# MyNat${i}`);
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 2 dependencies, 10 agda files each in their own subdir, 10 md files each in their own subdir', async () => {
+                const name = 'Calculus';
+                const deps = new Map([
+                    ['dep0', '1.0.0'],
+                    ['dep1', '1.0.1'],
+                ]);
+                const agdaFiles = new Map();
+                for (let i = 0; i < 10; i++) agdaFiles.set(`subdir${i}/file${i}.agda`, `myNat${i} : ℕ\nmyNat${i} = 0`);
+                const mdFiles = new Map();
+                for (let i = 0; i < 10; i++) mdFiles.set(`subdir${i}/file${i}.md`, `# MyNat${i}`);
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 2 dependencies, 10 md files each in their own subdir, 10 agda files in root', async () => {
+                const name = 'Calculus';
+                const deps = new Map([
+                    ['dep0', '1.0.0'],
+                    ['dep1', '1.0.1'],
+                ]);
+                // root agda files
+                const agdaFiles = new Map();
+                for (let i = 0; i < 10; i++) agdaFiles.set(`file${i}.agda`, `myNat${i} : ℕ\nmyNat${i} = 0`);
+                // subdir md files
+                const mdFiles = new Map();
+                for (let i = 0; i < 10; i++) mdFiles.set(`subdir${i}/file${i}.md`, `# MyNat${i}`);
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+
+            it('small name, 10 dependencies, 50 agda files in doubly nested subdirs', async () => {
+                const name = 'Calculus';
+                const deps = new Map([
+                    ['dep0', '1.0.0'],
+                    ['dep1', '1.0.1'],
+                    ['dep2', '1.0.2'],
+                    ['dep3', '1.0.3'],
+                    ['dep4', '1.0.4'],
+                    ['dep5', '1.0.5'],
+                    ['dep6', '1.0.6'],
+                    ['dep7', '1.0.7'],
+                    ['dep8', '1.0.8'],
+                    ['dep9', '1.0.9'],
+                ]);
+                const agdaFiles = new Map();
+                for (let i = 0; i < 50; i++) {
+                    const subdir = Math.floor(i / 10);
+                    const filename = `file${i % 10}.agda`;
+                    agdaFiles.set(`subdir${subdir}/${filename}`, `myNat${i} : ℕ\nmyNat${i} = 0`);
+                }
+                const mdFiles = new Map();
+
+                await genericTest(name, deps, agdaFiles, mdFiles);
+            });
+        });
+
+        describe('failure cases', () => {});
+    });
+
     // describe('Package.fromDraft()', () => {
     //     const genericTest = (name: string, deps: Map<string, string>, payload: Buffer) => {
     //         const draft = new Draft(name, deps, payload);
