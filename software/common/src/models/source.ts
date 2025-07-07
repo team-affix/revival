@@ -32,6 +32,7 @@ export class Source {
         private cwd: string,
         private agdaFiles: string[],
         private mdFiles: string[],
+        private miscFiles: string[],
     ) {}
 
     // Create a source from a cwd
@@ -46,8 +47,11 @@ export class Source {
         // Get the md files
         const mdFiles = await glob('**/*.md', { cwd, nodir: true });
 
+        // Get the misc files
+        const miscFiles = await glob('**/*', { cwd, nodir: true, ignore: ['**/*.agda', '**/*.md'] });
+
         // Return the source
-        return new Source(cwd, agdaFiles, mdFiles);
+        return new Source(cwd, agdaFiles, mdFiles, miscFiles);
     }
 
     // Create a source from a payload
@@ -81,6 +85,11 @@ export class Source {
     // Get the md files of the source
     getMdFiles(): string[] {
         return this.mdFiles;
+    }
+
+    // Get the misc files of the source
+    getMiscFiles(): string[] {
+        return this.miscFiles;
     }
 }
 

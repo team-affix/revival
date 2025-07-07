@@ -4,6 +4,7 @@ import fs from 'fs';
 import { glob } from 'glob';
 import { expect, describe, it, beforeEach } from '@jest/globals';
 import { Source, __test__ as SourceTest } from '../../src/models/source';
+import SourceLoadError from '../../src/errors/source-load';
 
 describe('models/Source', () => {
     describe('packTar() and extractTar()', () => {
@@ -321,6 +322,188 @@ describe('models/Source', () => {
                         ['file8.txt', 'Hello, world8!'],
                     ]),
                 ));
+        });
+    });
+    describe('Source.load()', () => {
+        describe('success cases', () => {
+            const sourceDir = path.join(os.tmpdir(), 'apm-source-load-tmp-dir');
+            beforeEach(() => {
+                // Remove the temporary directory if it exists
+                if (fs.existsSync(sourceDir)) fs.rmSync(sourceDir, { recursive: true, force: true });
+
+                // Create the temporary directory
+                fs.mkdirSync(sourceDir, { recursive: true });
+            });
+
+            const writeFileInside = (relPath: string, content: string) => {
+                // Write the file inside the temporary directory
+                const filePath = path.join(sourceDir, relPath);
+                fs.mkdirSync(path.dirname(filePath), { recursive: true });
+                fs.writeFileSync(filePath, content);
+            };
+
+            const writeFilesInside = (entries: Map<string, string>) => {
+                for (const [relPath, content] of entries) writeFileInside(relPath, content);
+            };
+
+            const genericTest = async (
+                agdaFiles: Map<string, string>,
+                mdFiles: Map<string, string>,
+                miscFiles: Map<string, string>,
+            ) => {
+                // Write the files
+                writeFilesInside(new Map([...agdaFiles, ...mdFiles, ...miscFiles]));
+                // Load the source
+                const source = await Source.load(sourceDir);
+                // Assertions
+                expect(source).toBeDefined();
+                expect(source.getCwd()).toBe(sourceDir);
+                expect(source.getAgdaFiles().sort()).toEqual(Array.from(agdaFiles.keys()).sort());
+                expect(source.getMdFiles().sort()).toEqual(Array.from(mdFiles.keys()).sort());
+                expect(source.getMiscFiles().sort()).toEqual(Array.from(miscFiles.keys()).sort());
+            };
+
+            it('empty directory', async () => await genericTest(new Map(), new Map(), new Map()));
+
+            it('one agda file', async () =>
+                await genericTest(new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]), new Map(), new Map()));
+
+            it('one md file', async () =>
+                await genericTest(new Map(), new Map([['file.md', '# Hello, world!']]), new Map()));
+
+            it('one agda file and one md file', async () =>
+                await genericTest(
+                    new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]),
+                    new Map([['file.md', '# Hello, world!']]),
+                    new Map(),
+                ));
+
+            it('one misc file', async () =>
+                await genericTest(new Map(), new Map(), new Map([['file.txt', 'Hello, world!']])));
+
+            it('one agda file and one md file and one misc file', async () =>
+                await genericTest(
+                    new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]),
+                    new Map([['file.md', '# Hello, world!']]),
+                    new Map([['file.txt', 'Hello, world!']]),
+                ));
+
+            it('one agda file and one md file and one misc file in a subdirectory', async () =>
+                await genericTest(
+                    new Map([['subdir/file.agda', 'myNat : ℕ\nmyNat = 0']]),
+                    new Map([['subdir/file.md', '# Hello, world!']]),
+                    new Map([['subdir/file.txt', 'Hello, world!']]),
+                ));
+
+            it('one agda file and one md file and one misc file in a doubly-nested subdirectory', async () =>
+                await genericTest(
+                    new Map([['subdir1/subdir2/file.agda', 'myNat : ℕ\nmyNat = 0']]),
+                    new Map([['subdir1/subdir2/file.md', '# Hello, world!']]),
+                    new Map([['subdir1/subdir2/file.txt', 'Hello, world!']]),
+                ));
+
+            it('one agda file and one md file and one misc file in different directories', async () =>
+                await genericTest(
+                    new Map([['subdir1/file.agda', 'myNat : ℕ\nmyNat = 0']]),
+                    new Map([['subdir2/file.md', '# Hello, world!']]),
+                    new Map([['subdir3/file.txt', 'Hello, world!']]),
+                ));
+
+            it('10 agda files', async () =>
+                await genericTest(
+                    new Map([
+                        ['file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file2.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file3.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file4.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file5.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file6.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file7.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file8.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file9.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file10.agda', 'myNat : ℕ\nmyNat = 0'],
+                    ]),
+                    new Map(),
+                    new Map(),
+                ));
+
+            it('10 md files', async () =>
+                await genericTest(
+                    new Map(),
+                    new Map([
+                        ['file1.md', '# Hello, world!'],
+                        ['file2.md', '# Hello, world!'],
+                        ['file3.md', '# Hello, world!'],
+                        ['file4.md', '# Hello, world!'],
+                        ['file5.md', '# Hello, world!'],
+                        ['file6.md', '# Hello, world!'],
+                        ['file7.md', '# Hello, world!'],
+                        ['file8.md', '# Hello, world!'],
+                        ['file9.md', '# Hello, world!'],
+                        ['file10.md', '# Hello, world!'],
+                    ]),
+                    new Map(),
+                ));
+
+            it('10 agda files and 10 md files', async () =>
+                await genericTest(
+                    new Map([
+                        ['file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file2.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file3.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file4.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file5.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file6.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file7.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file8.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file9.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file10.agda', 'myNat : ℕ\nmyNat = 0'],
+                    ]),
+                    new Map([
+                        ['file1.md', '# Hello, world!'],
+                        ['file2.md', '# Hello, world!'],
+                        ['file3.md', '# Hello, world!'],
+                        ['file4.md', '# Hello, world!'],
+                        ['file5.md', '# Hello, world!'],
+                        ['file6.md', '# Hello, world!'],
+                        ['file7.md', '# Hello, world!'],
+                        ['file8.md', '# Hello, world!'],
+                        ['file9.md', '# Hello, world!'],
+                        ['file10.md', '# Hello, world!'],
+                    ]),
+                    new Map(),
+                ));
+
+            it('all dirt files with different extensions and names, and LOTS of them', async () =>
+                await genericTest(
+                    new Map(),
+                    new Map(),
+                    new Map([
+                        ['file1.txt', 'Hello, world!'],
+                        ['cat.png', 'Hello, world!'],
+                        ['dog.bat', 'Hello, world!'],
+                        ['mouse.sh', 'Hello, world!'],
+                        ['elephant.tar', 'Hello, world!'],
+                        ['giraffe.zip', 'Hello, world!'],
+                        ['zebra.7z', 'Hello, world!'],
+                        ['file8.jpg', 'Hello, world!'],
+                        ['file9.gif', 'Hello, world!'],
+                        ['file10.webp', 'Hello, world!'],
+                    ]),
+                ));
+        });
+
+        describe('failure cases', () => {
+            it('should throw a SourceLoadError if the directory does not exist', async () => {
+                const nonExistentDir = path.join(os.tmpdir(), 'does-not-exist');
+                await expect(Source.load(nonExistentDir)).rejects.toThrow(SourceLoadError);
+            });
+
+            it('should throw a SourceLoadError if the path is not a directory', async () => {
+                const nonDir = path.join(os.tmpdir(), 'not-a-directory');
+                fs.writeFileSync(nonDir, 'not a directory');
+                await expect(Source.load(nonDir)).rejects.toThrow(SourceLoadError);
+            });
         });
     });
 });
