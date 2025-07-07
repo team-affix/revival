@@ -8,6 +8,7 @@ import ReadDepsFileError from '../../src/errors/read-deps-file';
 import WriteDepsFileError from '../../src/errors/write-deps-file';
 import ProjectLoadError from '../../src/errors/project-load';
 import SourceLoadError from '../../src/errors/source-load';
+import ProjectCreationError from '../../src/errors/project-creation';
 
 describe('models/Project', () => {
     describe('parseDirectDeps()', () => {
@@ -948,284 +949,60 @@ describe('models/Project', () => {
         });
     });
 
-    // describe('Project.create()', () => {
-    //     const packDir = path.join(os.tmpdir(), 'apm-pack');
-    //     const extractDir = path.join(os.tmpdir(), 'apm-extract');
+    describe('Project.create()', () => {
+        const tmpDir = path.join(os.tmpdir(), 'create-project');
 
-    //     beforeEach(() => {
-    //         // Remove the temporary directory if it exists
-    //         if (fs.existsSync(packDir)) fs.rmSync(packDir, { recursive: true, force: true });
-    //         if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true });
+        beforeEach(() => {
+            // Remove the temporary directory if it exists
+            if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
 
-    //         // Create the temporary directory
-    //         fs.mkdirSync(packDir, { recursive: true });
-    //         fs.mkdirSync(extractDir, { recursive: true });
-    //     });
+            // Create the temporary directory
+            fs.mkdirSync(tmpDir, { recursive: true });
+        });
 
-    //     const writeFileInside = (relPath: string, content: string) => {
-    //         // Write the file inside the temporary directory
-    //         const filePath = path.join(packDir, relPath);
-    //         fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    //         fs.writeFileSync(filePath, content);
-    //     };
+        describe('success cases', () => {
+            it('should create a project with name APMTmpProject', async () => {
+                const projectName = 'APMTmpProject';
+                // Make the project path
+                const projectPath = path.join(tmpDir, projectName);
+                // Create the project folder
+                fs.mkdirSync(projectPath, { recursive: true });
+                // Create the project
+                const project = await Project.create(projectPath);
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                // Expect the project name to be APMTmpProject
+                expect(project.getName()).toBe(projectName);
+                // Expect the project path to be the temporary directory
+                expect(project.getCwd()).toBe(projectPath);
+                // Expect the project to have a root source
+                const rootSourcePath = path.join(projectPath, projectName);
+                expect(fs.existsSync(rootSourcePath)).toBe(true);
+                // Expect the project to have a deps.txt file
+                const depsTxtPath = path.join(projectPath, 'deps.txt');
+                expect(fs.existsSync(depsTxtPath)).toBe(true);
+                // Expect the project to have a .agda-lib file
+                const agdaLibPath = path.join(projectPath, '.agda-lib');
+                expect(fs.existsSync(agdaLibPath)).toBe(true);
+            });
+        });
 
-    //     const writeFilesInside = (entries: Map<string, string>) => {
-    //         for (const [relPath, content] of entries) writeFileInside(relPath, content);
-    //     };
+        describe('failure cases', () => {
+            it('should throw a ProjectCreationError if the path does not exist', async () => {
+                // Make the path
+                const srcPath = path.join(tmpDir, 'does-not-exist');
+                // Expect a rejection
+                await expect(Project.create(srcPath)).rejects.toThrow(ProjectCreationError);
+            });
 
-    //     const assertFileInside = (relPath: string, content: string) => {
-    //         const filePath = path.join(extractDir, relPath);
-    //         expect(fs.existsSync(filePath)).toBe(true);
-    //         expect(fs.readFileSync(filePath, 'utf8')).toBe(content);
-    //     };
-
-    //     const assertFilesPresent = (name: string, entries: Map<string, string>) => {
-    //         for (const [relPath, content] of entries) assertFileInside(path.join(name, relPath), content);
-    //     };
-
-    //     describe('success cases', () => {
-    //         // JUST TO DOCUMENT THIS BRIEFLY:
-    //         //
-    //         // The genericTest function is used to test the Draft.create() function.
-    //         // It writes the files to packDir (does not have the basename of the package), creates the tar, and then
-    //         // creates the draft in extractDir/packageName, which is why we must prefix all the relPaths with the package name.
-    //         const genericTest = async (
-    //             name: string,
-    //             deps: Map<string, string>,
-    //             agdaFiles: Map<string, string>,
-    //             mdFiles: Map<string, string>,
-    //         ) => {
-    //             // Get the debugger
-    //             const dbg = debug('apm:common:tests:models:Draft:create');
-
-    //             // Write all files
-    //             writeFilesInside(agdaFiles);
-    //             writeFilesInside(mdFiles);
-
-    //             // Get the file names contained list
-    //             const fileNames = [...agdaFiles.keys(), ...mdFiles.keys()];
-
-    //             // Create the tar using the original file names
-    //             const tar = await (Package as any).packTar(packDir, fileNames);
-
-    //             // Create the output directory
-    //             const outDir = path.join(extractDir, name);
-
-    //             // Create the draft
-    //             const draft = await Draft.create(outDir, name, deps, tar);
-
-    //             // Glob literally all files in the output directory
-    //             const files = glob.sync('**/*', { cwd: extractDir, nodir: true });
-    //             dbg(`Output Files: ${files}`);
-
-    //             // sleep for 15 seconds
-    //             // await new Promise((resolve) => setTimeout(resolve, 15000));
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe(name);
-    //             expect(draft.getDirectDeps()).toEqual(deps);
-    //             expect(draft.getSrcDir()).toBe(outDir);
-
-    //             // Assert the files are loaded correctly (should use original file names)
-    //             expect(draft.getAgdaFiles().sort()).toEqual(Array.from(agdaFiles.keys()).sort());
-    //             expect(draft.getMdFiles().sort()).toEqual(Array.from(mdFiles.keys()).sort());
-
-    //             // Assert the files are present INSIDE THE OUTPUT DRAFT DIRECTORY
-    //             assertFilesPresent(name, agdaFiles);
-    //             assertFilesPresent(name, mdFiles);
-
-    //             // Construct the expected deps.txt file content
-    //             let expectedDepsContent = '';
-    //             for (const [name, version] of deps.entries()) expectedDepsContent += `${name} ${version}\n`;
-
-    //             assertFilesPresent(name, new Map([['deps.txt', expectedDepsContent]]));
-
-    //             // Print the actual deps.txt file content
-    //             const actualDepsContent = fs.readFileSync(path.join(outDir, 'deps.txt'), 'utf8');
-    //             dbg(`Actual Deps Content: ${actualDepsContent}`);
-    //         };
-
-    //         it('small name, no dependencies, no files', async () => {
-    //             // Create the files map
-    //             const name = 'Calculus';
-    //             const deps: Map<string, string> = new Map();
-    //             const agdaFiles: Map<string, string> = new Map();
-    //             const mdFiles: Map<string, string> = new Map();
-
-    //             // Run the generic test
-    //             await genericTest(name, deps, agdaFiles, mdFiles);
-    //         });
-
-    //         it('small name, 1 dependency, no files', async () => {
-    //             // Create the files map
-    //             const name = 'Calculus';
-    //             const deps: Map<string, string> = new Map([['dep0', '1.0.0']]);
-    //             const agdaFiles: Map<string, string> = new Map();
-    //             const mdFiles: Map<string, string> = new Map();
-
-    //             // Run the generic test
-    //             await genericTest(name, deps, agdaFiles, mdFiles);
-    //         });
-
-    //         it('small name, 0 dependencies, 1 agda file', async () => {
-    //             // Create the files map
-    //             const name = 'Calculus';
-    //             const deps: Map<string, string> = new Map();
-    //             const agdaFiles: Map<string, string> = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
-    //             const mdFiles: Map<string, string> = new Map();
-
-    //             // Run the generic test
-    //             await genericTest(name, deps, agdaFiles, mdFiles);
-    //         });
-
-    //         it('small name, 0 dependencies, 1 md file', async () => {
-    //             // Create the files map
-    //             const name = 'Calculus';
-    //             const deps: Map<string, string> = new Map();
-    //             const agdaFiles: Map<string, string> = new Map();
-    //             const mdFiles: Map<string, string> = new Map([['file.md', '# Hello, World!']]);
-
-    //             // Run the generic test
-    //             await genericTest(name, deps, agdaFiles, mdFiles);
-    //         });
-
-    //         it('small name, 1 dependency, 1 agda file', async () => {
-    //             // Create the files map
-    //             const name = 'WorldLeaders';
-    //             const deps: Map<string, string> = new Map([['dep0', '1.0.0']]);
-    //             const agdaFiles: Map<string, string> = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
-    //             const mdFiles: Map<string, string> = new Map();
-
-    //             // Run the generic test
-    //             await genericTest(name, deps, agdaFiles, mdFiles);
-    //         });
-
-    //         it('small name, 1 dependency, 1 agda file, 1 md file, 1 subdir', async () => {
-    //             // Create the files map
-    //             const name = 'JurrasicPark';
-    //             const deps: Map<string, string> = new Map([['dep0', '1.0.0']]);
-    //             const agdaFiles: Map<string, string> = new Map([['subdir/file.agda', 'myNat : ℕ\nmyNat = 0']]);
-    //             const mdFiles: Map<string, string> = new Map([['file.md', '# Hello, World!']]);
-
-    //             // Run the generic test
-    //             await genericTest(name, deps, agdaFiles, mdFiles);
-    //         });
-
-    //         it('small name, 3 dependencies, 1 agda file, 1 md file', async () => {
-    //             // Create the files map
-    //             const name = 'WorldLeaders';
-    //             const deps: Map<string, string> = new Map([
-    //                 ['dep0', '1.0.0'],
-    //                 ['dep1', '1.0.1'],
-    //                 ['dep2', '1.0.2'],
-    //             ]);
-    //             const agdaFiles: Map<string, string> = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
-    //             const mdFiles: Map<string, string> = new Map([['file.md', '# Hello, World!']]);
-
-    //             // Run the generic test
-    //             await genericTest(name, deps, agdaFiles, mdFiles);
-    //         });
-
-    //         it('small name, 3 dependencies, 5 agda files, 1 md file, 2 subdirs with many nested subdirs', async () => {
-    //             // Create the files map
-    //             const name = 'WorldLeaders';
-    //             const deps: Map<string, string> = new Map([
-    //                 ['dep0', '1.0.0'],
-    //                 ['dep1', '1.0.1'],
-    //                 ['dep2', '1.0.2'],
-    //             ]);
-    //             const agdaFiles: Map<string, string> = new Map([
-    //                 ['subdir1/file1.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir2/file2.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir1/subdir3/file3.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir1/subdir4/file4.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir2/subdir5/file5.agda', 'myNat : ℕ\nmyNat = 0'],
-    //             ]);
-    //             const mdFiles: Map<string, string> = new Map([['file.md', '# Hello, World!']]);
-
-    //             // Run the generic test
-    //             await genericTest(name, deps, agdaFiles, mdFiles);
-    //         });
-
-    //         it('small name, 4 dependencies, 15 agda files, 5 md files, 5 subdirs with 1 md file each', async () => {
-    //             // Create the files map
-    //             const name = 'WorldLeaders';
-    //             const deps: Map<string, string> = new Map([
-    //                 ['dep0', '1.0.0'],
-    //                 ['dep1', '1.0.1'],
-    //                 ['dep2', '1.0.2'],
-    //                 ['dep3', '1.0.3'],
-    //             ]);
-    //             const agdaFiles: Map<string, string> = new Map([
-    //                 ['subdir1/file1.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir1/file2.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir1/file3.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir2/file4.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir2/file5.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir2/file6.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir3/file7.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir3/file8.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir3/file9.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir4/file10.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir4/file11.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir4/file12.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir5/file13.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir5/file14.agda', 'myNat : ℕ\nmyNat = 0'],
-    //                 ['subdir5/file15.agda', 'myNat : ℕ\nmyNat = 0'],
-    //             ]);
-    //             const mdFiles: Map<string, string> = new Map([
-    //                 ['subdir1/file1.md', '# dir1!'],
-    //                 ['subdir2/file2.md', '# dir2!'],
-    //                 ['subdir3/file3.md', '# dir3!'],
-    //                 ['subdir4/file4.md', '# dir4!'],
-    //                 ['subdir5/file5.md', '# dir5!'],
-    //             ]);
-
-    //             // Run the generic test
-    //             await genericTest(name, deps, agdaFiles, mdFiles);
-    //         });
-    //     });
-
-    //     describe('failure cases', () => {
-    //         it('throws DraftCreateError if the directory already exists', async () => {
-    //             const pkgName = 'Calculus';
-    //             const deps = new Map([
-    //                 ['dep0', '1.0.0'],
-    //                 ['dep1', '1.0.1'],
-    //                 ['dep2', '1.0.2'],
-    //             ]);
-    //             const payload = Buffer.from([]);
-
-    //             // Compute the draft path
-    //             const draftPath = path.join(extractDir, pkgName);
-
-    //             // Create the directory
-    //             fs.mkdirSync(draftPath, { recursive: true });
-
-    //             // Create the package and expect it to throw a DraftCreateError
-    //             await expect((Draft as any).create(pkgName, deps, payload, draftPath)).rejects.toThrow(
-    //                 DraftCreateError,
-    //             );
-    //         });
-
-    //         it('throws DraftCreateError if the directory name does not match the package name', async () => {
-    //             const pkgName = 'Calculus';
-    //             const deps = new Map([
-    //                 ['dep0', '1.0.0'],
-    //                 ['dep1', '1.0.1'],
-    //                 ['dep2', '1.0.2'],
-    //             ]);
-    //             const payload = Buffer.from([]);
-
-    //             // Compute the draft path
-    //             const draftPath = path.join(extractDir, 'DifferentName');
-
-    //             // Create the package and expect it to throw a DraftCreateError
-    //             await expect((Draft as any).create(pkgName, deps, payload, draftPath)).rejects.toThrow(
-    //                 DraftCreateError,
-    //             );
-    //         });
-    //     });
-    // });
+            it('should throw a ProjectCreationError if the path is not a directory', async () => {
+                // Make the path
+                const srcPath = path.join(tmpDir, 'not-a-directory');
+                // Create the file
+                fs.writeFileSync(srcPath, 'not-a-directory');
+                // Expect a rejection
+                await expect(Project.create(srcPath)).rejects.toThrow(ProjectCreationError);
+            });
+        });
+    });
 });
