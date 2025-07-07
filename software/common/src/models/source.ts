@@ -2,6 +2,8 @@ import { glob } from 'glob';
 import * as tarFs from 'tar-fs';
 import { Readable, pipeline } from 'stream';
 import { promisify } from 'util';
+import fs from 'fs';
+import SourceLoadError from '../errors/source-load';
 
 // Utility function for async pipeline
 const pipelineAsync = promisify(pipeline);
@@ -34,6 +36,10 @@ export class Source {
 
     // Create a source from a cwd
     static async load(cwd: string): Promise<Source> {
+        // Check if the cwd exists
+        if (!fs.existsSync(cwd)) throw new SourceLoadError(cwd, 'Path does not exist');
+        // Check if the cwd is a directory
+        if (!fs.statSync(cwd).isDirectory()) throw new SourceLoadError(cwd, 'Path is not a directory');
         // Get the agda files
         const agdaFiles = await glob('**/*.agda', { cwd, nodir: true });
 

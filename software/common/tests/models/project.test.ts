@@ -2,10 +2,12 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { expect, describe, it, beforeEach } from '@jest/globals';
-import { __test__ as ProjectTest } from '../../src/models/project';
+import { __test__ as ProjectTest, Project } from '../../src/models/project';
 import FailedToParseDepsError from '../../src/errors/failed-to-parse-deps';
 import ReadDepsFileError from '../../src/errors/read-deps-file';
 import WriteDepsFileError from '../../src/errors/write-deps-file';
+import ProjectLoadError from '../../src/errors/project-load';
+import SourceLoadError from '../../src/errors/source-load';
 
 describe('models/Project', () => {
     describe('parseDirectDeps()', () => {
@@ -281,554 +283,670 @@ describe('models/Project', () => {
         // });
     });
 
-    // // PUBLIC INTERFACE TESTS
-    // describe('Project.load()', () => {
-    //     describe('success cases', () => {
-    //         const tmpDir = path.join(os.tmpdir(), 'APMTmpDraft');
-
-    //         const writeFileInside = (relPath: string, content: string) => {
-    //             const filePath = path.join(tmpDir, relPath);
-    //             fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    //             fs.writeFileSync(filePath, content);
-    //         };
-
-    //         beforeEach(() => {
-    //             // Remove the temporary directory if it exists
-    //             if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
-
-    //             // Create the temporary directory
-    //             fs.mkdirSync(tmpDir, { recursive: true });
-    //         });
-
-    //         it('empty deps.txt file and no source files', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual([]);
-    //             expect(draft.getMdFiles()).toEqual([]);
-    //         });
-
-    //         it('empty deps.txt file and one dirt file (.txt)', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the dirt file
-    //             writeFileInside('file.txt', 'Hello, world!');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual([]);
-    //             expect(draft.getMdFiles()).toEqual([]);
-    //         });
-
-    //         it('empty deps.txt file and one agda file', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the agda file
-    //             writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-    //             expect(draft.getMdFiles()).toEqual([]);
-    //         });
-
-    //         it('empty deps.txt file and one md file', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the md file
-    //             writeFileInside('file.md', '# My Document');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual([]);
-    //             expect(draft.getMdFiles()).toEqual(['file.md']);
-    //         });
-
-    //         it('empty deps.txt file and one agda file and one md file', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the agda file
-    //             writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
-
-    //             // Write the md file
-    //             writeFileInside('file.md', '# My Document');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-    //             expect(draft.getMdFiles()).toEqual(['file.md']);
-    //         });
-
-    //         it('empty deps.txt file and one agda file in nested directory', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the agda file
-    //             writeFileInside('subdir/file.agda', 'myNat : ℕ\nmyNat = 0');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual(['subdir/file.agda']);
-    //             expect(draft.getMdFiles()).toEqual([]);
-    //         });
-
-    //         it('empty deps.txt file and one md file in nested directory', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the md file
-    //             writeFileInside('subdir/file.md', '# My Document');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual([]);
-    //             expect(draft.getMdFiles()).toEqual(['subdir/file.md']);
-    //         });
-
-    //         it('empty deps.txt file and one agda file and one md file in nested directory', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the agda file
-    //             writeFileInside('subdir/file1.agda', 'myNat : ℕ\nmyNat = 0');
-
-    //             // Write the md file
-    //             writeFileInside('subdir/file2.md', '# My Document');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual(['subdir/file1.agda']);
-    //             expect(draft.getMdFiles()).toEqual(['subdir/file2.md']);
-    //         });
-
-    //         it('empty deps.txt file and one agda file in doubly-nested directory', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the agda file
-    //             writeFileInside('subdir/subdir2/file.agda', 'myNat : ℕ\nmyNat = 0');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual(['subdir/subdir2/file.agda']);
-    //             expect(draft.getMdFiles()).toEqual([]);
-    //         });
-
-    //         it('empty deps.txt file and multiple agda files', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the agda files
-    //             writeFileInside('file1.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('file2.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('file3.agda', 'myNat : ℕ\nmyNat = 0');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles().sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
-    //             expect(draft.getMdFiles().sort()).toEqual([]);
-    //         });
-
-    //         it('empty deps.txt file and multiple md files', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the md files
-    //             writeFileInside('file1.md', '# My Document');
-    //             writeFileInside('file2.md', '# My Document');
-    //             writeFileInside('file3.md', '# My Document');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles().sort()).toEqual([]);
-    //             expect(draft.getMdFiles().sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
-    //         });
-
-    //         it('empty deps.txt file and multiple agda files and multiple md files', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the agda files
-    //             writeFileInside('file1.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('file2.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('file3.agda', 'myNat : ℕ\nmyNat = 0');
-
-    //             // Write the md files
-    //             writeFileInside('file1.md', '# My Document');
-    //             writeFileInside('file2.md', '# My Document');
-    //             writeFileInside('file3.md', '# My Document');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles().sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
-    //             expect(draft.getMdFiles().sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
-    //         });
-
-    //         it('empty deps.txt file and multiple agda files and multiple md files in nested directories', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', '');
-
-    //             // Write the agda files
-    //             writeFileInside('subdir1/file1.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('subdir1/README.md', '# My Document');
-    //             writeFileInside('subdir2/file2.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('subdir2/README.md', '# My Document');
-    //             writeFileInside('subdir2/subdir3/file3.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('subdir2/subdir3/README.md', '# My Document');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map());
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles().sort()).toEqual(
-    //                 ['subdir1/file1.agda', 'subdir2/file2.agda', 'subdir2/subdir3/file3.agda'].sort(),
-    //             );
-    //             expect(draft.getMdFiles().sort()).toEqual(
-    //                 ['subdir1/README.md', 'subdir2/README.md', 'subdir2/subdir3/README.md'].sort(),
-    //             );
-    //         });
-
-    //         it('single package deps.txt file and no source files', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', 'name 1.0.0');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(new Map([['name', '1.0.0']]));
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual([]);
-    //             expect(draft.getMdFiles()).toEqual([]);
-    //         });
-
-    //         it('two package deps.txt file and no source files', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(
-    //                 new Map([
-    //                     ['name0', '1.0.0'],
-    //                     ['name1', '1.0.1'],
-    //                 ]),
-    //             );
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual([]);
-    //             expect(draft.getMdFiles()).toEqual([]);
-    //         });
-
-    //         it('two package deps.txt file and one agda file', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1');
-
-    //             // Write the agda file
-    //             writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(
-    //                 new Map([
-    //                     ['name0', '1.0.0'],
-    //                     ['name1', '1.0.1'],
-    //                 ]),
-    //             );
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-    //             expect(draft.getMdFiles()).toEqual([]);
-    //         });
-
-    //         it('two package deps.txt file and one md file', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1');
-
-    //             // Write the md file
-    //             writeFileInside('file.md', '# My Document');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(
-    //                 new Map([
-    //                     ['name0', '1.0.0'],
-    //                     ['name1', '1.0.1'],
-    //                 ]),
-    //             );
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual([]);
-    //             expect(draft.getMdFiles()).toEqual(['file.md']);
-    //         });
-
-    //         it('two package deps.txt file and one agda file and one md file', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1');
-
-    //             // Write the agda file
-    //             writeFileInside('file.agda', 'myNat : ℕ\nmyNat = 0');
-
-    //             // Write the md file
-    //             writeFileInside('file.md', '# My Document');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(
-    //                 new Map([
-    //                     ['name0', '1.0.0'],
-    //                     ['name1', '1.0.1'],
-    //                 ]),
-    //             );
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles()).toEqual(['file.agda']);
-    //             expect(draft.getMdFiles()).toEqual(['file.md']);
-    //         });
-
-    //         it('many package deps.txt file and multiple agda files', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1\nname2 1.0.2\nname3 1.0.3\nname4 1.0.4');
-
-    //             // Write the agda files
-    //             writeFileInside('file1.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('file2.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('file3.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('file4.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('file5.agda', 'myNat : ℕ\nmyNat = 0');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(
-    //                 new Map([
-    //                     ['name0', '1.0.0'],
-    //                     ['name1', '1.0.1'],
-    //                     ['name2', '1.0.2'],
-    //                     ['name3', '1.0.3'],
-    //                     ['name4', '1.0.4'],
-    //                 ]),
-    //             );
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles().sort()).toEqual(
-    //                 ['file1.agda', 'file2.agda', 'file3.agda', 'file4.agda', 'file5.agda'].sort(),
-    //             );
-    //             expect(draft.getMdFiles().sort()).toEqual([]);
-    //         });
-
-    //         it('many package deps.txt file and multiple agda files in random nested directories', () => {
-    //             // Create the file
-    //             writeFileInside('deps.txt', 'name0 1.0.0\nname1 1.0.1\nname2 1.0.2\nname3 1.0.3\nname4 1.0.4');
-
-    //             // Write the agda files
-    //             writeFileInside('subdir1/file1.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('subdir1/subdir2/subdir3/subdir4/file2.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('subdir2/file3.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('subdir4/file4.agda', 'myNat : ℕ\nmyNat = 0');
-    //             writeFileInside('subdir3/file5.agda', 'myNat : ℕ\nmyNat = 0');
-
-    //             // Load the draft
-    //             const draft = Draft.load(tmpDir);
-
-    //             // Expect the draft to be an instance of Draft
-    //             expect(draft).toBeInstanceOf(Draft);
-    //             expect(draft.getName()).toBe('APMTmpDraft');
-    //             expect(draft.getDirectDeps()).toEqual(
-    //                 new Map([
-    //                     ['name0', '1.0.0'],
-    //                     ['name1', '1.0.1'],
-    //                     ['name2', '1.0.2'],
-    //                     ['name3', '1.0.3'],
-    //                     ['name4', '1.0.4'],
-    //                 ]),
-    //             );
-    //             expect(draft.getSrcDir()).toBe(tmpDir);
-    //             expect(draft.getAgdaFiles().sort()).toEqual(
-    //                 [
-    //                     'subdir1/file1.agda',
-    //                     'subdir1/subdir2/subdir3/subdir4/file2.agda',
-    //                     'subdir2/file3.agda',
-    //                     'subdir4/file4.agda',
-    //                     'subdir3/file5.agda',
-    //                 ].sort(),
-    //             );
-    //             expect(draft.getMdFiles().sort()).toEqual([]);
-    //         });
-    //     });
-
-    //     describe('failure cases', () => {
-    //         const tmpDir = path.join(os.tmpdir(), 'failure-cases');
-
-    //         beforeEach(() => {
-    //             // Remove the temporary directory if it exists
-    //             if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
-
-    //             // Create the temporary directory
-    //             fs.mkdirSync(tmpDir, { recursive: true });
-    //         });
-
-    //         it('should throw a DraftLoadError if the path does not exist', () => {
-    //             const srcPath = path.join(tmpDir, 'does-not-exist');
-
-    //             expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
-    //         });
-
-    //         it('should throw a DraftLoadError if the path is not a directory', () => {
-    //             const srcPath = path.join(tmpDir, 'not-a-directory');
-
-    //             // Create the file
-    //             fs.writeFileSync(srcPath, 'not-a-directory');
-
-    //             // Expect the file to exist
-    //             expect(fs.existsSync(srcPath)).toBe(true);
-
-    //             expect(() => Draft.load(srcPath)).toThrow(DraftLoadError);
-    //         });
-
-    //         it('should throw a ReadDepsFileError if the path does not contain a deps.txt file', () => {
-    //             const srcPath = path.join(tmpDir, 'no-deps-txt');
-
-    //             // Create the file
-    //             fs.mkdirSync(srcPath, { recursive: true });
-
-    //             // Expect the file to exist
-    //             expect(fs.existsSync(srcPath)).toBe(true);
-
-    //             expect(() => Draft.load(srcPath)).toThrow(ReadDepsFileError);
-    //         });
-
-    //         it('should throw a ReadDepsFileError if the deps.txt is not a file', () => {
-    //             const srcPath = path.join(tmpDir, 'no-deps-txt');
-    //             const depsTxtPath = path.join(srcPath, 'deps.txt');
-
-    //             // Create the file
-    //             fs.mkdirSync(srcPath, { recursive: true });
-
-    //             // Create the deps.txt folder (yes, this is strange, but it's just for testing)
-    //             fs.mkdirSync(depsTxtPath, { recursive: true });
-
-    //             // Expect the folder to exist
-    //             expect(fs.existsSync(depsTxtPath)).toBe(true);
-
-    //             expect(() => Draft.load(srcPath)).toThrow(ReadDepsFileError);
-    //         });
-
-    //         it('should throw a FailedToParseDepsError if the deps.txt file is invalid', () => {
-    //             const srcPath = path.join(tmpDir, 'invalid-deps-txt');
-    //             const depsTxtPath = path.join(srcPath, 'deps.txt');
-
-    //             // Create the file
-    //             fs.mkdirSync(srcPath, { recursive: true });
-
-    //             // Create the deps.txt file
-    //             fs.writeFileSync(depsTxtPath, 'pkgName');
-
-    //             // Expect the file to exist
-    //             expect(fs.existsSync(depsTxtPath)).toBe(true);
-
-    //             expect(() => Draft.load(srcPath)).toThrow(FailedToParseDepsError);
-    //         });
-    //     });
-    // });
+    // PUBLIC INTERFACE TESTS
+    describe('Project.load()', () => {
+        describe('success cases', () => {
+            const projectName = 'APMTmpProject';
+            const tmpDir = path.join(os.tmpdir(), projectName);
+
+            const writeFileInside = (relPath: string, content: string) => {
+                const filePath = path.join(tmpDir, relPath);
+                fs.mkdirSync(path.dirname(filePath), { recursive: true });
+                fs.writeFileSync(filePath, content);
+            };
+
+            const createRootSource = (files: Map<string, string>) => {
+                const rootSourceDir = path.join(tmpDir, projectName);
+                // Create the dir if it doesnt exist
+                if (!fs.existsSync(rootSourceDir)) fs.mkdirSync(rootSourceDir, { recursive: true });
+                // Create the files
+                for (const [relPath, content] of files.entries()) {
+                    writeFileInside(path.join(projectName, relPath), content);
+                }
+            };
+
+            beforeEach(() => {
+                // Remove the temporary directory if it exists
+                if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
+
+                // Create the temporary directory
+                fs.mkdirSync(tmpDir, { recursive: true });
+            });
+
+            it('empty deps.txt file and no source files', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(new Map());
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual([]);
+                expect(project.getRootSource().getMdFiles()).toEqual([]);
+            });
+
+            it('empty deps.txt file and one dirt file (.txt)', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(new Map([['file.txt', 'Hello, world!']]));
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual([]);
+                expect(project.getRootSource().getMdFiles()).toEqual([]);
+            });
+
+            it('empty deps.txt file and one agda file', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]));
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual(['file.agda']);
+                expect(project.getRootSource().getMdFiles()).toEqual([]);
+            });
+
+            it('empty deps.txt file and one md file', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(new Map([['file.md', '# My Document']]));
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual([]);
+                expect(project.getRootSource().getMdFiles()).toEqual(['file.md']);
+            });
+
+            it('empty deps.txt file and one agda file and one md file', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(
+                    new Map([
+                        ['file.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file.md', '# My Document'],
+                    ]),
+                );
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual(['file.agda']);
+                expect(project.getRootSource().getMdFiles()).toEqual(['file.md']);
+            });
+
+            it('empty deps.txt file and one agda file in nested directory', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(new Map([['subdir/file.agda', 'myNat : ℕ\nmyNat = 0']]));
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual(['subdir/file.agda']);
+                expect(project.getRootSource().getMdFiles()).toEqual([]);
+            });
+
+            it('empty deps.txt file and one md file in nested directory', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(new Map([['subdir/file.md', '# My Document']]));
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual([]);
+                expect(project.getRootSource().getMdFiles()).toEqual(['subdir/file.md']);
+            });
+
+            it('empty deps.txt file and one agda file and one md file in nested directory', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(
+                    new Map([
+                        ['subdir/file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['subdir/file2.md', '# My Document'],
+                    ]),
+                );
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual(['subdir/file1.agda']);
+                expect(project.getRootSource().getMdFiles()).toEqual(['subdir/file2.md']);
+            });
+
+            it('empty deps.txt file and one agda file in doubly-nested directory', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(new Map([['subdir/subdir2/file.agda', 'myNat : ℕ\nmyNat = 0']]));
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual(['subdir/subdir2/file.agda']);
+                expect(project.getRootSource().getMdFiles()).toEqual([]);
+            });
+
+            it('empty deps.txt file and multiple agda files', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(
+                    new Map([
+                        ['file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file2.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file3.agda', 'myNat : ℕ\nmyNat = 0'],
+                    ]),
+                );
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles().sort()).toEqual(
+                    ['file1.agda', 'file2.agda', 'file3.agda'].sort(),
+                );
+                expect(project.getRootSource().getMdFiles().sort()).toEqual([]);
+            });
+
+            it('empty deps.txt file and multiple md files', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(
+                    new Map([
+                        ['file1.md', '# My Document'],
+                        ['file2.md', '# My Document'],
+                        ['file3.md', '# My Document'],
+                    ]),
+                );
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles().sort()).toEqual([]);
+                expect(project.getRootSource().getMdFiles().sort()).toEqual(
+                    ['file1.md', 'file2.md', 'file3.md'].sort(),
+                );
+            });
+
+            it('empty deps.txt file and multiple agda files and multiple md files', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(
+                    new Map([
+                        ['file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file2.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file3.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file1.md', '# My Document'],
+                        ['file2.md', '# My Document'],
+                        ['file3.md', '# My Document'],
+                    ]),
+                );
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles().sort()).toEqual(
+                    ['file1.agda', 'file2.agda', 'file3.agda'].sort(),
+                );
+                expect(project.getRootSource().getMdFiles().sort()).toEqual(
+                    ['file1.md', 'file2.md', 'file3.md'].sort(),
+                );
+            });
+
+            it('empty deps.txt file and multiple agda files and multiple md files in nested directories', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the root source
+                createRootSource(
+                    new Map([
+                        ['subdir1/file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['subdir1/README.md', '# My Document'],
+                        ['subdir2/file2.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['subdir2/README.md', '# My Document'],
+                        ['subdir2/subdir3/file3.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['subdir2/subdir3/README.md', '# My Document'],
+                    ]),
+                );
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map());
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles().sort()).toEqual(
+                    ['subdir1/file1.agda', 'subdir2/file2.agda', 'subdir2/subdir3/file3.agda'].sort(),
+                );
+                expect(project.getRootSource().getMdFiles().sort()).toEqual(
+                    ['subdir1/README.md', 'subdir2/README.md', 'subdir2/subdir3/README.md'].sort(),
+                );
+            });
+
+            it('single package deps.txt file and no source files', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Map([['name', '1.0.0']]));
+
+                // Create the root source
+                createRootSource(new Map());
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(new Map([['name', '1.0.0']]));
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual([]);
+                expect(project.getRootSource().getMdFiles()).toEqual([]);
+            });
+
+            it('two package deps.txt file and no source files', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(
+                    tmpDir,
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                    ]),
+                );
+
+                // Create the root source
+                createRootSource(new Map());
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                    ]),
+                );
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual([]);
+                expect(project.getRootSource().getMdFiles()).toEqual([]);
+            });
+
+            it('two package deps.txt file and one agda file', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(
+                    tmpDir,
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                    ]),
+                );
+
+                // Create the root source
+                createRootSource(new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]));
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                    ]),
+                );
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual(['file.agda']);
+                expect(project.getRootSource().getMdFiles()).toEqual([]);
+            });
+
+            it('two package deps.txt file and one md file', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(
+                    tmpDir,
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                    ]),
+                );
+
+                // Create the root source
+                createRootSource(new Map([['file.md', '# My Document']]));
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                    ]),
+                );
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual([]);
+                expect(project.getRootSource().getMdFiles()).toEqual(['file.md']);
+            });
+
+            it('two package deps.txt file and one agda file and one md file', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(
+                    tmpDir,
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                    ]),
+                );
+
+                // Create the root source
+                createRootSource(
+                    new Map([
+                        ['file.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file.md', '# My Document'],
+                    ]),
+                );
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                    ]),
+                );
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles()).toEqual(['file.agda']);
+                expect(project.getRootSource().getMdFiles()).toEqual(['file.md']);
+            });
+
+            it('many package deps.txt file and multiple agda files', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(
+                    tmpDir,
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                        ['name2', '1.0.2'],
+                        ['name3', '1.0.3'],
+                        ['name4', '1.0.4'],
+                    ]),
+                );
+
+                // Create the root source
+                createRootSource(
+                    new Map([
+                        ['file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file2.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file3.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file4.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['file5.agda', 'myNat : ℕ\nmyNat = 0'],
+                    ]),
+                );
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                        ['name2', '1.0.2'],
+                        ['name3', '1.0.3'],
+                        ['name4', '1.0.4'],
+                    ]),
+                );
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles().sort()).toEqual(
+                    ['file1.agda', 'file2.agda', 'file3.agda', 'file4.agda', 'file5.agda'].sort(),
+                );
+                expect(project.getRootSource().getMdFiles().sort()).toEqual([]);
+            });
+
+            it('many package deps.txt file and multiple agda files in random nested directories', async () => {
+                // Create the deps file
+                await ProjectTest.writeDirectDepsFile(
+                    tmpDir,
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                        ['name2', '1.0.2'],
+                        ['name3', '1.0.3'],
+                        ['name4', '1.0.4'],
+                    ]),
+                );
+
+                // Create the root source
+                createRootSource(
+                    new Map([
+                        ['subdir1/file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['subdir1/subdir2/subdir3/subdir4/file2.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['subdir2/file3.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['subdir4/file4.agda', 'myNat : ℕ\nmyNat = 0'],
+                        ['subdir3/file5.agda', 'myNat : ℕ\nmyNat = 0'],
+                    ]),
+                );
+
+                // Load the project
+                const project = await Project.load(tmpDir);
+
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                expect(project.getName()).toBe('APMTmpProject');
+                expect(project.getDirectDeps()).toEqual(
+                    new Map([
+                        ['name0', '1.0.0'],
+                        ['name1', '1.0.1'],
+                        ['name2', '1.0.2'],
+                        ['name3', '1.0.3'],
+                        ['name4', '1.0.4'],
+                    ]),
+                );
+                expect(project.getCwd()).toBe(tmpDir);
+                expect(project.getRootSource().getAgdaFiles().sort()).toEqual(
+                    [
+                        'subdir1/file1.agda',
+                        'subdir1/subdir2/subdir3/subdir4/file2.agda',
+                        'subdir2/file3.agda',
+                        'subdir4/file4.agda',
+                        'subdir3/file5.agda',
+                    ].sort(),
+                );
+                expect(project.getRootSource().getMdFiles().sort()).toEqual([]);
+            });
+        });
+
+        describe('failure cases', () => {
+            const tmpDir = path.join(os.tmpdir(), 'failure-cases');
+
+            beforeEach(() => {
+                // Remove the temporary directory if it exists
+                if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
+
+                // Create the temporary directory
+                fs.mkdirSync(tmpDir, { recursive: true });
+            });
+
+            it('should throw a ProjectLoadError if the path does not exist', async () => {
+                const srcPath = path.join(tmpDir, 'does-not-exist');
+
+                // Expect a rejection
+                await expect(Project.load(srcPath)).rejects.toThrow(ProjectLoadError);
+            });
+
+            it('should throw a ProjectLoadError if the path is not a directory', async () => {
+                const srcPath = path.join(tmpDir, 'not-a-directory');
+
+                // Create the file
+                fs.writeFileSync(srcPath, 'not-a-directory');
+
+                // Expect the file to exist
+                expect(fs.existsSync(srcPath)).toBe(true);
+
+                // Expect a rejection
+                await expect(Project.load(srcPath)).rejects.toThrow(ProjectLoadError);
+            });
+
+            it('should throw a ReadDepsFileError if the path does not contain a deps.txt file', async () => {
+                const srcPath = path.join(tmpDir, 'no-deps-txt');
+
+                // Create the file
+                fs.mkdirSync(srcPath, { recursive: true });
+
+                // Expect the file to exist
+                expect(fs.existsSync(srcPath)).toBe(true);
+
+                // Expect a rejection
+                await expect(Project.load(srcPath)).rejects.toThrow(ReadDepsFileError);
+            });
+
+            it('should throw a ReadDepsFileError if the deps.txt is not a file', async () => {
+                const srcPath = path.join(tmpDir, 'no-deps-txt');
+                const depsTxtPath = path.join(srcPath, 'deps.txt');
+
+                // Create the file
+                fs.mkdirSync(srcPath, { recursive: true });
+
+                // Create the deps.txt folder (yes, this is strange, but it's just for testing)
+                fs.mkdirSync(depsTxtPath, { recursive: true });
+
+                // Expect the folder to exist
+                expect(fs.existsSync(depsTxtPath)).toBe(true);
+
+                // Expect a rejection
+                await expect(Project.load(srcPath)).rejects.toThrow(ReadDepsFileError);
+            });
+
+            it('should throw a FailedToParseDepsError if the deps.txt file is invalid', async () => {
+                const srcPath = path.join(tmpDir, 'invalid-deps-txt');
+                const depsTxtPath = path.join(srcPath, 'deps.txt');
+
+                // Create the file
+                fs.mkdirSync(srcPath, { recursive: true });
+
+                // Create the deps.txt file
+                fs.writeFileSync(depsTxtPath, 'pkgName');
+
+                // Expect the file to exist
+                expect(fs.existsSync(depsTxtPath)).toBe(true);
+
+                // Expect a rejection
+                await expect(Project.load(srcPath)).rejects.toThrow(FailedToParseDepsError);
+            });
+
+            it('should throw a SourceLoadError if the path does not contain a root source directory', async () => {
+                const srcPath = path.join(tmpDir, 'no-root-source');
+
+                // Create the folder
+                fs.mkdirSync(srcPath, { recursive: true });
+
+                // Create the deps.txt file
+                fs.writeFileSync(path.join(srcPath, 'deps.txt'), 'pkgName ver0');
+
+                // Expect a rejection
+                await expect(Project.load(srcPath)).rejects.toThrow(SourceLoadError);
+            });
+        });
+    });
 
     // describe('Project.create()', () => {
     //     const packDir = path.join(os.tmpdir(), 'apm-pack');
