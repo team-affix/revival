@@ -8,7 +8,7 @@ import { pipeline } from 'stream/promises';
 import tarFs from 'tar-fs';
 import { Source, __test__ as SourceTest } from '../../src/models/source';
 import SourceLoadError from '../../src/errors/source-load';
-import SourceInitError from '../../src/errors/source-init';
+import SourceCreateError from '../../src/errors/source-create';
 
 describe('models/Source', () => {
     describe('Source.load()', () => {
@@ -183,11 +183,15 @@ describe('models/Source', () => {
         describe('failure cases', () => {
             it('should throw a SourceLoadError if the directory does not exist', async () => {
                 const nonExistentDir = path.join(os.tmpdir(), 'does-not-exist');
+                // Ensure the directory does not exist
+                if (fs.existsSync(nonExistentDir)) fs.rmSync(nonExistentDir, { recursive: true, force: true });
                 await expect(Source.load(nonExistentDir)).rejects.toThrow(SourceLoadError);
             });
 
             it('should throw a SourceLoadError if the path is not a directory', async () => {
                 const nonDir = path.join(os.tmpdir(), 'not-a-directory');
+                // Ensure the entry does not exist
+                if (fs.existsSync(nonDir)) fs.rmSync(nonDir, { recursive: true, force: true });
                 fs.writeFileSync(nonDir, 'not a directory');
                 await expect(Source.load(nonDir)).rejects.toThrow(SourceLoadError);
             });
@@ -203,7 +207,8 @@ describe('models/Source', () => {
                 if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true });
                 // Create the temporary directory
                 fs.mkdirSync(packDir, { recursive: true });
-                fs.mkdirSync(extractDir, { recursive: true });
+                // EXPLITICLY DO NOT CREATE THE EXTRACT DIR, Source.create() will do that
+                // fs.mkdirSync(extractDir, { recursive: true });
             });
 
             const writeFileInside = (relPath: string, content: string) => {
@@ -249,8 +254,8 @@ describe('models/Source', () => {
                 // Pack the packDir
                 const archive = tarFs.pack(packDir, { entries: includedFilePaths });
 
-                // Load the source
-                const source = await Source.init(extractDir, archive);
+                // Create the source
+                const source = await Source.create(extractDir, archive);
 
                 // Assertions
                 expect(source).toBeDefined();
@@ -394,40 +399,55 @@ describe('models/Source', () => {
         });
 
         describe('failure cases', () => {
-            it('should throw a SourceInitError if the directory does not exist', async () => {
-                const nonExistentDir = path.join(os.tmpdir(), 'does-not-exist');
-                await expect(Source.init(nonExistentDir)).rejects.toThrow(SourceInitError);
+            it('should throw a SourceCreateError if the directory already exists', async () => {
+                const existingDir = path.join(os.tmpdir(), 'apm-source-create-existing-dir');
+                // Ensure the entry does not exist first
+                if (fs.existsSync(existingDir)) fs.rmSync(existingDir, { recursive: true, force: true });
+                // Create the directory
+                fs.mkdirSync(existingDir, { recursive: true });
+                // Create the source
+                await expect(Source.create(existingDir)).rejects.toThrow(SourceCreateError);
             });
 
-            it('should throw a SourceInitError if the path is not a directory', async () => {
-                const nonDir = path.join(os.tmpdir(), 'not-a-directory');
-                fs.writeFileSync(nonDir, 'not a directory');
-                await expect(Source.init(nonDir)).rejects.toThrow(SourceInitError);
+            it('should throw a SourceCreateError if the path already exists as a file', async () => {
+                const existingFile = path.join(os.tmpdir(), 'apm-source-create-existing-file');
+                // Ensure the entry does not exist first
+                if (fs.existsSync(existingFile)) fs.rmSync(existingFile, { recursive: true, force: true });
+                // Create the file
+                fs.writeFileSync(existingFile, 'not a directory');
+                // Create the source
+                await expect(Source.create(existingFile)).rejects.toThrow(SourceCreateError);
             });
 
-            it('should throw a SourceInitError if the path is not empty', async () => {
-                // Define source directory
-                const sourceDir = path.join(os.tmpdir(), 'apm-source-init-source-dir');
+            // it('should throw a SourceCreateError if the path is not a directory', async () => {
+            //     const nonDir = path.join(os.tmpdir(), 'not-a-directory');
+            //     fs.writeFileSync(nonDir, 'not a directory');
+            //     await expect(Source.create(nonDir)).rejects.toThrow(SourceCreateError);
+            // });
 
-                // Remove the source directory if it exists
-                if (fs.existsSync(sourceDir)) fs.rmSync(sourceDir, { recursive: true, force: true });
+            // it('should throw a SourceInitError if the path is not empty', async () => {
+            //     // Define source directory
+            //     const sourceDir = path.join(os.tmpdir(), 'apm-source-init-source-dir');
 
-                // Create the source directory
-                fs.mkdirSync(sourceDir, { recursive: true });
+            //     // Remove the source directory if it exists
+            //     if (fs.existsSync(sourceDir)) fs.rmSync(sourceDir, { recursive: true, force: true });
 
-                // Define files
-                const files = new Map([['file.txt', 'Hello, world!']]);
+            //     // Create the source directory
+            //     fs.mkdirSync(sourceDir, { recursive: true });
 
-                // Write the files
-                for (const [relPath, content] of files) {
-                    const filePath = path.join(sourceDir, relPath);
-                    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-                    fs.writeFileSync(filePath, content);
-                }
+            //     // Define files
+            //     const files = new Map([['file.txt', 'Hello, world!']]);
 
-                // Load the source
-                await expect(Source.init(sourceDir)).rejects.toThrow(SourceInitError);
-            });
+            //     // Write the files
+            //     for (const [relPath, content] of files) {
+            //         const filePath = path.join(sourceDir, relPath);
+            //         fs.mkdirSync(path.dirname(filePath), { recursive: true });
+            //         fs.writeFileSync(filePath, content);
+            //     }
+
+            //     // Load the source
+            //     await expect(Source.init(sourceDir)).rejects.toThrow(SourceInitError);
+            // });
         });
     });
     describe('Source.getArchive()', () => {

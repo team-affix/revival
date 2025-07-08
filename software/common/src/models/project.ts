@@ -223,11 +223,8 @@ export class Project {
         // Create the dependencies file
         await writeDirectDepsFile(cwd, deps);
 
-        // Create the root source folder
-        fs.mkdirSync(rootSourcePath, { recursive: true });
-
-        // Initialize the root source
-        await Source.init(rootSourcePath, archive);
+        // Create the root source directory
+        await Source.create(rootSourcePath, archive);
 
         // Create the .agda-lib file
         fs.writeFileSync(agdaLibPath, `name: ${projectName}\ninclude: . deps`);
