@@ -11,6 +11,7 @@ import { __test__ as PackageTest, Package } from '../../src/models/package';
 import FailedToDeserializeDepsError from '../../src/errors/failed-to-deserialize-deps';
 import PackageLoadError from '../../src/errors/package-load';
 import { Readable } from 'stream';
+import PackageCreateError from '../../src/errors/package-create';
 
 describe('models/package', () => {
     // HELPER FUNCTIONS
@@ -990,7 +991,33 @@ describe('models/package', () => {
             });
         });
 
-        describe('failure cases', () => {});
+        describe('failure cases', () => {
+            it('should throw a PackageCreateError if the file already exists', async () => {
+                // Create the file
+                fs.writeFileSync(packageFilePath, 'test');
+
+                // Create the files
+                const agdaFiles = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
+                const mdFiles = new Map([['file.md', '# MyNat']]);
+
+                // Write the files to the temporary directory
+                writeFilesInside(agdaFiles);
+                writeFilesInside(mdFiles);
+
+                // Get the filenames
+                const agdaFilenames = Array.from(agdaFiles.keys());
+                const mdFilenames = Array.from(mdFiles.keys());
+
+                // Create an archive
+                const includedFiles = [...agdaFilenames, ...mdFilenames];
+                const archive = await tarFs.pack(packDir, { entries: includedFiles });
+
+                // Expect a rejection
+                await expect(Package.create(packageFilePath, 'name', new Map(), archive)).rejects.toThrow(
+                    PackageCreateError,
+                );
+            });
+        });
     });
 
     // describe('Package.fromDraft()', () => {

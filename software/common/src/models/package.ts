@@ -1,10 +1,11 @@
 import debug from 'debug';
 import fs from 'fs';
 import crypto from 'crypto';
-import PackageLoadError from '../errors/package-load';
-import FailedToDeserializeDepsError from '../errors/failed-to-deserialize-deps';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
+import FailedToDeserializeDepsError from '../errors/failed-to-deserialize-deps';
+import PackageLoadError from '../errors/package-load';
+import PackageCreateError from '../errors/package-create';
 
 // Serialize the dependencies to be written to the binary
 function serializeDirectDeps(deps: Map<string, string>): string {
@@ -181,6 +182,9 @@ export class Package {
 
         // Indicate that we are creating a package
         dbg(`Creating package at ${filePath}`);
+
+        // If the file already exists, throw an error
+        if (fs.existsSync(filePath)) throw new PackageCreateError(filePath, 'File already exists');
 
         // Open the file
         const file = await fs.promises.open(filePath, 'w');

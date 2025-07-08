@@ -120,9 +120,71 @@ program
             // Install the dependencies
             await project.install();
         } catch (error: unknown) {
-            console.error(error);
+            if (error instanceof Error) {
+                console.error(error.message);
+            } else {
+                console.error(error);
+            }
         }
     });
+
+program
+    .command('pack')
+    .description('Packs the current project into an apm file')
+    .argument('<destination>', 'The destination path for the package')
+    .action(async (destination: string) => {
+        // Create debug logger
+        const dbg = debug('apm:project:pack');
+
+        try {
+            // Get the current working directory
+            const cwd = process.cwd();
+            // Get the project
+            const project = await common.Project.load(cwd);
+            // Pack the project
+            const archive = await project.getRootSource().getArchive();
+            // Construct package with archive
+            const pkg = await common.Package.create(destination, project.getName(), project.getDirectDeps(), archive);
+            // Write the package to the current working directory
+            console.log(`Package created: ${pkg.version}`);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                console.error(error.message);
+            } else {
+                console.error(error);
+            }
+        }
+    });
+
+// program
+//     .command('unpack')
+//     .description('Unpacks an apm file into a project in the current directory')
+//     .argument('<source>', 'The source path for the apm file')
+//     .action(async (source: string) => {
+//         // Create debug logger
+//         const dbg = debug('apm:project:unpack');
+
+//         try {
+//             // Get the current working directory
+//             const cwd = process.cwd();
+//             // Load the package
+//             const pkg = await common.Package.load(source);
+//             // Check the current directory basename matches the package name
+//             if (path.basename(cwd) !== pkg.name) {
+//                 throw new Error(
+//                     `Current directory basename ${path.basename(cwd)} does not match package name ${pkg.name}`,
+//                 );
+//             }
+//             // Unpack the package
+//             await pkg.unpack(cwd);
+//         } catch (error: unknown) {
+//             if (error instanceof Error) {
+//                 console.error(error.message);
+//             } else {
+//                 console.error(error);
+//             }
+//         }
+//     });
 
 // Parse command line arguments
 program.parse();
