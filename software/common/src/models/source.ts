@@ -5,7 +5,7 @@ import { pipeline } from 'stream/promises';
 import fs from 'fs';
 import debug from 'debug';
 import SourceLoadError from '../errors/source-load';
-import SourceCreateError from '../errors/source-create';
+import SourceInitError from '../errors/source-init';
 
 // A source type, which is just a directory of source files
 export class Source {
@@ -35,20 +35,26 @@ export class Source {
         return new Source(cwd, agdaFiles, mdFiles, miscFiles);
     }
 
-    // Create a source from an archive
-    static async create(cwd: string, archive: Readable): Promise<Source> {
+    // Initializes a source in the given directory (expects the directory to exist)
+    static async init(cwd: string, archive?: Readable): Promise<Source> {
         // Get the debugger
         const dbg = debug('apm:common:models:Source:create');
 
-        // Indicate that we are creating a source
-        dbg(`Creating source at ${cwd}`);
+        // Indicate that we are initializing a source
+        dbg(`Initializing source at ${cwd}`);
 
-        // If the cwd does not exist OR is not a directory, throw an error
+        // Expect the cwd to exist already and to be a directory
         if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory())
-            throw new SourceCreateError(cwd, 'Path is not a valid directory');
+            throw new SourceInitError(cwd, 'Path is not a valid directory');
 
-        // Extract the archive
-        await pipeline(archive, tarFs.extract(cwd));
+        // Get ALL entries in cwd
+        const allEntries = await glob('**/*', { cwd, nodir: false });
+
+        // If there are any entries, throw an error
+        if (allEntries.length > 0) throw new SourceInitError(cwd, 'Directory not empty');
+
+        // If an archive is provided, extract it into cwd
+        if (archive) await pipeline(archive, tarFs.extract(cwd));
 
         // Return the source
         return Source.load(cwd);

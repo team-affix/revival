@@ -2,11 +2,13 @@ import fs from 'fs';
 import path from 'path';
 import debug from 'debug';
 import ProjectLoadError from '../errors/project-load';
-import ProjectCreationError from '../errors/project-creation';
+import ProjectInitError from '../errors/project-init';
 import ReadDepsFileError from '../errors/read-deps-file';
 import WriteDepsFileError from '../errors/write-deps-file';
 import FailedToParseDepsError from '../errors/failed-to-parse-deps';
 import { Source } from './source';
+import { Readable } from 'stream';
+import { Package } from './package';
 
 // The name of the deps file
 const DEPS_FILE_NAME = 'deps.txt';
@@ -60,22 +62,22 @@ function readDirectDepsFile(cwd: string): Map<string, string> {
     // Get the debugger
     const dbg = debug('apm:common:models:Project:readDirectDepsFile');
 
-    // Indicate that we are reading the deps.txt file
-    dbg(`Reading deps.txt file in ${cwd}`);
+    // Indicate that we are reading the dependencies file
+    dbg(`Reading dependencies file in ${cwd}`);
 
-    // Get the path to the deps.txt file
+    // Get the path to the dependencies file
     const depsPath = path.join(cwd, DEPS_FILE_NAME);
 
-    // Indicate the path to the deps.txt file
+    // Indicate the path to the dependencies file
     dbg(`DepsPath: ${depsPath}`);
 
     if (!fs.existsSync(depsPath) || !fs.statSync(depsPath).isFile())
-        throw new ReadDepsFileError(cwd, `deps.txt invalid or missing in ${cwd}`);
+        throw new ReadDepsFileError(cwd, `dependencies file invalid or missing in ${cwd}`);
 
-    // Get the deps.txt file
+    // Get the dependencies file
     const depsRaw = fs.readFileSync(depsPath, 'utf8');
 
-    // Indicate that we have read the deps.txt file
+    // Indicate that we have read the dependencies file
     dbg(`DepsRaw: ${depsRaw}`);
 
     // Parse the dependencies
@@ -94,11 +96,11 @@ async function writeDirectDepsFile(cwd: string, deps: Map<string, string>): Prom
         // Get the debugger
         const dbg = debug('apm:common:models:Project:writeDirectDepsFile');
 
-        // Get the deps.txt file
+        // Get the dependencies file
         const depsPath = path.join(cwd, DEPS_FILE_NAME);
 
-        // Indicate that we are writing the deps.txt file
-        dbg(`Writing deps.txt file to ${depsPath}`);
+        // Indicate that we are writing the dependencies file
+        dbg(`Writing dependencies file to ${depsPath}`);
 
         // If the directory does not exist, throw an error
         if (!fs.existsSync(cwd)) throw new WriteDepsFileError(cwd, 'Directory does not exist');
@@ -116,8 +118,8 @@ async function writeDirectDepsFile(cwd: string, deps: Map<string, string>): Prom
 
         // Handle the finish event
         writeStream.on('finish', () => {
-            // Indicate that we have written the deps.txt file
-            dbg(`Deps.txt successfully written to: ${depsPath}`);
+            // Indicate that we have written the dependencies file
+            dbg(`dependencies successfully written to: ${depsPath}`);
 
             // Resolve the promise
             resolve();
@@ -136,11 +138,11 @@ async function writeDirectDepsFile(cwd: string, deps: Map<string, string>): Prom
 export class Project {
     // Constructs a project model given the project path
     private constructor(
-        private cwd: string,
-        private name: string,
-        private directDeps: Map<string, string>,
-        private rootSource: Source,
-        private dependencySources: Source[],
+        public readonly cwd: string,
+        public readonly name: string,
+        public readonly directDeps: Map<string, string>,
+        public readonly rootSource: Source,
+        public readonly dependencySources: Source[],
     ) {}
 
     // Load a project given the project path
@@ -178,29 +180,58 @@ export class Project {
         return new Project(cwd, projectName, directDeps, rootSource, dependencySources);
     }
 
-    // Create a project
-    static async create(cwd: string): Promise<Project> {
+    // Initializes a project in the given directory (expects the directory to exist)
+    static async init(cwd: string, pkg?: Package): Promise<Project> {
         // Get the debugger
         const dbg = debug('apm:common:models:project:create');
+
         // Get the project name
         const projectName = path.basename(cwd);
+
         // Indicate the project name
         dbg(`Project name: ${projectName}`);
-        // Check if the project path exists and is a directory
+
+        // If the path does not exist or is not a directory, throw an error
         if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory())
-            throw new ProjectCreationError(projectName, cwd, 'Path does not exist or is not a directory');
-        // Create the deps.txt file
+            throw new ProjectInitError(projectName, cwd, 'Path does not exist or is not a directory');
+
+        // Check that the project name matches the package name
+        if (pkg && pkg.name !== projectName)
+            throw new ProjectInitError(projectName, cwd, 'Project name does not match package name');
+
+        // Get paths to the project files
         const depsPath = path.join(cwd, DEPS_FILE_NAME);
-        if (!fs.existsSync(depsPath)) await writeDirectDepsFile(cwd, new Map());
-        // Get the root source path
         const rootSourcePath = path.join(cwd, projectName);
-        // Indicate the root source path
-        dbg(`Root source path: ${rootSourcePath}`);
-        // Create the root source directory if it does not already exist
-        if (!fs.existsSync(rootSourcePath)) fs.mkdirSync(rootSourcePath, { recursive: true });
-        // Create the .agda-lib file if it does not already exist
         const agdaLibPath = path.join(cwd, AGDA_LIB_FILE_NAME);
-        if (!fs.existsSync(agdaLibPath)) fs.writeFileSync(agdaLibPath, `name: ${projectName}\ninclude: . deps`);
+
+        // Ensure the dependencies file does not already exist
+        if (fs.existsSync(depsPath))
+            throw new ProjectInitError(projectName, cwd, 'Project dir not clean: Dependencies file already exists');
+
+        // Ensure root source if it does not already exist
+        if (fs.existsSync(rootSourcePath))
+            throw new ProjectInitError(projectName, cwd, 'Project dir not clean: Root source path already exists');
+
+        // Ensure the .agda-lib file does not already exist
+        if (fs.existsSync(agdaLibPath))
+            throw new ProjectInitError(projectName, cwd, 'Project dir not clean: .agda-lib file already exists');
+
+        // Get initialization values for the project (optionally, from a package)
+        const deps = pkg?.directDeps || new Map();
+        const archive = pkg?.getArchive();
+
+        // Create the dependencies file
+        await writeDirectDepsFile(cwd, deps);
+
+        // Create the root source folder
+        fs.mkdirSync(rootSourcePath, { recursive: true });
+
+        // Initialize the root source
+        await Source.init(rootSourcePath, archive);
+
+        // Create the .agda-lib file
+        fs.writeFileSync(agdaLibPath, `name: ${projectName}\ninclude: . deps`);
+
         // Return the project model
         return await Project.load(cwd);
     }
@@ -210,39 +241,14 @@ export class Project {
         // Get the debugger
         const dbg = debug('apm:common:models:project:install');
         // Indicate that we are installing the project
-        dbg(`Installing project at ${this.getCwd()}`);
+        dbg(`Installing project at ${this.cwd}`);
         // Create deps folder if it does not already exist
-        const depsFolderPath = path.join(this.getCwd(), DEPS_FOLDER_NAME);
+        const depsFolderPath = path.join(this.cwd, DEPS_FOLDER_NAME);
         if (!fs.existsSync(depsFolderPath)) fs.mkdirSync(depsFolderPath, { recursive: true });
         // // Install the direct dependencies
         // for (const [name, version] of this.directDeps.entries()) {
         //     const depPath = path.join(depsFolderPath, name);
         // }
-    }
-
-    // Getter for the project path
-    getCwd(): string {
-        return this.cwd;
-    }
-
-    // Getter for the project name
-    getName(): string {
-        return this.name;
-    }
-
-    // Getter for the direct dependencies
-    getDirectDeps(): Map<string, string> {
-        return this.directDeps;
-    }
-
-    // Getter for the root source
-    getRootSource(): Source {
-        return this.rootSource;
-    }
-
-    // Getter for the dependency sources
-    getDependencySources(): Source[] {
-        return this.dependencySources;
     }
 }
 

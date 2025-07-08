@@ -8,7 +8,7 @@ import ReadDepsFileError from '../../src/errors/read-deps-file';
 import WriteDepsFileError from '../../src/errors/write-deps-file';
 import ProjectLoadError from '../../src/errors/project-load';
 import SourceLoadError from '../../src/errors/source-load';
-import ProjectCreationError from '../../src/errors/project-creation';
+import ProjectInitError from '../../src/errors/project-init';
 
 describe('models/Project', () => {
     describe('parseDirectDeps()', () => {
@@ -326,11 +326,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual([]);
-                expect(project.getRootSource().mdFiles).toEqual([]);
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual([]);
+                expect(project.rootSource.mdFiles).toEqual([]);
             });
 
             it('empty deps.txt file and one dirt file (.txt)', async () => {
@@ -345,11 +345,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual([]);
-                expect(project.getRootSource().mdFiles).toEqual([]);
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual([]);
+                expect(project.rootSource.mdFiles).toEqual([]);
             });
 
             it('empty deps.txt file and one agda file', async () => {
@@ -364,11 +364,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual(['file.agda']);
-                expect(project.getRootSource().mdFiles).toEqual([]);
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual(['file.agda']);
+                expect(project.rootSource.mdFiles).toEqual([]);
             });
 
             it('empty deps.txt file and one md file', async () => {
@@ -383,11 +383,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual([]);
-                expect(project.getRootSource().mdFiles).toEqual(['file.md']);
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual([]);
+                expect(project.rootSource.mdFiles).toEqual(['file.md']);
             });
 
             it('empty deps.txt file and one agda file and one md file', async () => {
@@ -407,11 +407,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual(['file.agda']);
-                expect(project.getRootSource().mdFiles).toEqual(['file.md']);
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual(['file.agda']);
+                expect(project.rootSource.mdFiles).toEqual(['file.md']);
             });
 
             it('empty deps.txt file and one agda file in nested directory', async () => {
@@ -426,11 +426,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual(['subdir/file.agda']);
-                expect(project.getRootSource().mdFiles).toEqual([]);
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual(['subdir/file.agda']);
+                expect(project.rootSource.mdFiles).toEqual([]);
             });
 
             it('empty deps.txt file and one md file in nested directory', async () => {
@@ -445,11 +445,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual([]);
-                expect(project.getRootSource().mdFiles).toEqual(['subdir/file.md']);
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual([]);
+                expect(project.rootSource.mdFiles).toEqual(['subdir/file.md']);
             });
 
             it('empty deps.txt file and one agda file and one md file in nested directory', async () => {
@@ -469,11 +469,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual(['subdir/file1.agda']);
-                expect(project.getRootSource().mdFiles).toEqual(['subdir/file2.md']);
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual(['subdir/file1.agda']);
+                expect(project.rootSource.mdFiles).toEqual(['subdir/file2.md']);
             });
 
             it('empty deps.txt file and one agda file in doubly-nested directory', async () => {
@@ -488,11 +488,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual(['subdir/subdir2/file.agda']);
-                expect(project.getRootSource().mdFiles).toEqual([]);
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual(['subdir/subdir2/file.agda']);
+                expect(project.rootSource.mdFiles).toEqual([]);
             });
 
             it('empty deps.txt file and multiple agda files', async () => {
@@ -513,13 +513,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles.sort()).toEqual(
-                    ['file1.agda', 'file2.agda', 'file3.agda'].sort(),
-                );
-                expect(project.getRootSource().mdFiles.sort()).toEqual([]);
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles.sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
+                expect(project.rootSource.mdFiles.sort()).toEqual([]);
             });
 
             it('empty deps.txt file and multiple md files', async () => {
@@ -540,11 +538,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles.sort()).toEqual([]);
-                expect(project.getRootSource().mdFiles.sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles.sort()).toEqual([]);
+                expect(project.rootSource.mdFiles.sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
             });
 
             it('empty deps.txt file and multiple agda files and multiple md files', async () => {
@@ -568,13 +566,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles.sort()).toEqual(
-                    ['file1.agda', 'file2.agda', 'file3.agda'].sort(),
-                );
-                expect(project.getRootSource().mdFiles.sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles.sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
+                expect(project.rootSource.mdFiles.sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
             });
 
             it('empty deps.txt file and multiple agda files and multiple md files in nested directories', async () => {
@@ -598,13 +594,13 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map());
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles.sort()).toEqual(
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map());
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles.sort()).toEqual(
                     ['subdir1/file1.agda', 'subdir2/file2.agda', 'subdir2/subdir3/file3.agda'].sort(),
                 );
-                expect(project.getRootSource().mdFiles.sort()).toEqual(
+                expect(project.rootSource.mdFiles.sort()).toEqual(
                     ['subdir1/README.md', 'subdir2/README.md', 'subdir2/subdir3/README.md'].sort(),
                 );
             });
@@ -621,11 +617,11 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(new Map([['name', '1.0.0']]));
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual([]);
-                expect(project.getRootSource().mdFiles).toEqual([]);
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(new Map([['name', '1.0.0']]));
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual([]);
+                expect(project.rootSource.mdFiles).toEqual([]);
             });
 
             it('two package deps.txt file and no source files', async () => {
@@ -646,16 +642,16 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
                     ]),
                 );
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual([]);
-                expect(project.getRootSource().mdFiles).toEqual([]);
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual([]);
+                expect(project.rootSource.mdFiles).toEqual([]);
             });
 
             it('two package deps.txt file and one agda file', async () => {
@@ -676,16 +672,16 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
                     ]),
                 );
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual(['file.agda']);
-                expect(project.getRootSource().mdFiles).toEqual([]);
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual(['file.agda']);
+                expect(project.rootSource.mdFiles).toEqual([]);
             });
 
             it('two package deps.txt file and one md file', async () => {
@@ -706,16 +702,16 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
                     ]),
                 );
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual([]);
-                expect(project.getRootSource().mdFiles).toEqual(['file.md']);
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual([]);
+                expect(project.rootSource.mdFiles).toEqual(['file.md']);
             });
 
             it('two package deps.txt file and one agda file and one md file', async () => {
@@ -741,16 +737,16 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
                     ]),
                 );
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles).toEqual(['file.agda']);
-                expect(project.getRootSource().mdFiles).toEqual(['file.md']);
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles).toEqual(['file.agda']);
+                expect(project.rootSource.mdFiles).toEqual(['file.md']);
             });
 
             it('many package deps.txt file and multiple agda files', async () => {
@@ -782,8 +778,8 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
@@ -792,11 +788,11 @@ describe('models/Project', () => {
                         ['name4', '1.0.4'],
                     ]),
                 );
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles.sort()).toEqual(
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles.sort()).toEqual(
                     ['file1.agda', 'file2.agda', 'file3.agda', 'file4.agda', 'file5.agda'].sort(),
                 );
-                expect(project.getRootSource().mdFiles.sort()).toEqual([]);
+                expect(project.rootSource.mdFiles.sort()).toEqual([]);
             });
 
             it('many package deps.txt file and multiple agda files in random nested directories', async () => {
@@ -828,8 +824,8 @@ describe('models/Project', () => {
 
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
-                expect(project.getName()).toBe('APMTmpProject');
-                expect(project.getDirectDeps()).toEqual(
+                expect(project.name).toBe('APMTmpProject');
+                expect(project.directDeps).toEqual(
                     new Map([
                         ['name0', '1.0.0'],
                         ['name1', '1.0.1'],
@@ -838,8 +834,8 @@ describe('models/Project', () => {
                         ['name4', '1.0.4'],
                     ]),
                 );
-                expect(project.getCwd()).toBe(tmpDir);
-                expect(project.getRootSource().agdaFiles.sort()).toEqual(
+                expect(project.cwd).toBe(tmpDir);
+                expect(project.rootSource.agdaFiles.sort()).toEqual(
                     [
                         'subdir1/file1.agda',
                         'subdir1/subdir2/subdir3/subdir4/file2.agda',
@@ -848,7 +844,7 @@ describe('models/Project', () => {
                         'subdir3/file5.agda',
                     ].sort(),
                 );
-                expect(project.getRootSource().mdFiles.sort()).toEqual([]);
+                expect(project.rootSource.mdFiles.sort()).toEqual([]);
             });
         });
 
@@ -964,13 +960,13 @@ describe('models/Project', () => {
                 // Create the project folder
                 fs.mkdirSync(projectPath, { recursive: true });
                 // Create the project
-                const project = await Project.create(projectPath);
+                const project = await Project.init(projectPath);
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 // Expect the project name to be APMTmpProject
-                expect(project.getName()).toBe(projectName);
+                expect(project.name).toBe(projectName);
                 // Expect the project path to be the temporary directory
-                expect(project.getCwd()).toBe(projectPath);
+                expect(project.cwd).toBe(projectPath);
                 // Expect the project to have a root source
                 const rootSourcePath = path.join(projectPath, projectName);
                 expect(fs.existsSync(rootSourcePath)).toBe(true);
@@ -984,20 +980,20 @@ describe('models/Project', () => {
         });
 
         describe('failure cases', () => {
-            it('should throw a ProjectCreationError if the path does not exist', async () => {
+            it('should throw a ProjectInitError if the path does not exist', async () => {
                 // Make the path
                 const srcPath = path.join(tmpDir, 'does-not-exist');
                 // Expect a rejection
-                await expect(Project.create(srcPath)).rejects.toThrow(ProjectCreationError);
+                await expect(Project.init(srcPath)).rejects.toThrow(ProjectInitError);
             });
 
-            it('should throw a ProjectCreationError if the path is not a directory', async () => {
+            it('should throw a ProjectInitError if the path is not a directory', async () => {
                 // Make the path
                 const srcPath = path.join(tmpDir, 'not-a-directory');
                 // Create the file
                 fs.writeFileSync(srcPath, 'not-a-directory');
                 // Expect a rejection
-                await expect(Project.create(srcPath)).rejects.toThrow(ProjectCreationError);
+                await expect(Project.init(srcPath)).rejects.toThrow(ProjectInitError);
             });
         });
     });
