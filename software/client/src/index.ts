@@ -186,6 +186,32 @@ program
 //         }
 //     });
 
+program
+    .command('info')
+    .description('Prints the details of the supplied package')
+    .argument('<source>', 'The source path for the apm file')
+    .action(async (source: string) => {
+        // Create debug logger
+        const dbg = debug('apm:project:stat');
+
+        try {
+            // Load the package
+            const pkg = await common.Package.load(source);
+            // Print the details
+            console.log(`Package file: ${pkg.filePath}`);
+            console.log(`Package name: ${pkg.name}`);
+            console.log(`Package version: ${pkg.version}`);
+            console.log(`Package dependencies: ${JSON.stringify(Object.fromEntries(pkg.directDeps))}`);
+            console.log(`Package archive offset: ${pkg.archiveOffset}`);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                console.error(error.message);
+            } else {
+                console.error(error);
+            }
+        }
+    });
+
 // Parse command line arguments
 program.parse();
 
