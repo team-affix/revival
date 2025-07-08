@@ -3,6 +3,8 @@ import fs from 'fs';
 import crypto from 'crypto';
 import PackageLoadError from '../errors/package-load';
 import FailedToDeserializeDepsError from '../errors/failed-to-deserialize-deps';
+import { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
 
 // Serialize the dependencies to be written to the binary
 function serializeDirectDeps(deps: Map<string, string>): string {
@@ -48,53 +50,24 @@ function deserializeDirectDeps(deps: string): Map<string, string> {
     return result;
 }
 
-// Compute the binary
-function computeBinary(name: string, deps: Map<string, string>, payload: Buffer): Buffer {
-    // Get the debugger
-    const dbg = debug('apm:common:models:Package:computeBinary');
-
-    // Indicate that we are computing the binary
-    dbg(`Computing binary: ${name}, ${deps}, ${payload.length}`);
-
-    // Serialize the dependencies
-    const depsSerialized = serializeDirectDeps(deps);
-
-    // Create the output buffer
-    const chunks: Buffer[] = [];
-
-    // Write the name length
-    const nameLengthBuf = Buffer.alloc(4);
-    nameLengthBuf.writeUInt32LE(name.length, 0);
-    chunks.push(nameLengthBuf);
-
-    // Write the name
-    chunks.push(Buffer.from(name));
-
-    // Write the dependencies length
-    const depsLengthBuf = Buffer.alloc(4);
-    depsLengthBuf.writeUInt32LE(depsSerialized.length, 0);
-    chunks.push(depsLengthBuf);
-
-    // Write the dependencies
-    chunks.push(Buffer.from(depsSerialized));
-
-    // Write the payload
-    chunks.push(payload);
-
-    // Return the binary
-    return Buffer.concat(chunks);
-}
-
 // Compute the version of the package
-function computeVersion(binary: Buffer): string {
+async function computeVersion(stream: Readable): Promise<string> {
     // Get the debugger
     const dbg = debug('apm:common:models:Package:computeVersion');
 
     // Indicate that we are computing the version
-    dbg(`Computing version of binary: ${binary.length}`);
+    dbg(`Computing version of stream`);
+
+    // Create the hash
+    const hash = crypto.createHash('sha256');
+
+    // Read the stream
+    for await (const chunk of stream) {
+        hash.update(chunk);
+    }
 
     // Compute the version
-    const result = crypto.createHash('sha256').update(binary).digest('hex');
+    const result = hash.digest('hex');
 
     // Indicate that we have computed the version
     dbg(`Computed version: ${result}`);
@@ -103,14 +76,15 @@ function computeVersion(binary: Buffer): string {
     return result;
 }
 
+// A package model
 export class Package {
     // Constructs a package model
     private constructor(
-        private name: string,
-        private directDeps: Map<string, string>,
-        private binary: Buffer,
-        private payload: Buffer,
-        private version: string,
+        public readonly filePath: string,
+        public readonly name: string,
+        public readonly directDeps: Map<string, string>,
+        public readonly archiveOffset: number,
+        public readonly version: string,
     ) {}
 
     // Load from package file
@@ -128,93 +102,131 @@ export class Package {
         // Indicate that we are reading the package
         dbg(`Reading package`);
 
-        // Read the package
-        const binary = fs.readFileSync(filePath);
+        // Open the package file using promise version
+        const file = await fs.promises.open(filePath, 'r');
+        // Get the stat of the file
+        const stat = await file.stat();
 
-        // Indicate that we have read the package
-        dbg(`Read package, length: ${binary.length}`);
-
-        // Get the version of the package
-        const version = computeVersion(binary);
-
-        // Set the offset
+        // Initialize the reading offset
         let offset = 0;
 
-        // Get the name length from the header
-        if (binary.length < 4) throw new PackageLoadError(filePath, 'Package is too short to contain a name length');
-        const nameLength = binary.readUInt32LE(offset);
+        // Read the name length
+        if (stat.size < offset + 4)
+            throw new PackageLoadError(filePath, 'Package is too short to contain a name length');
+        const nameLengthBuf = Buffer.alloc(4);
+        await file.read(nameLengthBuf, 0, 4, offset);
         offset += 4;
+        const nameLength = nameLengthBuf.readUInt32LE(0);
 
-        // Get the name from the header
-        if (binary.length < offset + nameLength)
+        dbg(`Name length: ${nameLength}`);
+
+        // Read the name
+        if (stat.size < offset + nameLength)
             throw new PackageLoadError(filePath, 'Package is too short to contain a name');
-        const name = binary.subarray(offset, offset + nameLength).toString('utf8');
+        const nameBuf = Buffer.alloc(nameLength);
+        await file.read(nameBuf, 0, nameLength, offset);
         offset += nameLength;
+        const name = nameBuf.toString('utf8');
 
-        // Get the dependencies length from the header
-        if (binary.length < offset + 4)
+        dbg(`Name: ${name}`);
+
+        // Read the dependencies length
+        if (stat.size < offset + 4)
             throw new PackageLoadError(filePath, 'Package is too short to contain a dependencies length');
-        const depsLength = binary.readUInt32LE(offset);
+        const depsLengthBuf = Buffer.alloc(4);
+        await file.read(depsLengthBuf, 0, 4, offset);
         offset += 4;
+        const depsLength = depsLengthBuf.readUInt32LE(0);
 
-        // Get the dependencies from the header
-        if (binary.length < offset + depsLength)
+        dbg(`Deps length: ${depsLength}`);
+
+        // Read the dependencies
+        if (stat.size < offset + depsLength)
             throw new PackageLoadError(filePath, 'Package is too short to contain dependencies');
-        const depsRaw = binary.subarray(offset, offset + depsLength).toString('utf8');
+        const depsBuf = Buffer.alloc(depsLength);
+        await file.read(depsBuf, 0, depsLength, offset);
         offset += depsLength;
+        const depsRaw = depsBuf.toString('utf8');
 
-        // Get the payload buffer
-        const payload = binary.subarray(offset, binary.length);
-        offset += payload.length;
+        dbg(`Deps: ${depsRaw}`);
+
+        // Close the file
+        await file.close();
+
+        // Indicate that we have read the package
+        dbg(`Archive offset: ${offset}`);
+
+        // Open a file stream
+        const fileStream = fs.createReadStream(filePath);
+
+        // // Get the version of the package
+        const version = await computeVersion(fileStream);
 
         // Parse the dependencies
         const directDeps = deserializeDirectDeps(depsRaw);
 
         // Return the package
-        return new Package(name, directDeps, binary, payload, version);
+        return new Package(filePath, name, directDeps, offset, version);
     }
 
     // Create a package from a name, direct dependencies, and a payload
-    static async create(name: string, deps: Map<string, string>, payload: Buffer): Promise<Package> {
-        // Compute the binary
-        const binary = computeBinary(name, deps, payload);
+    static async create(
+        filePath: string,
+        name: string,
+        deps: Map<string, string>,
+        archive: Readable,
+    ): Promise<Package> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:Package:create');
 
-        // Compute the version
-        const version = computeVersion(binary);
+        // Indicate that we are creating a package
+        dbg(`Creating package at ${filePath}`);
+
+        // Open the file
+        const file = await fs.promises.open(filePath, 'w');
+        let offset = 0;
+
+        // Write the name length
+        const nameLengthBuf = Buffer.alloc(4);
+        nameLengthBuf.writeUInt32LE(name.length, 0);
+        await file.write(nameLengthBuf, 0, 4);
+        offset += 4;
+
+        // Write the name
+        await file.write(Buffer.from(name), 0, name.length);
+        offset += name.length;
+
+        // Serialize the dependencies
+        const depsSerialized = serializeDirectDeps(deps);
+
+        // Write the dependencies length
+        const depsLengthBuf = Buffer.alloc(4);
+        depsLengthBuf.writeUInt32LE(depsSerialized.length, 0);
+        await file.write(depsLengthBuf, 0, 4);
+        offset += 4;
+
+        // Write the dependencies
+        await file.write(Buffer.from(depsSerialized), 0, depsSerialized.length);
+        offset += depsSerialized.length;
+
+        // Open a writable stream after the previous fields
+        const writable = file.createWriteStream({ start: offset });
+
+        // Write the archive
+        await pipeline(archive, writable);
 
         // Return the package
-        return new Package(name, deps, binary, payload, version);
+        return Package.load(filePath);
     }
 
-    // Get the name of the package
-    getName(): string {
-        return this.name;
-    }
-
-    // Get the direct dependencies of the package
-    getDirectDeps(): Map<string, string> {
-        return this.directDeps;
-    }
-
-    // Get the binary of the package
-    getBinary(): Buffer {
-        return this.binary;
-    }
-
-    // Get the payload of the package
-    getPayload(): Buffer {
-        return this.payload;
-    }
-
-    // Get the version of the package
-    getVersion(): string {
-        return this.version;
+    // Get the archive offset of the package
+    getArchive(): Readable {
+        return fs.createReadStream(this.filePath, { start: this.archiveOffset });
     }
 }
 
 export const __test__ = {
     serializeDirectDeps,
     deserializeDirectDeps,
-    computeBinary,
     computeVersion,
 };

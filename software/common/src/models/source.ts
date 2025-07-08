@@ -1,38 +1,19 @@
 import { glob } from 'glob';
 import * as tarFs from 'tar-fs';
-import { Readable, pipeline } from 'stream';
-import { promisify } from 'util';
+import { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
 import fs from 'fs';
+import debug from 'debug';
 import SourceLoadError from '../errors/source-load';
-
-// Utility function for async pipeline
-const pipelineAsync = promisify(pipeline);
-
-// Pack the files into a tar
-async function packTar(cwd: string, files: string[]): Promise<Buffer> {
-    // Use tar-fs to create the pack stream
-    const result = await tarFs.pack(cwd, { entries: files });
-
-    // Pipe the stream contents to a buffer
-    return new Promise<Buffer>((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        result.on('data', (chunk) => chunks.push(chunk));
-        result.on('end', () => resolve(Buffer.concat(chunks)));
-    });
-}
-
-// Extract a tar
-async function extractTar(cwd: string, tar: Buffer): Promise<void> {
-    return await pipelineAsync(Readable.from(tar), tarFs.extract(cwd));
-}
+import SourceCreateError from '../errors/source-create';
 
 // A source type, which is just a directory of source files
 export class Source {
     private constructor(
-        private cwd: string,
-        private agdaFiles: string[],
-        private mdFiles: string[],
-        private miscFiles: string[],
+        public readonly cwd: string,
+        public readonly agdaFiles: string[],
+        public readonly mdFiles: string[],
+        public readonly miscFiles: string[],
     ) {}
 
     // Create a source from a cwd
@@ -54,46 +35,35 @@ export class Source {
         return new Source(cwd, agdaFiles, mdFiles, miscFiles);
     }
 
-    // Create a source from a payload
-    static async extract(cwd: string, payload: Buffer): Promise<Source> {
-        // Extract the payload
-        await extractTar(cwd, payload);
+    // Create a source from an archive
+    static async create(cwd: string, archive: Readable): Promise<Source> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:Source:create');
+
+        // Indicate that we are creating a source
+        dbg(`Creating source at ${cwd}`);
+
+        // If the cwd exists, throw an error
+        if (fs.existsSync(cwd)) throw new SourceCreateError(cwd, 'Path already exists');
+
+        // Create the cwd
+        fs.mkdirSync(cwd, { recursive: true });
+
+        // Extract the archive
+        await pipeline(archive, tarFs.extract(cwd));
 
         // Return the source
         return Source.load(cwd);
     }
 
-    // Pack the source into a payload
-    static async pack(source: Source): Promise<Buffer> {
+    // Pack the source into an archive
+    getArchive(): Readable {
         // Concatenate the agda files and the md files
-        const files = [...source.getAgdaFiles(), ...source.getMdFiles()];
+        const files = [...this.agdaFiles, ...this.mdFiles];
 
         // Pack the files into a tar
-        return await packTar(source.getCwd(), files);
-    }
-
-    // Get the cwd of the source
-    getCwd(): string {
-        return this.cwd;
-    }
-
-    // Get the agda files of the source
-    getAgdaFiles(): string[] {
-        return this.agdaFiles;
-    }
-
-    // Get the md files of the source
-    getMdFiles(): string[] {
-        return this.mdFiles;
-    }
-
-    // Get the misc files of the source
-    getMiscFiles(): string[] {
-        return this.miscFiles;
+        return tarFs.pack(this.cwd, { entries: files });
     }
 }
 
-export const __test__ = {
-    packTar,
-    extractTar,
-};
+export const __test__ = {};

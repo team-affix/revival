@@ -164,7 +164,7 @@ export class Project {
         const rootSourcePath: string = path.join(cwd, projectName);
         const rootSource: Source = await Source.load(rootSourcePath);
         // Indicate the root source
-        dbg(`Root source: ${JSON.stringify(rootSource.getAgdaFiles().concat(rootSource.getMdFiles()))}`);
+        dbg(`Root source: ${JSON.stringify(rootSource.agdaFiles.concat(rootSource.mdFiles))}`);
         // Load the dependency sources (if deps folder exists)
         const depsFolder: string = path.join(cwd, DEPS_FOLDER_NAME);
         let dependencySources: Source[] = [];
@@ -173,7 +173,7 @@ export class Project {
             dependencySources = await Promise.all(depRelPaths.map((p) => Source.load(path.join(depsFolder, p))));
         }
         // Indicate the dependency sources
-        dbg(`Dependency sources: ${JSON.stringify(dependencySources.map((s) => s.getCwd()))}`);
+        dbg(`Dependency sources: ${JSON.stringify(dependencySources.map((s) => s.cwd))}`);
         // Return the project model
         return new Project(cwd, projectName, directDeps, rootSource, dependencySources);
     }
