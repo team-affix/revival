@@ -43,11 +43,9 @@ export class Source {
         // Indicate that we are creating a source
         dbg(`Creating source at ${cwd}`);
 
-        // If the cwd exists, throw an error
-        if (fs.existsSync(cwd)) throw new SourceCreateError(cwd, 'Path already exists');
-
-        // Create the cwd
-        fs.mkdirSync(cwd, { recursive: true });
+        // If the cwd does not exist OR is not a directory, throw an error
+        if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory())
+            throw new SourceCreateError(cwd, 'Path is not a valid directory');
 
         // Extract the archive
         await pipeline(archive, tarFs.extract(cwd));
