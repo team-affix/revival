@@ -137,6 +137,9 @@ async function writeDirectDepsFile(cwd: string, deps: Map<string, string>): Prom
 
 // Create the .agda-lib file
 function createAgdaLibFile(cwd: string, projectName: string): void {
+    // If the cwd does not exist, throw an error
+    if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory())
+        throw new ProjectInitError(projectName, cwd, 'Path does not exist or is not a directory');
     // Get the path to the .agda-lib file
     const filePath = path.join(cwd, AGDA_LIB_FILE_NAME);
     // Create the .agda-lib file

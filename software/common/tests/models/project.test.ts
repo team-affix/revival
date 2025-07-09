@@ -288,6 +288,88 @@ describe('models/Project', () => {
         // });
     });
 
+    describe('createAgdaLibFile()', () => {
+        const tmpDir = path.join(os.tmpdir(), 'apm-test-create-agda-lib-file');
+
+        beforeEach(() => {
+            // Remove the temporary directory if it exists
+            if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
+
+            // Create the temporary directory
+            fs.mkdirSync(tmpDir, { recursive: true });
+        });
+
+        describe('success cases', () => {
+            it('should create the .agda-lib file', () => {
+                ProjectTest.createAgdaLibFile(tmpDir, 'APMTmpProject');
+                const agdaLibPath = path.join(tmpDir, '.agda-lib');
+                const agdaLibContent = fs.readFileSync(agdaLibPath, 'utf8');
+                expect(fs.existsSync(agdaLibPath)).toBe(true);
+                expect(agdaLibContent).toBe('name: APMTmpProject\ninclude: . deps');
+            });
+        });
+
+        describe('failure cases', () => {
+            it('should throw a ProjectInitError if the path does not exist', () => {
+                const invalidPath = path.join(tmpDir, 'does-not-exist');
+                expect(() => ProjectTest.createAgdaLibFile(invalidPath, 'APMTmpProject')).toThrow(ProjectInitError);
+            });
+
+            it('should throw a ProjectInitError if the path is not a directory', () => {
+                const invalidPath = path.join(tmpDir, 'not-a-directory');
+                fs.writeFileSync(invalidPath, 'not-a-directory');
+                expect(() => ProjectTest.createAgdaLibFile(invalidPath, 'APMTmpProject')).toThrow(ProjectInitError);
+            });
+        });
+    });
+
+    describe('readProjectName()', () => {
+        const tmpDir = path.join(os.tmpdir(), 'apm-test-read-project-name');
+
+        beforeEach(() => {
+            // Remove the temporary directory if it exists
+            if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
+
+            // Create the temporary directory
+            fs.mkdirSync(tmpDir, { recursive: true });
+        });
+
+        describe('success cases', () => {
+            it('should read the project name from the .agda-lib file', () => {
+                const projectName = 'APMTmpProject';
+                const agdaLibPath = path.join(tmpDir, '.agda-lib');
+                fs.writeFileSync(agdaLibPath, `name: ${projectName}\ninclude: . deps`);
+                const recoveredProjectName = ProjectTest.readProjectName(tmpDir);
+                expect(recoveredProjectName).toBe(projectName);
+            });
+        });
+
+        describe('failure cases', () => {
+            it('should throw a ProjectLoadError if the .agda-lib file does not exist', () => {
+                const agdaLibPath = path.join(tmpDir, '.agda-lib');
+                expect(() => ProjectTest.readProjectName(tmpDir)).toThrow(ProjectLoadError);
+            });
+
+            it('should throw a ProjectLoadError if the .agda-lib file is not a file', () => {
+                const agdaLibPath = path.join(tmpDir, '.agda-lib');
+                fs.mkdirSync(agdaLibPath);
+                expect(() => ProjectTest.readProjectName(tmpDir)).toThrow(ProjectLoadError);
+            });
+
+            it('should throw a ProjectLoadError if the .agda-lib file is missing a name line', () => {
+                const agdaLibPath = path.join(tmpDir, '.agda-lib');
+                fs.writeFileSync(agdaLibPath, 'include: . deps');
+                expect(() => ProjectTest.readProjectName(tmpDir)).toThrow(ProjectLoadError);
+            });
+
+            it('should throw a ProjectLoadError if the .agda-lib file is missing the actual project name', () => {
+                const agdaLibPath = path.join(tmpDir, '.agda-lib');
+                fs.writeFileSync(agdaLibPath, 'name:\ninclude: . deps');
+                expect(() => ProjectTest.readProjectName(tmpDir)).toThrow(ProjectLoadError);
+            });
+        });
+    });
+
     // PUBLIC INTERFACE TESTS
     describe('Project.load()', () => {
         describe('success cases', () => {
