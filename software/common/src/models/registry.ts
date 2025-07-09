@@ -39,9 +39,9 @@ class Registry {
     }
 
     // Add a package to the registry
-    addPackage(name: string, version: string, binary: Buffer): void {
-        // Check if the package is valid
-    }
+    // addPackage(name: string, version: string, binary: Buffer): void {
+    //     // Check if the package is valid
+    // }
 
     // Get the path to a package
     private getPackagePath(name: string, version: string): string {

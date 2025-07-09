@@ -1,14 +1,18 @@
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import { expect, describe, it, beforeEach } from '@jest/globals';
+import { expect, describe, it, beforeEach, beforeAll } from '@jest/globals';
 import { __test__ as ProjectTest, Project } from '../../src/models/project';
+import { glob } from 'glob';
 import FailedToParseDepsError from '../../src/errors/failed-to-parse-deps';
 import ReadDepsFileError from '../../src/errors/read-deps-file';
 import WriteDepsFileError from '../../src/errors/write-deps-file';
 import ProjectLoadError from '../../src/errors/project-load';
 import SourceLoadError from '../../src/errors/source-load';
 import ProjectInitError from '../../src/errors/project-init';
+import { Package } from '../../src/models/package';
+import { Source } from '../../src/models/source';
+import { Readable } from 'stream';
 
 describe('models/Project', () => {
     describe('parseDirectDeps()', () => {
@@ -941,22 +945,105 @@ describe('models/Project', () => {
         });
     });
 
-    describe('Project.create()', () => {
-        const tmpDir = path.join(os.tmpdir(), 'create-project');
+    describe('Project.init()', () => {
+        const packDir = path.join(os.tmpdir(), 'apm-project-init-pack-dir');
+        const extractDir = path.join(os.tmpdir(), 'apm-project-init-extract-dir');
+        let pkg: Package; // a helper package that can be used for all tests
+        let pkgFiles: Map<string, string>; // the files in the helper package
+        const projectName = 'APMTmpProject';
 
         beforeEach(() => {
             // Remove the temporary directory if it exists
-            if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
-
+            if (fs.existsSync(packDir)) fs.rmSync(packDir, { recursive: true, force: true });
+            if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true });
             // Create the temporary directory
-            fs.mkdirSync(tmpDir, { recursive: true });
+            fs.mkdirSync(packDir, { recursive: true });
+            fs.mkdirSync(extractDir, { recursive: true });
         });
 
+        beforeAll(async () => {
+            // Construct the helper package that will be used for all tests
+            const directDeps = new Map([
+                ['name0', '1.0.0'],
+                ['name1', '1.0.1'],
+                ['name2', '1.0.2'],
+                ['name3', '1.0.3'],
+                ['name4', '1.0.4'],
+            ]);
+
+            // Make the helper package dir path
+            const helperDir = path.join(os.tmpdir(), 'project-init-helper');
+
+            // If the helper dir exists, remove it
+            if (fs.existsSync(helperDir)) fs.rmSync(helperDir, { recursive: true, force: true });
+
+            // Create the helper dir
+            fs.mkdirSync(helperDir, { recursive: true });
+
+            // Make the source dir path
+            const sourceDir = path.join(helperDir, 'source');
+
+            // Make the helper package path
+            const helperPackagePath = path.join(helperDir, `temp.apm`);
+
+            // Remove the source dir if it exists
+            if (fs.existsSync(sourceDir)) fs.rmSync(sourceDir, { recursive: true, force: true });
+
+            // Create the source dir
+            fs.mkdirSync(sourceDir, { recursive: true });
+
+            pkgFiles = new Map([
+                ['file1.agda', 'myNat : ℕ\nmyNat = 0'],
+                ['file2.agda', 'myNat : ℕ\nmyNat = 0'],
+                ['file3.md', '# My Document'],
+                ['subdir/file4.agda', 'myNat : ℕ\nmyNat = 0'],
+                ['subdir/file5.md', '# My Document'],
+            ]);
+
+            // Add files to source dir
+            writeFilesInside(sourceDir, pkgFiles);
+
+            // Construct source object
+            const source: Source = await Source.load(sourceDir);
+
+            // Create the archive
+            const archive: Readable = source.getArchive();
+
+            // Create the helper package
+            pkg = await Package.create(helperPackagePath, projectName, directDeps, archive);
+        });
+
+        const writeFileInside = (baseDir: string, relPath: string, content: string) => {
+            // Write the file inside the temporary directory
+            const filePath = path.join(baseDir, relPath);
+            fs.mkdirSync(path.dirname(filePath), { recursive: true });
+            fs.writeFileSync(filePath, content);
+        };
+
+        const writeFilesInside = (baseDir: string, entries: Map<string, string>) => {
+            for (const [relPath, content] of entries) writeFileInside(baseDir, relPath, content);
+        };
+
         describe('success cases', () => {
-            it('should create a project with name APMTmpProject', async () => {
-                const projectName = 'APMTmpProject';
+            const assertFileInside = (baseDir: string, relPath: string, content: string) => {
+                const filePath = path.join(baseDir, relPath);
+                expect(fs.existsSync(filePath)).toBe(true);
+                expect(fs.readFileSync(filePath, 'utf8')).toBe(content);
+            };
+
+            const assertFilesMatchExactly = (baseDir: string, entries: Map<string, string>) => {
+                for (const [relPath, content] of entries) assertFileInside(baseDir, relPath, content);
+                // Get the list of files in the extract directory using glob
+                const extractDirRelFiles = glob.sync('**/*', { cwd: baseDir, nodir: true }).sort();
+                // Get the list of files in the pack directory using glob
+                const expectedRelFiles = Array.from(entries.keys()).sort();
+                // Assert that the list of files in the extract directory matches the list of files in the pack directory
+                expect(extractDirRelFiles).toEqual(expectedRelFiles);
+            };
+
+            it('no archive supplied', async () => {
                 // Make the project path
-                const projectPath = path.join(tmpDir, projectName);
+                const projectPath = path.join(extractDir, projectName);
                 // Create the project folder
                 fs.mkdirSync(projectPath, { recursive: true });
                 // Create the project
@@ -977,23 +1064,100 @@ describe('models/Project', () => {
                 const agdaLibPath = path.join(projectPath, '.agda-lib');
                 expect(fs.existsSync(agdaLibPath)).toBe(true);
             });
+
+            it('archive supplied', async () => {
+                // Make the project path
+                const projectPath = path.join(extractDir, projectName);
+                // Create the project folder
+                fs.mkdirSync(projectPath, { recursive: true });
+                // Create the project
+                const project = await Project.init(projectPath, pkg);
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                // Expect the project name to be APMTmpProject
+                expect(project.name).toBe(projectName);
+                // Expect the project path to be the temporary directory
+                expect(project.cwd).toBe(projectPath);
+                // Expect the project to have a root source
+                const rootSourcePath = path.join(projectPath, projectName);
+                expect(fs.existsSync(rootSourcePath)).toBe(true);
+                // Expect the project to have a deps.txt file
+                const depsTxtPath = path.join(projectPath, 'deps.txt');
+                expect(fs.existsSync(depsTxtPath)).toBe(true);
+                // Expect the project to have a .agda-lib file
+                const agdaLibPath = path.join(projectPath, '.agda-lib');
+                expect(fs.existsSync(agdaLibPath)).toBe(true);
+
+                // Assert that the files in the project match the files in the package
+                assertFilesMatchExactly(rootSourcePath, pkgFiles);
+            });
         });
 
         describe('failure cases', () => {
             it('should throw a ProjectInitError if the path does not exist', async () => {
                 // Make the path
-                const srcPath = path.join(tmpDir, 'does-not-exist');
+                const srcPath = path.join(extractDir, 'does-not-exist');
                 // Expect a rejection
                 await expect(Project.init(srcPath)).rejects.toThrow(ProjectInitError);
             });
 
             it('should throw a ProjectInitError if the path is not a directory', async () => {
                 // Make the path
-                const srcPath = path.join(tmpDir, 'not-a-directory');
+                const srcPath = path.join(extractDir, 'not-a-directory');
                 // Create the file
                 fs.writeFileSync(srcPath, 'not-a-directory');
                 // Expect a rejection
                 await expect(Project.init(srcPath)).rejects.toThrow(ProjectInitError);
+            });
+
+            it('should throw a ProjectInitError if the package name does not match the project name', async () => {
+                // Make the project name
+                const invalidProjectName = 'InvalidProjectName';
+                // Make the project path
+                const projectPath = path.join(extractDir, invalidProjectName);
+                // Create the project folder
+                fs.mkdirSync(projectPath, { recursive: true });
+                // Expect a rejection
+                await expect(Project.init(projectPath, pkg)).rejects.toThrow(ProjectInitError);
+            });
+
+            it('should throw a ProjectInitError if the directory already contains a dependencies file', async () => {
+                // Make the project path
+                const projectPath = path.join(extractDir, projectName);
+                // Create the project folder
+                fs.mkdirSync(projectPath, { recursive: true });
+                // Get path to the dependencies file
+                const depsTxtPath = path.join(projectPath, 'deps.txt');
+                // Create the dependencies file
+                fs.writeFileSync(depsTxtPath, '');
+                // Expect a rejection
+                await expect(Project.init(projectPath, pkg)).rejects.toThrow(ProjectInitError);
+            });
+
+            it('should throw a ProjectInitError if the directory already contains a root source directory', async () => {
+                // Make the project path
+                const projectPath = path.join(extractDir, projectName);
+                // Create the project folder
+                fs.mkdirSync(projectPath, { recursive: true });
+                // Get path to the root source directory
+                const rootSourcePath = path.join(projectPath, projectName);
+                // Create the root source directory
+                fs.mkdirSync(rootSourcePath, { recursive: true });
+                // Expect a rejection
+                await expect(Project.init(projectPath, pkg)).rejects.toThrow(ProjectInitError);
+            });
+
+            it('should throw a ProjectInitError if the directory already contains a .agda-lib file', async () => {
+                // Make the project path
+                const projectPath = path.join(extractDir, projectName);
+                // Create the project folder
+                fs.mkdirSync(projectPath, { recursive: true });
+                // Get path to the .agda-lib file
+                const agdaLibPath = path.join(projectPath, '.agda-lib');
+                // Create the .agda-lib file
+                fs.writeFileSync(agdaLibPath, '');
+                // Expect a rejection
+                await expect(Project.init(projectPath, pkg)).rejects.toThrow(ProjectInitError);
             });
         });
     });

@@ -7,7 +7,6 @@ import ReadDepsFileError from '../errors/read-deps-file';
 import WriteDepsFileError from '../errors/write-deps-file';
 import FailedToParseDepsError from '../errors/failed-to-parse-deps';
 import { Source } from './source';
-import { Readable } from 'stream';
 import { Package } from './package';
 
 // The name of the deps file
