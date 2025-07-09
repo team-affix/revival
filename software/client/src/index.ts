@@ -156,35 +156,29 @@ program
         }
     });
 
-// program
-//     .command('unpack')
-//     .description('Unpacks an apm file into a project in the current directory')
-//     .argument('<source>', 'The source path for the apm file')
-//     .action(async (source: string) => {
-//         // Create debug logger
-//         const dbg = debug('apm:project:unpack');
+program
+    .command('unpack')
+    .description('Unpacks an apm file into a project in the current directory')
+    .argument('<source>', 'The source path for the apm file')
+    .action(async (source: string) => {
+        // Create debug logger
+        const dbg = debug('apm:project:unpack');
 
-//         try {
-//             // Get the current working directory
-//             const cwd = process.cwd();
-//             // Load the package
-//             const pkg = await common.Package.load(source);
-//             // Check the current directory basename matches the package name
-//             if (path.basename(cwd) !== pkg.name) {
-//                 throw new Error(
-//                     `Current directory basename ${path.basename(cwd)} does not match package name ${pkg.name}`,
-//                 );
-//             }
-//             // Unpack the package
-//             await pkg.unpack(cwd);
-//         } catch (error: unknown) {
-//             if (error instanceof Error) {
-//                 console.error(error.message);
-//             } else {
-//                 console.error(error);
-//             }
-//         }
-//     });
+        try {
+            // Get the current working directory
+            const cwd = process.cwd();
+            // Load the package
+            const pkg = await common.Package.load(source);
+            // Unpack the package
+            await common.Project.init(cwd, pkg);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                console.error(error.message);
+            } else {
+                console.error(error);
+            }
+        }
+    });
 
 program
     .command('info')

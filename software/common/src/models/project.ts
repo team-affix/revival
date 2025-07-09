@@ -196,7 +196,7 @@ export class Project {
 
         // Check that the project name matches the package name
         if (pkg && pkg.name !== projectName)
-            throw new ProjectInitError(projectName, cwd, 'Project name does not match package name');
+            throw new ProjectInitError(projectName, cwd, `Project name does not match package name: ${pkg.name}`);
 
         // Get paths to the project files
         const depsPath = path.join(cwd, DEPS_FILE_NAME);
