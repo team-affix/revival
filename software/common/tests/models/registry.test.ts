@@ -154,6 +154,18 @@ describe('models/registry', () => {
             it('two packages, get first', async () => await genericTest(2, 0));
 
             it('two packages, get second', async () => await genericTest(2, 1));
+
+            it('three packages, get first', async () => await genericTest(3, 0));
+
+            it('three packages, get second', async () => await genericTest(3, 1));
+
+            it('three packages, get third', async () => await genericTest(3, 2));
+
+            it('four packages, get first', async () => await genericTest(4, 0));
+
+            it('four packages, get second', async () => await genericTest(4, 1));
+
+            it('four packages, get third', async () => await genericTest(4, 2));
         });
 
         describe('failure cases', () => {
