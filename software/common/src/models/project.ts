@@ -244,9 +244,6 @@ export class Project {
             archive = extra.pkg.getArchive();
         }
 
-        // If the project name is STILL not defined, throw an error
-        if (!projectName) throw new ProjectInitError('UnknownProjectName', cwd, 'Project name not defined');
-
         // Indicate the project name
         dbg(`Project name: ${projectName}`);
 
