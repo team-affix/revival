@@ -8,6 +8,7 @@ import WriteDepsFileError from '../errors/write-deps-file';
 import FailedToParseDepsError from '../errors/failed-to-parse-deps';
 import { Source } from './source';
 import { Package } from './package';
+import { Readable } from 'stream';
 
 // The name of the deps file
 const DEPS_FILE_NAME = 'deps.txt';
@@ -134,6 +135,36 @@ async function writeDirectDepsFile(cwd: string, deps: Map<string, string>): Prom
     });
 }
 
+// Create the .agda-lib file
+function createAgdaLibFile(cwd: string, projectName: string): void {
+    // Get the path to the .agda-lib file
+    const filePath = path.join(cwd, AGDA_LIB_FILE_NAME);
+    // Create the .agda-lib file
+    fs.writeFileSync(filePath, `name: ${projectName}\ninclude: . ${DEPS_FOLDER_NAME}`);
+}
+
+// Read the project name from the .agda-lib file
+function readProjectName(cwd: string): string {
+    // Get the path to the .agda-lib file
+    const filePath = path.join(cwd, AGDA_LIB_FILE_NAME);
+    // If the file does not exist, throw an error
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile())
+        throw new ProjectLoadError(cwd, `Agda lib file does not exist: ${filePath}`);
+    // Get the content of the file
+    const content = fs.readFileSync(filePath, 'utf-8');
+    // Get the line that starts with 'name:'
+    const line = content.split('\n').find((line) => line.startsWith('name: '));
+    // If the line is not found, throw an error
+    if (!line) throw new ProjectLoadError(cwd, `name: line missing in '${filePath}'`);
+    // Get the project name
+    const projectName = line.split(' ')[1].trim();
+    // If the project name is not found, throw an error
+    if (!projectName) throw new ProjectLoadError(cwd, `Project name missing in '${filePath}'`);
+    // Return the project name
+    return projectName;
+}
+
+// The project model
 export class Project {
     // Constructs a project model given the project path
     private constructor(
@@ -148,24 +179,33 @@ export class Project {
     static async load(cwd: string): Promise<Project> {
         // Get the debugger
         const dbg = debug('apm:common:models:project:load');
+
         // Indicate that we are loading a project
         dbg(`Loading project at ${cwd}`);
+
         // Check if the project path exists and is a directory
         if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory())
             throw new ProjectLoadError(cwd, 'Project path does not exist or is not a directory');
+
         // Get the project name
-        const projectName = path.basename(cwd);
+        const projectName = readProjectName(cwd);
+
         // Indicate the project name
         dbg(`Project name: ${projectName}`);
+
         // Load the direct dependencies
         const directDeps = readDirectDepsFile(cwd);
+
         // Indicate the direct dependencies
         dbg(`Direct deps: ${JSON.stringify(Object.fromEntries(directDeps))}`);
+
         // Load the root source
         const rootSourcePath: string = path.join(cwd, projectName);
         const rootSource: Source = await Source.load(rootSourcePath);
+
         // Indicate the root source
         dbg(`Root source: ${JSON.stringify(rootSource.agdaFiles.concat(rootSource.mdFiles))}`);
+
         // Load the dependency sources (if deps folder exists)
         const depsFolder: string = path.join(cwd, DEPS_FOLDER_NAME);
         let dependencySources: Source[] = [];
@@ -173,19 +213,39 @@ export class Project {
             const depRelPaths: string[] = fs.readdirSync(depsFolder);
             dependencySources = await Promise.all(depRelPaths.map((p) => Source.load(path.join(depsFolder, p))));
         }
+
         // Indicate the dependency sources
         dbg(`Dependency sources: ${JSON.stringify(dependencySources.map((s) => s.cwd))}`);
+
         // Return the project model
         return new Project(cwd, projectName, directDeps, rootSource, dependencySources);
     }
 
     // Initializes a project in the given directory (expects the directory to exist)
-    static async init(cwd: string, pkg?: Package): Promise<Project> {
+    static async init(cwd: string, extra: { projectName: string } | { pkg: Package }): Promise<Project> {
         // Get the debugger
         const dbg = debug('apm:common:models:project:create');
 
-        // Get the project name
-        const projectName = path.basename(cwd);
+        // Declare the initialization values
+        let projectName: string;
+        let deps: Map<string, string>;
+        let archive: Readable | undefined;
+
+        // Define initialization values based on the extra argument
+        if ('projectName' in extra) {
+            // Set up default initialization values
+            projectName = extra.projectName;
+            deps = new Map();
+            archive = undefined;
+        } else {
+            // Set up initialization values from the package
+            projectName = extra.pkg.name;
+            deps = extra.pkg.directDeps;
+            archive = extra.pkg.getArchive();
+        }
+
+        // If the project name is STILL not defined, throw an error
+        if (!projectName) throw new ProjectInitError('UnknownProjectName', cwd, 'Project name not defined');
 
         // Indicate the project name
         dbg(`Project name: ${projectName}`);
@@ -193,10 +253,6 @@ export class Project {
         // If the path does not exist or is not a directory, throw an error
         if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory())
             throw new ProjectInitError(projectName, cwd, 'Path does not exist or is not a directory');
-
-        // Check that the project name matches the package name
-        if (pkg && pkg.name !== projectName)
-            throw new ProjectInitError(projectName, cwd, `Project name does not match package name: ${pkg.name}`);
 
         // Get paths to the project files
         const depsPath = path.join(cwd, DEPS_FILE_NAME);
@@ -215,10 +271,6 @@ export class Project {
         if (fs.existsSync(agdaLibPath))
             throw new ProjectInitError(projectName, cwd, 'Project dir not clean: .agda-lib file already exists');
 
-        // Get initialization values for the project (optionally, from a package)
-        const deps = pkg?.directDeps || new Map();
-        const archive = pkg?.getArchive();
-
         // Create the dependencies file
         await writeDirectDepsFile(cwd, deps);
 
@@ -226,7 +278,7 @@ export class Project {
         await Source.create(rootSourcePath, archive);
 
         // Create the .agda-lib file
-        fs.writeFileSync(agdaLibPath, `name: ${projectName}\ninclude: . deps`);
+        createAgdaLibFile(cwd, projectName);
 
         // Return the project model
         return await Project.load(cwd);
@@ -252,4 +304,6 @@ export const __test__ = {
     parseDirectDeps,
     readDirectDepsFile,
     writeDirectDepsFile,
+    createAgdaLibFile,
+    readProjectName,
 };

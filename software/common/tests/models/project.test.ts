@@ -322,6 +322,9 @@ describe('models/Project', () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
+
                 // Create the root source
                 createRootSource(new Map());
 
@@ -340,6 +343,9 @@ describe('models/Project', () => {
             it('empty deps.txt file and one dirt file (.txt)', async () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
 
                 // Create the root source
                 createRootSource(new Map([['file.txt', 'Hello, world!']]));
@@ -360,6 +366,9 @@ describe('models/Project', () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
+
                 // Create the root source
                 createRootSource(new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]));
 
@@ -379,6 +388,9 @@ describe('models/Project', () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
+
                 // Create the root source
                 createRootSource(new Map([['file.md', '# My Document']]));
 
@@ -397,6 +409,9 @@ describe('models/Project', () => {
             it('empty deps.txt file and one agda file and one md file', async () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
 
                 // Create the root source
                 createRootSource(
@@ -422,6 +437,9 @@ describe('models/Project', () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
+
                 // Create the root source
                 createRootSource(new Map([['subdir/file.agda', 'myNat : ℕ\nmyNat = 0']]));
 
@@ -441,6 +459,9 @@ describe('models/Project', () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
+
                 // Create the root source
                 createRootSource(new Map([['subdir/file.md', '# My Document']]));
 
@@ -459,6 +480,9 @@ describe('models/Project', () => {
             it('empty deps.txt file and one agda file and one md file in nested directory', async () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
 
                 // Create the root source
                 createRootSource(
@@ -484,6 +508,9 @@ describe('models/Project', () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
+
                 // Create the root source
                 createRootSource(new Map([['subdir/subdir2/file.agda', 'myNat : ℕ\nmyNat = 0']]));
 
@@ -502,6 +529,9 @@ describe('models/Project', () => {
             it('empty deps.txt file and multiple agda files', async () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
 
                 // Create the root source
                 createRootSource(
@@ -528,6 +558,9 @@ describe('models/Project', () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
+
                 // Create the root source
                 createRootSource(
                     new Map([
@@ -552,6 +585,9 @@ describe('models/Project', () => {
             it('empty deps.txt file and multiple agda files and multiple md files', async () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
 
                 // Create the root source
                 createRootSource(
@@ -580,6 +616,9 @@ describe('models/Project', () => {
             it('empty deps.txt file and multiple agda files and multiple md files in nested directories', async () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
 
                 // Create the root source
                 createRootSource(
@@ -613,6 +652,9 @@ describe('models/Project', () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(tmpDir, new Map([['name', '1.0.0']]));
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
+
                 // Create the root source
                 createRootSource(new Map());
 
@@ -637,6 +679,9 @@ describe('models/Project', () => {
                         ['name1', '1.0.1'],
                     ]),
                 );
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
 
                 // Create the root source
                 createRootSource(new Map());
@@ -668,6 +713,9 @@ describe('models/Project', () => {
                     ]),
                 );
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
+
                 // Create the root source
                 createRootSource(new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]));
 
@@ -698,6 +746,9 @@ describe('models/Project', () => {
                     ]),
                 );
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
+
                 // Create the root source
                 createRootSource(new Map([['file.md', '# My Document']]));
 
@@ -727,6 +778,9 @@ describe('models/Project', () => {
                         ['name1', '1.0.1'],
                     ]),
                 );
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
 
                 // Create the root source
                 createRootSource(
@@ -765,6 +819,9 @@ describe('models/Project', () => {
                         ['name4', '1.0.4'],
                     ]),
                 );
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
 
                 // Create the root source
                 createRootSource(
@@ -811,6 +868,9 @@ describe('models/Project', () => {
                         ['name4', '1.0.4'],
                     ]),
                 );
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(tmpDir, projectName);
 
                 // Create the root source
                 createRootSource(
@@ -865,6 +925,8 @@ describe('models/Project', () => {
 
             it('should throw a ProjectLoadError if the path does not exist', async () => {
                 const srcPath = path.join(tmpDir, 'does-not-exist');
+                // Ensure the path does not exist
+                if (fs.existsSync(srcPath)) fs.rmSync(srcPath, { recursive: true, force: true });
 
                 // Expect a rejection
                 await expect(Project.load(srcPath)).rejects.toThrow(ProjectLoadError);
@@ -872,6 +934,9 @@ describe('models/Project', () => {
 
             it('should throw a ProjectLoadError if the path is not a directory', async () => {
                 const srcPath = path.join(tmpDir, 'not-a-directory');
+
+                // Ensure the path does not exist
+                if (fs.existsSync(srcPath)) fs.rmSync(srcPath, { recursive: true, force: true });
 
                 // Create the file
                 fs.writeFileSync(srcPath, 'not-a-directory');
@@ -889,6 +954,9 @@ describe('models/Project', () => {
                 // Create the file
                 fs.mkdirSync(srcPath, { recursive: true });
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(srcPath, 'FailProject');
+
                 // Expect the file to exist
                 expect(fs.existsSync(srcPath)).toBe(true);
 
@@ -902,6 +970,9 @@ describe('models/Project', () => {
 
                 // Create the file
                 fs.mkdirSync(srcPath, { recursive: true });
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(srcPath, 'FailProject');
 
                 // Create the deps.txt folder (yes, this is strange, but it's just for testing)
                 fs.mkdirSync(depsTxtPath, { recursive: true });
@@ -920,6 +991,9 @@ describe('models/Project', () => {
                 // Create the file
                 fs.mkdirSync(srcPath, { recursive: true });
 
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(srcPath, 'FailProject');
+
                 // Create the deps.txt file
                 fs.writeFileSync(depsTxtPath, 'pkgName');
 
@@ -935,6 +1009,9 @@ describe('models/Project', () => {
 
                 // Create the folder
                 fs.mkdirSync(srcPath, { recursive: true });
+
+                // Create the .agda-lib file
+                ProjectTest.createAgdaLibFile(srcPath, 'FailProject');
 
                 // Create the deps.txt file
                 fs.writeFileSync(path.join(srcPath, 'deps.txt'), 'pkgName ver0');
@@ -1047,7 +1124,7 @@ describe('models/Project', () => {
                 // Create the project folder
                 fs.mkdirSync(projectPath, { recursive: true });
                 // Create the project
-                const project = await Project.init(projectPath);
+                const project = await Project.init(projectPath, { projectName });
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 // Expect the project name to be APMTmpProject
@@ -1071,7 +1148,7 @@ describe('models/Project', () => {
                 // Create the project folder
                 fs.mkdirSync(projectPath, { recursive: true });
                 // Create the project
-                const project = await Project.init(projectPath, pkg);
+                const project = await Project.init(projectPath, { pkg });
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 // Expect the project name to be APMTmpProject
@@ -1098,7 +1175,7 @@ describe('models/Project', () => {
                 // Make the path
                 const srcPath = path.join(extractDir, 'does-not-exist');
                 // Expect a rejection
-                await expect(Project.init(srcPath)).rejects.toThrow(ProjectInitError);
+                await expect(Project.init(srcPath, { projectName })).rejects.toThrow(ProjectInitError);
             });
 
             it('should throw a ProjectInitError if the path is not a directory', async () => {
@@ -1107,18 +1184,7 @@ describe('models/Project', () => {
                 // Create the file
                 fs.writeFileSync(srcPath, 'not-a-directory');
                 // Expect a rejection
-                await expect(Project.init(srcPath)).rejects.toThrow(ProjectInitError);
-            });
-
-            it('should throw a ProjectInitError if the package name does not match the project name', async () => {
-                // Make the project name
-                const invalidProjectName = 'InvalidProjectName';
-                // Make the project path
-                const projectPath = path.join(extractDir, invalidProjectName);
-                // Create the project folder
-                fs.mkdirSync(projectPath, { recursive: true });
-                // Expect a rejection
-                await expect(Project.init(projectPath, pkg)).rejects.toThrow(ProjectInitError);
+                await expect(Project.init(srcPath, { projectName })).rejects.toThrow(ProjectInitError);
             });
 
             it('should throw a ProjectInitError if the directory already contains a dependencies file', async () => {
@@ -1131,7 +1197,7 @@ describe('models/Project', () => {
                 // Create the dependencies file
                 fs.writeFileSync(depsTxtPath, '');
                 // Expect a rejection
-                await expect(Project.init(projectPath, pkg)).rejects.toThrow(ProjectInitError);
+                await expect(Project.init(projectPath, { projectName })).rejects.toThrow(ProjectInitError);
             });
 
             it('should throw a ProjectInitError if the directory already contains a root source directory', async () => {
@@ -1144,7 +1210,7 @@ describe('models/Project', () => {
                 // Create the root source directory
                 fs.mkdirSync(rootSourcePath, { recursive: true });
                 // Expect a rejection
-                await expect(Project.init(projectPath, pkg)).rejects.toThrow(ProjectInitError);
+                await expect(Project.init(projectPath, { projectName })).rejects.toThrow(ProjectInitError);
             });
 
             it('should throw a ProjectInitError if the directory already contains a .agda-lib file', async () => {
@@ -1157,7 +1223,7 @@ describe('models/Project', () => {
                 // Create the .agda-lib file
                 fs.writeFileSync(agdaLibPath, '');
                 // Expect a rejection
-                await expect(Project.init(projectPath, pkg)).rejects.toThrow(ProjectInitError);
+                await expect(Project.init(projectPath, { projectName })).rejects.toThrow(ProjectInitError);
             });
         });
     });
