@@ -94,7 +94,7 @@ program
             // Get the current working directory
             const cwd = process.cwd();
             // Create the project
-            await common.Project.create(cwd);
+            await common.Project.init(cwd);
         } catch (error: unknown) {
             if (error instanceof Error) {
                 console.error(error.message);
@@ -142,9 +142,9 @@ program
             // Get the project
             const project = await common.Project.load(cwd);
             // Pack the project
-            const archive = await project.getRootSource().getArchive();
+            const archive = await project.rootSource.getArchive();
             // Construct package with archive
-            const pkg = await common.Package.create(destination, project.getName(), project.getDirectDeps(), archive);
+            const pkg = await common.Package.create(destination, project.name, project.directDeps, archive);
             // Write the package to the current working directory
             console.log(`Package created: ${pkg.version}`);
         } catch (error: unknown) {
