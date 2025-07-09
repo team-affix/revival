@@ -86,7 +86,8 @@ program.name('apm').description('Agda Package Manager - A tool for managing Agda
 program
     .command('init')
     .description('Initializes an apm project in the current directory')
-    .action(async () => {
+    .argument('<project-name>', 'The name of the project')
+    .action(async (projectName: string) => {
         // Create debug logger
         const dbg = debug('apm:project:create');
 
@@ -94,7 +95,7 @@ program
             // Get the current working directory
             const cwd = process.cwd();
             // Create the project
-            await common.Project.init(cwd);
+            await common.Project.init(cwd, { projectName });
         } catch (error: unknown) {
             if (error instanceof Error) {
                 console.error(error.message);
@@ -170,7 +171,7 @@ program
             // Load the package
             const pkg = await common.Package.load(source);
             // Unpack the package
-            await common.Project.init(cwd, pkg);
+            await common.Project.init(cwd, { pkg });
         } catch (error: unknown) {
             if (error instanceof Error) {
                 console.error(error.message);
