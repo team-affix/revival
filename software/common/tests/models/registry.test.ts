@@ -45,6 +45,18 @@ describe('models/registry', () => {
         ];
     });
 
+    const loadPackagesIntoRegistry = async (registryPath: string, pkgs: Package[]) =>
+        Promise.all(
+            pkgs.map(async (pkg) => {
+                // get the destination package path
+                const dest = RegistryTest.getPackagePath(registryPath, pkg.name, pkg.version);
+                // create the package path
+                fs.mkdirSync(path.dirname(dest), { recursive: true });
+                // copy the package
+                fs.copyFileSync(pkg.filePath, dest);
+            }),
+        );
+
     const testCaseDir = path.join(os.tmpdir(), 'test-case-tmpdir');
 
     beforeEach(() => {
@@ -117,26 +129,31 @@ describe('models/registry', () => {
         });
 
         describe('success cases', () => {
-            it('one package', async () => {
+            const genericTest = async (pkgCount: number, getPkgIndex: number) => {
                 // get an inventory of the packages we want
-                const pkg0 = pkgs[0];
-                // create a path to the destination file
-                const pkgPath = RegistryTest.getPackagePath(registryPath, pkg0.name, pkg0.version);
-                // create a file in the registry path
-                fs.mkdirSync(path.dirname(pkgPath), { recursive: true });
-                fs.copyFileSync(pkg0.filePath, pkgPath);
+                const pkgSlice = pkgs.slice(0, pkgCount);
+                // create temp variable for the package we want to get
+                const pkg = pkgs[getPkgIndex];
+                // load the packages into the registry
+                await loadPackagesIntoRegistry(registryPath, pkgSlice);
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // get the package
-                const resultPkg = await registry.get(pkg0.name, pkg0.version);
+                const resultPkg = await registry.get(pkg.name, pkg.version);
                 // expect the package to be defined
                 expect(resultPkg).toBeDefined();
                 // expect the package to be the correct package
-                expect(resultPkg?.name).toEqual(pkg0.name);
-                expect(resultPkg?.version).toEqual(pkg0.version);
-                expect(resultPkg?.directDeps).toEqual(pkg0.directDeps);
-                expect(resultPkg?.archiveOffset).toEqual(pkg0.archiveOffset);
-            });
+                expect(resultPkg?.name).toEqual(pkg.name);
+                expect(resultPkg?.version).toEqual(pkg.version);
+                expect(resultPkg?.directDeps).toEqual(pkg.directDeps);
+                expect(resultPkg?.archiveOffset).toEqual(pkg.archiveOffset);
+            };
+
+            it('one package', async () => await genericTest(1, 0));
+
+            it('two packages, get first', async () => await genericTest(2, 0));
+
+            it('two packages, get second', async () => await genericTest(2, 1));
         });
 
         describe('failure cases', () => {
@@ -145,6 +162,15 @@ describe('models/registry', () => {
                 const registry = await Registry.load(registryPath);
                 // expect rejection, an error to be thrown
                 await expect(registry.get(pkgs[0].name, pkgs[0].version)).rejects.toThrow(PackageLoadError);
+            });
+
+            it('throws PackageLoadError if the package is not registered (2 packages present)', async () => {
+                // load the packages into the registry
+                await loadPackagesIntoRegistry(registryPath, pkgs.slice(0, 2));
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // expect rejection, an error to be thrown
+                await expect(registry.get(pkgs[2].name, pkgs[2].version)).rejects.toThrow(PackageLoadError);
             });
         });
     });
