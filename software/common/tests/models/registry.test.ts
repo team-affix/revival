@@ -117,21 +117,26 @@ describe('models/registry', () => {
         });
 
         describe('success cases', () => {
-            // it('zero packages', async () => {
-            //     // expect no error to be thrown
-            //     await expect(Registry.load(registryPath)).resolves.toBeDefined();
-            // });
-            // it('one package', async () => {
-            //     // get an inventory of the packages we want
-            //     const pkg0 = pkgs[0];
-            //     // create a path to the destination file
-            //     const pkgPath = RegistryTest.getPackagePath(registryPath, pkg0.name, pkg0.version);
-            //     // create a file in the registry path
-            //     fs.mkdirSync(path.dirname(pkgPath), { recursive: true });
-            //     fs.copyFileSync(pkg0.filePath, pkgPath);
-            //     // load the registry
-            //     await expect(Registry.load(registryPath)).resolves.toBeDefined();
-            // });
+            it('one package', async () => {
+                // get an inventory of the packages we want
+                const pkg0 = pkgs[0];
+                // create a path to the destination file
+                const pkgPath = RegistryTest.getPackagePath(registryPath, pkg0.name, pkg0.version);
+                // create a file in the registry path
+                fs.mkdirSync(path.dirname(pkgPath), { recursive: true });
+                fs.copyFileSync(pkg0.filePath, pkgPath);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the package
+                const resultPkg = await registry.get(pkg0.name, pkg0.version);
+                // expect the package to be defined
+                expect(resultPkg).toBeDefined();
+                // expect the package to be the correct package
+                expect(resultPkg?.name).toEqual(pkg0.name);
+                expect(resultPkg?.version).toEqual(pkg0.version);
+                expect(resultPkg?.directDeps).toEqual(pkg0.directDeps);
+                expect(resultPkg?.archiveOffset).toEqual(pkg0.archiveOffset);
+            });
         });
 
         describe('failure cases', () => {
