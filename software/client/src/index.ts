@@ -116,10 +116,36 @@ program
         try {
             // Get the current working directory
             const cwd = process.cwd();
+
+            dbg(`Installing project at ${cwd}`);
+
             // Get the project
             const project = await common.Project.load(cwd);
+
+            // Get the default registry
+            const registry = await common.Registry.getDefault();
+
+            dbg(`Registry: ${registry.cwd}`);
+
+            // Get the direct dependencies
+            const deps = project.directDeps;
+
+            // Get the transitive dependencies
+            const overrides = new Set<string>();
+            const transitiveDeps: Map<string, string> = new Map();
+            await registry.getTransitiveDeps(deps, overrides, transitiveDeps);
+
+            dbg(`Transitive dependencies: ${JSON.stringify(Object.fromEntries(transitiveDeps))}`);
+
+            // Get the packages asynchronously
+            const pkgs = await Promise.all(
+                Array.from(transitiveDeps.entries()).map(([name, version]) => registry.get(name, version)),
+            );
+
+            dbg(`Packages: ${JSON.stringify(pkgs.map((pkg) => pkg.name))}`);
+
             // Install the dependencies
-            await project.install();
+            await project.install(pkgs);
         } catch (error: unknown) {
             if (error instanceof Error) {
                 console.error(error.message);
