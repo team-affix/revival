@@ -549,6 +549,75 @@ describe('models/registry', () => {
                     ]),
                 );
             });
+
+            it('one direct dep, two grandchild, one grandchild is overridden', async () => {
+                // Get the debugger
+                const dbg = debug('apm:common:models:Registry:getTransitiveDeps');
+
+                // Indicate the specific test
+                dbg('Testing two direct deps, both have same indirect dep');
+
+                // Original grandchild package has NO DEPENDENCIES
+                const pkg0Original = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Original.apm'),
+                    'pkg0',
+                    new Map(),
+                );
+                // Second grandchild package
+                const pkg1 = await createPackage(path.join(localPackagesPath, 'pkg1.apm'), 'pkg1', new Map());
+
+                // Extra package to make the override different
+                const pkgExtra = await createPackage(
+                    path.join(localPackagesPath, 'pkgExtra.apm'),
+                    'pkgExtra',
+                    new Map(),
+                );
+                // Override grandchild package has a dependency on the extra package
+                const pkg0Override = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Override.apm'),
+                    'pkg0', // name is the same as the original grandchild package
+                    new Map([[pkgExtra.name, pkgExtra.version]]),
+                );
+
+                // Child package
+                const pkg2 = await createPackage(
+                    path.join(localPackagesPath, 'pkg2.apm'),
+                    'pkg2',
+                    new Map([
+                        // the two grandchildren
+                        [pkg0Original.name, pkg0Original.version],
+                        [pkg1.name, pkg1.version],
+                    ]),
+                );
+
+                // Original parent package has a dependency on the original child package, and on the override grandchild package
+                const pkg3 = await createPackage(
+                    path.join(localPackagesPath, 'pkg3.apm'),
+                    'pkg3',
+                    new Map([
+                        [pkg2.name, pkg2.version],
+                        // [pkg0Override.name, pkg0Override.version],
+                    ]),
+                );
+                // load the packages into the registry
+                await loadPackagesIntoRegistry(registryPath, [pkg0Original, pkgExtra, pkg0Override, pkg1, pkg2, pkg3]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the transitive deps
+                const overrides = new Set<string>();
+                const result = new Map<string, string>();
+                // get the transitive deps
+                await registry.getTransitiveDeps(pkg3.directDeps, overrides, result);
+                // expect the transitive deps to be empty
+                expect(result).toEqual(
+                    new Map([
+                        [pkgExtra.name, pkgExtra.version],
+                        [pkg0Override.name, pkg0Override.version],
+                        [pkg1.name, pkg1.version],
+                        [pkg2.name, pkg2.version],
+                    ]),
+                );
+            });
         });
 
         describe('failure cases', () => {
