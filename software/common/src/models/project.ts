@@ -297,7 +297,7 @@ export class Project {
         if (!fs.existsSync(depsFolderPath)) fs.mkdirSync(depsFolderPath, { recursive: true });
 
         // Initialize the result empty
-        let result: Source[] = [];
+        const result: Source[] = [];
 
         // Install the direct dependencies
         for (const dep of transitiveDeps) {

@@ -1,10 +1,11 @@
 import fs from 'fs';
 import debug from 'debug';
 import path from 'path';
+import os from 'os';
 import { Package } from './package';
 import RegistryLoadError from '../errors/registry-load';
-import { Project } from './project';
 import GetTransitiveDepsError from '../errors/get-transitive-deps';
+import RegistryCreateError from '../errors/registry-create';
 
 // Get the path to a package
 function getPackagePath(cwd: string, name: string, version: string): string {
@@ -24,6 +25,30 @@ class Registry {
 
         // Return the registry
         return new Registry(cwd);
+    }
+
+    // Create a registry in the given directory
+    static async create(cwd: string): Promise<Registry> {
+        // If the directory exists, throw an error
+        if (fs.existsSync(cwd)) throw new RegistryCreateError(cwd, 'Path already exists');
+
+        // Create the directory
+        fs.mkdirSync(cwd, { recursive: true });
+
+        // Return the registry
+        return await Registry.load(cwd);
+    }
+
+    // Get the default registry
+    static async getDefault(): Promise<Registry> {
+        // Create the default registry path
+        const defaultRegistryPath = path.join(os.homedir(), '.apm', 'registry');
+
+        // If the default registry path does not exist, create it
+        if (!fs.existsSync(defaultRegistryPath)) return await Registry.create(defaultRegistryPath);
+
+        // Return the default registry
+        return await Registry.load(defaultRegistryPath);
     }
 
     // Get a package from the registry
@@ -78,7 +103,7 @@ class Registry {
         }
 
         // Create a new set of overrides that includes the direct dependencies
-        let localOverrides = new Set<string>([...overrides, ...directDeps.keys()]);
+        const localOverrides = new Set<string>([...overrides, ...directDeps.keys()]);
 
         // Visit each of the direct dependencies and recur on their dependencies
         for (const [name, version] of directDeps.entries()) {

@@ -2,4 +2,4 @@
 export { Package } from './models/package';
 export { Project } from './models/project';
 export { Source } from './models/source';
-// export * from './models/registry';
+export { Registry } from './models/registry';
