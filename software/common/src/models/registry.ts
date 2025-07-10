@@ -7,9 +7,12 @@ import RegistryLoadError from '../errors/registry-load';
 import GetTransitiveDepsError from '../errors/get-transitive-deps';
 import RegistryCreateError from '../errors/registry-create';
 
+// The name of the packages directory
+const PACKAGES_DIR_NAME = 'packages';
+
 // Get the path to a package
 function getPackagePath(cwd: string, name: string, version: string): string {
-    return path.join(cwd, name, `${version}.tar`);
+    return path.join(cwd, PACKAGES_DIR_NAME, name, `${version}.tar`);
 }
 
 // Registry model
@@ -23,6 +26,10 @@ class Registry {
         if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory())
             throw new RegistryLoadError(cwd, 'Path does not exist or is not a directory');
 
+        // If the packages directory does not exist, throw an error
+        if (!fs.existsSync(path.join(cwd, PACKAGES_DIR_NAME)))
+            throw new RegistryLoadError(cwd, 'Packages directory does not exist');
+
         // Return the registry
         return new Registry(cwd);
     }
@@ -34,6 +41,9 @@ class Registry {
 
         // Create the directory
         fs.mkdirSync(cwd, { recursive: true });
+
+        // Create the packages directory
+        fs.mkdirSync(path.join(cwd, PACKAGES_DIR_NAME), { recursive: true });
 
         // Return the registry
         return await Registry.load(cwd);

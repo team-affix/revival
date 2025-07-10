@@ -192,14 +192,14 @@ describe('models/registry', () => {
         fs.mkdirSync(testCaseDir, { recursive: true });
     });
 
-    describe('Registry.load()', () => {
+    describe('Registry.create() and Registry.load()', () => {
         const registryPath = path.join(testCaseDir, 'registry');
 
-        beforeEach(() => {
+        beforeEach(async () => {
             // If the registry dir exists, remove it
             if (fs.existsSync(registryPath)) fs.rmSync(registryPath, { recursive: true, force: true });
-            // create the registry dir
-            fs.mkdirSync(registryPath, { recursive: true });
+            // create the registry
+            await Registry.create(registryPath);
         });
 
         describe('success cases', () => {
@@ -247,11 +247,11 @@ describe('models/registry', () => {
     describe('Registry.get()', () => {
         const registryPath = path.join(testCaseDir, 'registry');
 
-        beforeEach(() => {
+        beforeEach(async () => {
             // If the registry dir exists, remove it
             if (fs.existsSync(registryPath)) fs.rmSync(registryPath, { recursive: true, force: true });
-            // create the registry dir
-            fs.mkdirSync(registryPath, { recursive: true });
+            // create the registry
+            await Registry.create(registryPath);
         });
 
         describe('success cases', () => {
