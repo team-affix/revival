@@ -9,7 +9,7 @@ import RegistryLoadError from '../../src/errors/registry-load';
 import { Source } from '../../src/models/source';
 import { Package } from '../../src/models/package';
 import PackageLoadError from '../../src/errors/package-load';
-import GetTransitiveDepsError from '../../src/errors/get-transitive-deps';
+import GetInstallDepsError from '../../src/errors/get-install-deps';
 
 describe('models/registry', () => {
     // Helper function to create a package with no source files
@@ -313,9 +313,22 @@ describe('models/registry', () => {
         });
     });
 
-    describe('Registry.getTransitiveDeps()', () => {
+    describe('Registry.getInstallDeps()', () => {
         const registryPath = path.join(testCaseDir, 'registry');
         const localPackagesPath = path.join(testCaseDir, 'local-packages');
+
+        // Helper function to check if two arrays of packages are the same
+        const packagesAreSame = (pkgs1: Package[], pkgs2: Package[]) => {
+            // Sort just by name, as there will never be duplicate names with different versions
+            const sortedPkgs1 = pkgs1.sort((a, b) => a.name.localeCompare(b.name));
+            const sortedPkgs2 = pkgs2.sort((a, b) => a.name.localeCompare(b.name));
+            return (
+                sortedPkgs1.length === sortedPkgs2.length &&
+                sortedPkgs1.every(
+                    (pkg, index) => pkg.name === sortedPkgs2[index].name && pkg.version === sortedPkgs2[index].version,
+                )
+            );
+        };
 
         beforeEach(() => {
             // If the registry dir exists, remove it
@@ -329,21 +342,21 @@ describe('models/registry', () => {
         });
 
         describe('success cases', () => {
-            it('zero direct deps should produce empty transitive deps', async () => {
+            it('zero direct deps should produce empty install deps', async () => {
                 const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', new Map());
                 // load the packages into the registry
                 await loadPackagesIntoRegistry(registryPath, [pkg0]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
-                await registry.getTransitiveDeps(pkg0.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(new Map());
+                const visited = new Set<string>();
+                const result = await registry.getInstallDeps(pkg0.directDeps, overrides, visited);
+                // expect the install deps to be empty
+                expect(packagesAreSame(result, [])).toBe(true);
             });
 
-            it('single direct dep should produce transitive deps of the direct dep', async () => {
+            it('single direct dep should produce install deps of the direct dep', async () => {
                 const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', new Map());
                 const pkg1 = await createPackage(
                     path.join(localPackagesPath, 'pkg1.apm'),
@@ -354,15 +367,15 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
-                await registry.getTransitiveDeps(pkg1.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(new Map([[pkg0.name, pkg0.version]]));
+                const visited = new Set<string>();
+                const result = await registry.getInstallDeps(pkg1.directDeps, overrides, visited);
+                // expect the install deps to be empty
+                expect(packagesAreSame(result, [pkg0])).toBe(true);
             });
 
-            it('single direct dep which has been overridden should not be included in the transitive deps', async () => {
+            it('single direct dep which has been overridden should not be included in the install deps', async () => {
                 const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', new Map());
                 const pkg1 = await createPackage(
                     path.join(localPackagesPath, 'pkg1.apm'),
@@ -373,12 +386,12 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>([pkg0.name]);
-                const result = new Map<string, string>();
-                await registry.getTransitiveDeps(pkg1.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(new Map());
+                const visited = new Set<string>();
+                const result = await registry.getInstallDeps(pkg1.directDeps, overrides, visited);
+                // expect the install deps to be empty
+                expect(packagesAreSame(result, [])).toBe(true);
             });
 
             it('single direct which has a single indirect dep', async () => {
@@ -397,17 +410,12 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
-                await registry.getTransitiveDeps(pkg2.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(
-                    new Map([
-                        [pkg0.name, pkg0.version],
-                        [pkg1.name, pkg1.version],
-                    ]),
-                );
+                const visited = new Set<string>();
+                const result = await registry.getInstallDeps(pkg2.directDeps, overrides, visited);
+                // expect the install deps to be empty
+                expect(packagesAreSame(result, [pkg0, pkg1])).toBe(true);
             });
 
             it('single direct which has a two indirect deps', async () => {
@@ -430,23 +438,17 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
-                await registry.getTransitiveDeps(pkg3.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(
-                    new Map([
-                        [pkg0.name, pkg0.version],
-                        [pkg1.name, pkg1.version],
-                        [pkg2.name, pkg2.version],
-                    ]),
-                );
+                const visited = new Set<string>();
+                const result = await registry.getInstallDeps(pkg3.directDeps, overrides, visited);
+                // expect the install deps to be empty
+                expect(packagesAreSame(result, [pkg0, pkg1, pkg2])).toBe(true);
             });
 
             it('two direct deps, both have same indirect dep, but it is overridden', async () => {
                 // Get the debugger
-                const dbg = debug('apm:common:models:Registry:getTransitiveDeps');
+                const dbg = debug('apm:common:models:Registry:getInstallDeps');
 
                 // Indicate the specific test
                 dbg('Testing two direct deps, both have same indirect dep');
@@ -475,24 +477,18 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
-                // get the transitive deps
-                await registry.getTransitiveDeps(pkg3.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(
-                    new Map([
-                        [pkg0.name, pkg0.version],
-                        [pkg1.name, pkg1.version],
-                        [pkg2.name, pkg2.version],
-                    ]),
-                );
+                const visited = new Set<string>();
+                // get the install deps
+                const result = await registry.getInstallDeps(pkg3.directDeps, overrides, visited);
+                // expect the install deps to be empty
+                expect(packagesAreSame(result, [pkg0, pkg1, pkg2])).toBe(true);
             });
 
             it('one direct dep, one grandchild, grandchild is overridden', async () => {
                 // Get the debugger
-                const dbg = debug('apm:common:models:Registry:getTransitiveDeps');
+                const dbg = debug('apm:common:models:Registry:getInstallDeps');
 
                 // Indicate the specific test
                 dbg('Testing two direct deps, both have same indirect dep');
@@ -535,24 +531,19 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0Original, pkgExtra, pkg0Override, pkg1, pkg2]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
-                // get the transitive deps
-                await registry.getTransitiveDeps(pkg2.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(
-                    new Map([
-                        [pkgExtra.name, pkgExtra.version],
-                        [pkg0Override.name, pkg0Override.version],
-                        [pkg1.name, pkg1.version],
-                    ]),
-                );
+                const visited = new Set<string>();
+                // get the install deps
+                const result = await registry.getInstallDeps(pkg2.directDeps, overrides, visited);
+                console.log(result.map((pkg) => `${pkg.name}@${pkg.version}`).join(', '));
+                // expect the install deps to be empty
+                expect(packagesAreSame(result, [pkg1, pkgExtra, pkg0Override])).toBe(true);
             });
 
             it('one direct dep, two grandchild, one grandchild is overridden', async () => {
                 // Get the debugger
-                const dbg = debug('apm:common:models:Registry:getTransitiveDeps');
+                const dbg = debug('apm:common:models:Registry:getInstallDeps');
 
                 // Indicate the specific test
                 dbg('Testing two direct deps, both have same indirect dep');
@@ -603,20 +594,13 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0Original, pkgExtra, pkg0Override, pkg1, pkg2, pkg3]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
-                // get the transitive deps
-                await registry.getTransitiveDeps(pkg3.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(
-                    new Map([
-                        [pkgExtra.name, pkgExtra.version],
-                        [pkg0Override.name, pkg0Override.version],
-                        [pkg1.name, pkg1.version],
-                        [pkg2.name, pkg2.version],
-                    ]),
-                );
+                const visited = new Set<string>();
+                // get the install deps
+                const result = await registry.getInstallDeps(pkg3.directDeps, overrides, visited);
+                // expect the install deps to be empty
+                expect(packagesAreSame(result, [pkgExtra, pkg0Override, pkg1, pkg2])).toBe(true);
             });
 
             it('one child and grandchild, grandchild doesnt exist in registry, but gets overridden', async () => {
@@ -661,19 +645,13 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkgExtra, pkg0Override, pkg1, pkg2]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
-                // get the transitive deps
-                await registry.getTransitiveDeps(pkg2.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(
-                    new Map([
-                        [pkgExtra.name, pkgExtra.version],
-                        [pkg0Override.name, pkg0Override.version],
-                        [pkg1.name, pkg1.version],
-                    ]),
-                );
+                const visited = new Set<string>();
+                // get the install deps
+                const result = await registry.getInstallDeps(pkg2.directDeps, overrides, visited);
+                // expect the install deps to be empty
+                expect(packagesAreSame(result, [pkgExtra, pkg0Override, pkg1])).toBe(true);
             });
 
             it('5 direct deps, each with 1 indirect dep', async () => {
@@ -740,25 +718,14 @@ describe('models/registry', () => {
                 ]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
-                // get the transitive deps
-                await registry.getTransitiveDeps(pkg10.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(
-                    new Map([
-                        [pkg0.name, pkg0.version],
-                        [pkg1.name, pkg1.version],
-                        [pkg2.name, pkg2.version],
-                        [pkg3.name, pkg3.version],
-                        [pkg4.name, pkg4.version],
-                        [pkg5.name, pkg5.version],
-                        [pkg6.name, pkg6.version],
-                        [pkg7.name, pkg7.version],
-                        [pkg8.name, pkg8.version],
-                        [pkg9.name, pkg9.version],
-                    ]),
+                const visited = new Set<string>();
+                // get the install deps
+                const result = await registry.getInstallDeps(pkg10.directDeps, overrides, visited);
+                // expect the install deps to be empty
+                expect(packagesAreSame(result, [pkg0, pkg1, pkg2, pkg3, pkg4, pkg5, pkg6, pkg7, pkg8, pkg9])).toBe(
+                    true,
                 );
             });
 
@@ -810,20 +777,13 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0Original, pkgExtra, pkg0Override, pkg1, pkg2, pkg3]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
-                // get the transitive deps
-                await registry.getTransitiveDeps(pkg3.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(
-                    new Map([
-                        [pkgExtra.name, pkgExtra.version],
-                        [pkg0Override.name, pkg0Override.version],
-                        [pkg1.name, pkg1.version],
-                        [pkg2.name, pkg2.version],
-                    ]),
-                );
+                const visited = new Set<string>();
+                // get the install deps
+                const result = await registry.getInstallDeps(pkg3.directDeps, overrides, visited);
+                // expect the install deps to be empty
+                expect(packagesAreSame(result, [pkgExtra, pkg0Override, pkg1, pkg2])).toBe(true);
             });
 
             it('two children, both of which override individual great grandchild packages', async () => {
@@ -917,24 +877,15 @@ describe('models/registry', () => {
                 ]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
-                // get the transitive deps
-                await registry.getTransitiveDeps(pkg6.directDeps, overrides, result);
-                // expect the transitive deps to be empty
-                expect(result).toEqual(
-                    new Map([
-                        [pkg0Extra.name, pkg0Extra.version],
-                        [pkg1Extra.name, pkg1Extra.version],
-                        [pkg0Override.name, pkg0Override.version],
-                        [pkg1Override.name, pkg1Override.version],
-                        [pkg2.name, pkg2.version],
-                        [pkg3.name, pkg3.version],
-                        [pkg4.name, pkg4.version],
-                        [pkg5.name, pkg5.version],
-                    ]),
-                );
+                const visited = new Set<string>();
+                // get the install deps
+                const result = await registry.getInstallDeps(pkg6.directDeps, overrides, visited);
+                // expect the install deps to be empty
+                expect(
+                    packagesAreSame(result, [pkg0Extra, pkg1Extra, pkg0Override, pkg1Override, pkg2, pkg3, pkg4, pkg5]),
+                ).toBe(true);
             });
         });
 
@@ -950,18 +901,18 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>([[pkg0.name, pkg0.version]]);
+                const visited = new Set<string>([pkg0.name]);
                 // expect rejection, an error to be thrown
-                await expect(registry.getTransitiveDeps(pkg1.directDeps, overrides, result)).rejects.toThrow(
-                    GetTransitiveDepsError,
+                await expect(registry.getInstallDeps(pkg1.directDeps, overrides, visited)).rejects.toThrow(
+                    GetInstallDepsError,
                 );
             });
 
             it('two direct deps, both have same indirect dep', async () => {
                 // Get the debugger
-                const dbg = debug('apm:common:models:Registry:getTransitiveDeps');
+                const dbg = debug('apm:common:models:Registry:getInstallDeps');
 
                 // Indicate the specific test
                 dbg('Testing two direct deps, both have same indirect dep');
@@ -989,12 +940,12 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
+                const visited = new Set<string>();
                 // expect rejection, an error to be thrown
-                await expect(registry.getTransitiveDeps(pkg3.directDeps, overrides, result)).rejects.toThrow(
-                    GetTransitiveDepsError,
+                await expect(registry.getInstallDeps(pkg3.directDeps, overrides, visited)).rejects.toThrow(
+                    GetInstallDepsError,
                 );
             });
 
@@ -1009,11 +960,11 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg1]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
+                const visited = new Set<string>();
                 // expect rejection, an error to be thrown
-                await expect(registry.getTransitiveDeps(pkg1.directDeps, overrides, result)).rejects.toThrow(
+                await expect(registry.getInstallDeps(pkg1.directDeps, overrides, visited)).rejects.toThrow(
                     PackageLoadError,
                 );
             });
@@ -1035,11 +986,11 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg1, pkg2]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
+                const visited = new Set<string>();
                 // expect rejection, an error to be thrown
-                await expect(registry.getTransitiveDeps(pkg2.directDeps, overrides, result)).rejects.toThrow(
+                await expect(registry.getInstallDeps(pkg2.directDeps, overrides, visited)).rejects.toThrow(
                     PackageLoadError,
                 );
             });
@@ -1081,12 +1032,12 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3, pkg4]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the transitive deps
+                // get the install deps
                 const overrides = new Set<string>();
-                const result = new Map<string, string>();
+                const visited = new Set<string>();
                 // expect rejection, an error to be thrown
-                await expect(registry.getTransitiveDeps(pkg4.directDeps, overrides, result)).rejects.toThrow(
-                    GetTransitiveDepsError,
+                await expect(registry.getInstallDeps(pkg4.directDeps, overrides, visited)).rejects.toThrow(
+                    GetInstallDepsError,
                 );
             });
         });

@@ -4,8 +4,8 @@ import path from 'path';
 import os from 'os';
 import { Package } from './package';
 import RegistryLoadError from '../errors/registry-load';
-import GetTransitiveDepsError from '../errors/get-transitive-deps';
 import RegistryCreateError from '../errors/registry-create';
+import GetInstallDepsError from '../errors/get-install-deps';
 
 // The name of the packages directory
 const PACKAGES_DIR_NAME = 'packages';
@@ -79,18 +79,18 @@ class Registry {
         return await Package.load(filePath);
     }
 
-    // Get the transitive dependencies of a package/project
-    async getTransitiveDeps(
+    // Get the installation dependencies of a package/project
+    async getInstallDeps(
         directDeps: Map<string, string>,
         overrides: Set<string>,
-        result: Map<string, string>,
-    ): Promise<void> {
+        visited: Set<string>,
+    ): Promise<Package[]> {
         // Get the debugger
-        const dbg = debug('apm:common:models:Registry:getTransitiveDeps');
+        const dbg = debug('apm:common:models:Registry:getInstallDeps');
 
         // Indicate that we are getting the project dependencies
         dbg(
-            `Getting transitive dependencies given direct dependencies: ${JSON.stringify(Object.fromEntries(directDeps))}`,
+            `Getting installation dependencies given direct dependencies: ${JSON.stringify(Object.fromEntries(directDeps))}`,
         );
 
         // Filter out the direct dependencies that are overridden
@@ -102,18 +102,21 @@ class Registry {
             if (overrides.has(name)) directDeps.delete(name);
         }
 
-        // Error if any of the direct dependencies are already in result
+        // Error if any of the direct dependencies are already in visited
         for (const [name, version] of directDeps.entries()) {
-            dbg(`Checking if ${name}@${version} is in result`);
-            dbg(`Result: ${JSON.stringify(Object.fromEntries(result))}`);
-            // If the package exists in result, throw an error
+            dbg(`Checking if ${name}@${version} is in visited`);
+            dbg(`Visited: ${JSON.stringify(Array.from(visited))}`);
+            // If the package exists in visited, throw an error
             // as this is an unresolved peer dependency.
-            if (result.has(name))
-                throw new GetTransitiveDepsError(directDeps, `Unresolved peer dependency: ${name}@${version}`);
+            if (visited.has(name))
+                throw new GetInstallDepsError(directDeps, `Unresolved peer dependency: ${name}@${version}`);
         }
 
         // Create a new set of overrides that includes the direct dependencies
         const localOverrides = new Set<string>([...overrides, ...directDeps.keys()]);
+
+        // Create a result array
+        const result: Package[] = [];
 
         // Visit each of the direct dependencies and recur on their dependencies
         for (const [name, version] of directDeps.entries()) {
@@ -124,13 +127,29 @@ class Registry {
             const deps = pkg.directDeps;
 
             // Recur on the dependencies of this package
-            await this.getTransitiveDeps(deps, localOverrides, result);
+            const subResult = await this.getInstallDeps(deps, localOverrides, visited);
 
             // Add the package to the results
-            result.set(name, version);
+            result.push(...subResult);
 
-            dbg(`Added ${name}@${version} to result`);
+            // Add the package to the result
+            result.push(pkg);
+
+            // Indicate that we have added pkg and its install dependencies to the result
+            dbg(`Added ${name}@${version} and its install dependencies to the result`);
+
+            // Add the package to the visited set
+            visited.add(name);
+
+            // Indicate that we have visited the package
+            dbg(`Added ${name} to visited`);
         }
+
+        // Print the result
+        dbg(`Result: ${JSON.stringify(result.map((pkg) => `${pkg.name}@${pkg.version}`))}`);
+
+        // Return the result
+        return result;
     }
 }
 
