@@ -761,6 +761,70 @@ describe('models/registry', () => {
                     ]),
                 );
             });
+
+            it('1 great grandchild 1 grandchild, 1 child, child overrides great grandchild', async () => {
+                // Great grandchild packages
+                const pkg0Original = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Original.apm'),
+                    'pkg0',
+                    new Map(),
+                );
+                // Extra package to make the override different
+                const pkgExtra = await createPackage(
+                    path.join(localPackagesPath, 'pkgExtra.apm'),
+                    'pkgExtra',
+                    new Map(),
+                );
+                // Override grandchild package has a dependency on the extra package
+                const pkg0Override = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Override.apm'),
+                    'pkg0', // name is the same as the original great grandchild package
+                    new Map([[pkgExtra.name, pkgExtra.version]]),
+                );
+
+                // Grandchild packages
+                const pkg1 = await createPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    new Map([[pkg0Original.name, pkg0Original.version]]),
+                );
+
+                // Child package
+                const pkg2 = await createPackage(
+                    path.join(localPackagesPath, 'pkg2.apm'),
+                    'pkg2',
+                    new Map([
+                        [pkg1.name, pkg1.version],
+                        [pkg0Override.name, pkg0Override.version],
+                    ]),
+                );
+
+                // Parent package (doesn't handle the overriding)
+                const pkg3 = await createPackage(
+                    path.join(localPackagesPath, 'pkg3.apm'),
+                    'pkg3',
+                    new Map([[pkg2.name, pkg2.version]]),
+                );
+
+                // load the packages into the registry
+                await loadPackagesIntoRegistry(registryPath, [pkg0Original, pkgExtra, pkg0Override, pkg1, pkg2, pkg3]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the transitive deps
+                const overrides = new Set<string>();
+                const result = new Map<string, string>();
+                // get the transitive deps
+                await registry.getTransitiveDeps(pkg3.directDeps, overrides, result);
+                // expect the transitive deps to be empty
+                expect(result).toEqual(
+                    new Map([
+                        [pkgExtra.name, pkgExtra.version],
+                        [pkg0Override.name, pkg0Override.version],
+                        [pkg1.name, pkg1.version],
+                        [pkg2.name, pkg2.version],
+                    ]),
+                );
+            });
         });
 
         describe('failure cases', () => {
