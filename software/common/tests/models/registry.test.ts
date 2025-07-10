@@ -825,6 +825,117 @@ describe('models/registry', () => {
                     ]),
                 );
             });
+
+            it('two children, both of which override individual great grandchild packages', async () => {
+                // Great grandchild packages
+                const pkg0Original = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Original.apm'),
+                    'pkg0',
+                    new Map(),
+                );
+                const pkg1Original = await createPackage(
+                    path.join(localPackagesPath, 'pkg1Original.apm'),
+                    'pkg1',
+                    new Map(),
+                );
+                // Extra package to make the override different
+                const pkg0Extra = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Extra.apm'),
+                    'pkg0Extra',
+                    new Map(),
+                );
+                const pkg1Extra = await createPackage(
+                    path.join(localPackagesPath, 'pkg1Extra.apm'),
+                    'pkg1Extra',
+                    new Map(),
+                );
+                // Override grandchild package has a dependency on the extra package
+                const pkg0Override = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Override.apm'),
+                    'pkg0', // name is the same as the original great grandchild package
+                    new Map([[pkg0Extra.name, pkg0Extra.version]]),
+                );
+                const pkg1Override = await createPackage(
+                    path.join(localPackagesPath, 'pkg1Override.apm'),
+                    'pkg1', // name is the same as the original great grandchild package
+                    new Map([[pkg1Extra.name, pkg1Extra.version]]),
+                );
+
+                // Grandchild packages
+                const pkg2 = await createPackage(
+                    path.join(localPackagesPath, 'pkg2.apm'),
+                    'pkg2',
+                    new Map([[pkg0Original.name, pkg0Original.version]]),
+                );
+                const pkg3 = await createPackage(
+                    path.join(localPackagesPath, 'pkg3.apm'),
+                    'pkg3',
+                    new Map([[pkg1Original.name, pkg1Original.version]]),
+                );
+
+                // Child packages
+                const pkg4 = await createPackage(
+                    path.join(localPackagesPath, 'pkg4.apm'),
+                    'pkg4',
+                    new Map([
+                        [pkg2.name, pkg2.version],
+                        [pkg0Override.name, pkg0Override.version],
+                    ]),
+                );
+                const pkg5 = await createPackage(
+                    path.join(localPackagesPath, 'pkg5.apm'),
+                    'pkg5',
+                    new Map([
+                        [pkg3.name, pkg3.version],
+                        [pkg1Override.name, pkg1Override.version],
+                    ]),
+                );
+
+                // Parent package (doesn't handle the overriding)
+                const pkg6 = await createPackage(
+                    path.join(localPackagesPath, 'pkg6.apm'),
+                    'pkg6',
+                    new Map([
+                        [pkg4.name, pkg4.version],
+                        [pkg5.name, pkg5.version],
+                    ]),
+                );
+
+                // load the packages into the registry
+                await loadPackagesIntoRegistry(registryPath, [
+                    pkg0Original,
+                    pkg1Original,
+                    pkg0Extra,
+                    pkg1Extra,
+                    pkg0Override,
+                    pkg1Override,
+                    pkg2,
+                    pkg3,
+                    pkg4,
+                    pkg5,
+                    pkg6,
+                ]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the transitive deps
+                const overrides = new Set<string>();
+                const result = new Map<string, string>();
+                // get the transitive deps
+                await registry.getTransitiveDeps(pkg6.directDeps, overrides, result);
+                // expect the transitive deps to be empty
+                expect(result).toEqual(
+                    new Map([
+                        [pkg0Extra.name, pkg0Extra.version],
+                        [pkg1Extra.name, pkg1Extra.version],
+                        [pkg0Override.name, pkg0Override.version],
+                        [pkg1Override.name, pkg1Override.version],
+                        [pkg2.name, pkg2.version],
+                        [pkg3.name, pkg3.version],
+                        [pkg4.name, pkg4.version],
+                        [pkg5.name, pkg5.version],
+                    ]),
+                );
+            });
         });
 
         describe('failure cases', () => {
