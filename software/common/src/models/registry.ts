@@ -27,7 +27,7 @@ class Registry {
     }
 
     // Get a package from the registry
-    async get(name: string, version: string): Promise<Package | null> {
+    async get(name: string, version: string): Promise<Package> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:getPackage');
 

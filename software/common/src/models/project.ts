@@ -285,18 +285,37 @@ export class Project {
     }
 
     // Install the project
-    async install(): Promise<void> {
+    async install(transitiveDeps: Package[]): Promise<Source[]> {
         // Get the debugger
         const dbg = debug('apm:common:models:project:install');
+
         // Indicate that we are installing the project
         dbg(`Installing project at ${this.cwd}`);
+
         // Create deps folder if it does not already exist
         const depsFolderPath = path.join(this.cwd, DEPS_FOLDER_NAME);
         if (!fs.existsSync(depsFolderPath)) fs.mkdirSync(depsFolderPath, { recursive: true });
-        // // Install the direct dependencies
-        // for (const [name, version] of this.directDeps.entries()) {
-        //     const depPath = path.join(depsFolderPath, name);
-        // }
+
+        // Initialize the result empty
+        let result: Source[] = [];
+
+        // Install the direct dependencies
+        for (const dep of transitiveDeps) {
+            // Get the path to the dependency
+            const depPath = path.join(depsFolderPath, dep.name);
+
+            // If the dependency is already installed, continue
+            if (fs.existsSync(depPath)) continue;
+
+            // Install the dependency
+            const source = await Source.create(depPath, dep.getArchive());
+
+            // Add the source to the result
+            result.push(source);
+        }
+
+        // Return the result
+        return result;
     }
 }
 
