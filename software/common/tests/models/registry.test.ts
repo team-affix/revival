@@ -1043,6 +1043,52 @@ describe('models/registry', () => {
                     PackageLoadError,
                 );
             });
+
+            it('2 children, both with 1 grandchild, first grandchild is an unresolve peer dep of grandchild 2', async () => {
+                // Peer dependency package
+                const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', new Map());
+
+                // Second grandchild package
+                const pkg1 = await createPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    new Map([[pkg0.name, pkg0.version]]),
+                );
+
+                // Child packages
+                const pkg2 = await createPackage(
+                    path.join(localPackagesPath, 'pkg2.apm'),
+                    'pkg2',
+                    new Map([[pkg0.name, pkg0.version]]),
+                );
+                const pkg3 = await createPackage(
+                    path.join(localPackagesPath, 'pkg3.apm'),
+                    'pkg3',
+                    new Map([[pkg1.name, pkg1.version]]),
+                );
+
+                // Parent package
+                const pkg4 = await createPackage(
+                    path.join(localPackagesPath, 'pkg4.apm'),
+                    'pkg4',
+                    new Map([
+                        [pkg2.name, pkg2.version],
+                        [pkg3.name, pkg3.version],
+                    ]),
+                );
+
+                // load the package into the registry (DON'T LOAD pkg0)
+                await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3, pkg4]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the transitive deps
+                const overrides = new Set<string>();
+                const result = new Map<string, string>();
+                // expect rejection, an error to be thrown
+                await expect(registry.getTransitiveDeps(pkg4.directDeps, overrides, result)).rejects.toThrow(
+                    GetTransitiveDepsError,
+                );
+            });
         });
     });
 });
