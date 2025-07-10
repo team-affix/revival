@@ -596,7 +596,7 @@ describe('models/registry', () => {
                     'pkg3',
                     new Map([
                         [pkg2.name, pkg2.version],
-                        // [pkg0Override.name, pkg0Override.version],
+                        [pkg0Override.name, pkg0Override.version],
                     ]),
                 );
                 // load the packages into the registry
@@ -677,6 +677,26 @@ describe('models/registry', () => {
                 // expect rejection, an error to be thrown
                 await expect(registry.getTransitiveDeps(pkg3.directDeps, overrides, result)).rejects.toThrow(
                     GetTransitiveDepsError,
+                );
+            });
+
+            it('one direct dep, but dep doesnt exist in registry', async () => {
+                const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', new Map());
+                const pkg1 = await createPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    new Map([[pkg0.name, pkg0.version]]),
+                );
+                // load the package into the registry (DON'T LOAD pkg0)
+                await loadPackagesIntoRegistry(registryPath, [pkg1]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the transitive deps
+                const overrides = new Set<string>();
+                const result = new Map<string, string>();
+                // expect rejection, an error to be thrown
+                await expect(registry.getTransitiveDeps(pkg1.directDeps, overrides, result)).rejects.toThrow(
+                    PackageLoadError,
                 );
             });
         });
