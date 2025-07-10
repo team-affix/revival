@@ -443,6 +443,52 @@ describe('models/registry', () => {
                     ]),
                 );
             });
+
+            it('two direct deps, both have same indirect dep, but it is overridden', async () => {
+                // Get the debugger
+                const dbg = debug('apm:common:models:Registry:getTransitiveDeps');
+
+                // Indicate the specific test
+                dbg('Testing two direct deps, both have same indirect dep');
+
+                const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', new Map());
+                const pkg1 = await createPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    new Map([[pkg0.name, pkg0.version]]),
+                );
+                const pkg2 = await createPackage(
+                    path.join(localPackagesPath, 'pkg2.apm'),
+                    'pkg2',
+                    new Map([[pkg0.name, pkg0.version]]),
+                );
+                const pkg3 = await createPackage(
+                    path.join(localPackagesPath, 'pkg3.apm'),
+                    'pkg3',
+                    new Map([
+                        [pkg0.name, pkg0.version], // OVERRIDES pkg0 peer dependency of pkg1 and pkg2
+                        [pkg1.name, pkg1.version],
+                        [pkg2.name, pkg2.version],
+                    ]),
+                );
+                // load the packages into the registry
+                await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the transitive deps
+                const overrides = new Set<string>();
+                const result = new Map<string, string>();
+                // get the transitive deps
+                await registry.getTransitiveDeps(pkg3.directDeps, overrides, result);
+                // expect the transitive deps to be empty
+                expect(result).toEqual(
+                    new Map([
+                        [pkg0.name, pkg0.version],
+                        [pkg1.name, pkg1.version],
+                        [pkg2.name, pkg2.version],
+                    ]),
+                );
+            });
         });
 
         describe('failure cases', () => {
