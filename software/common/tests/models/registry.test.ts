@@ -675,6 +675,92 @@ describe('models/registry', () => {
                     ]),
                 );
             });
+
+            it('5 direct deps, each with 1 indirect dep', async () => {
+                // Grandchild packages
+                const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', new Map());
+                const pkg1 = await createPackage(path.join(localPackagesPath, 'pkg1.apm'), 'pkg1', new Map());
+                const pkg2 = await createPackage(path.join(localPackagesPath, 'pkg2.apm'), 'pkg2', new Map());
+                const pkg3 = await createPackage(path.join(localPackagesPath, 'pkg3.apm'), 'pkg3', new Map());
+                const pkg4 = await createPackage(path.join(localPackagesPath, 'pkg4.apm'), 'pkg4', new Map());
+
+                // Child packages
+                const pkg5 = await createPackage(
+                    path.join(localPackagesPath, 'pkg5.apm'),
+                    'pkg5',
+                    new Map([[pkg0.name, pkg0.version]]),
+                );
+                const pkg6 = await createPackage(
+                    path.join(localPackagesPath, 'pkg6.apm'),
+                    'pkg6',
+                    new Map([[pkg1.name, pkg1.version]]),
+                );
+                const pkg7 = await createPackage(
+                    path.join(localPackagesPath, 'pkg7.apm'),
+                    'pkg7',
+                    new Map([[pkg2.name, pkg2.version]]),
+                );
+                const pkg8 = await createPackage(
+                    path.join(localPackagesPath, 'pkg8.apm'),
+                    'pkg8',
+                    new Map([[pkg3.name, pkg3.version]]),
+                );
+                const pkg9 = await createPackage(
+                    path.join(localPackagesPath, 'pkg9.apm'),
+                    'pkg9',
+                    new Map([[pkg4.name, pkg4.version]]),
+                );
+
+                // Parent package
+                const pkg10 = await createPackage(
+                    path.join(localPackagesPath, 'pkg10.apm'),
+                    'pkg10',
+                    new Map([
+                        [pkg5.name, pkg5.version],
+                        [pkg6.name, pkg6.version],
+                        [pkg7.name, pkg7.version],
+                        [pkg8.name, pkg8.version],
+                        [pkg9.name, pkg9.version],
+                    ]),
+                );
+
+                // load the package into the registry (DON'T LOAD pkg0Original)
+                await loadPackagesIntoRegistry(registryPath, [
+                    pkg0,
+                    pkg1,
+                    pkg2,
+                    pkg3,
+                    pkg4,
+                    pkg5,
+                    pkg6,
+                    pkg7,
+                    pkg8,
+                    pkg9,
+                    pkg10,
+                ]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the transitive deps
+                const overrides = new Set<string>();
+                const result = new Map<string, string>();
+                // get the transitive deps
+                await registry.getTransitiveDeps(pkg10.directDeps, overrides, result);
+                // expect the transitive deps to be empty
+                expect(result).toEqual(
+                    new Map([
+                        [pkg0.name, pkg0.version],
+                        [pkg1.name, pkg1.version],
+                        [pkg2.name, pkg2.version],
+                        [pkg3.name, pkg3.version],
+                        [pkg4.name, pkg4.version],
+                        [pkg5.name, pkg5.version],
+                        [pkg6.name, pkg6.version],
+                        [pkg7.name, pkg7.version],
+                        [pkg8.name, pkg8.version],
+                        [pkg9.name, pkg9.version],
+                    ]),
+                );
+            });
         });
 
         describe('failure cases', () => {
