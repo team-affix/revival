@@ -618,6 +618,63 @@ describe('models/registry', () => {
                     ]),
                 );
             });
+
+            it('one child and grandchild, grandchild doesnt exist in registry, but gets overridden', async () => {
+                // Original grandchild package has NO DEPENDENCIES
+                const pkg0Original = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Original.apm'),
+                    'pkg0',
+                    new Map(),
+                );
+
+                // Extra package to make the override different
+                const pkgExtra = await createPackage(
+                    path.join(localPackagesPath, 'pkgExtra.apm'),
+                    'pkgExtra',
+                    new Map(),
+                );
+                // Override grandchild package has a dependency on the extra package
+                const pkg0Override = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Override.apm'),
+                    'pkg0', // name is the same as the original grandchild package
+                    new Map([[pkgExtra.name, pkgExtra.version]]),
+                );
+
+                // Child package
+                const pkg1 = await createPackage(
+                    path.join(localPackagesPath, 'pkg2.apm'),
+                    'pkg2',
+                    new Map([[pkg0Original.name, pkg0Original.version]]),
+                );
+
+                // Original parent package has a dependency on the original child package, and on the override grandchild package
+                const pkg2 = await createPackage(
+                    path.join(localPackagesPath, 'pkg3.apm'),
+                    'pkg3',
+                    new Map([
+                        [pkg1.name, pkg1.version],
+                        [pkg0Override.name, pkg0Override.version],
+                    ]),
+                );
+
+                // load the package into the registry (DON'T LOAD pkg0Original)
+                await loadPackagesIntoRegistry(registryPath, [pkgExtra, pkg0Override, pkg1, pkg2]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the transitive deps
+                const overrides = new Set<string>();
+                const result = new Map<string, string>();
+                // get the transitive deps
+                await registry.getTransitiveDeps(pkg2.directDeps, overrides, result);
+                // expect the transitive deps to be empty
+                expect(result).toEqual(
+                    new Map([
+                        [pkgExtra.name, pkgExtra.version],
+                        [pkg0Override.name, pkg0Override.version],
+                        [pkg1.name, pkg1.version],
+                    ]),
+                );
+            });
         });
 
         describe('failure cases', () => {
@@ -696,6 +753,32 @@ describe('models/registry', () => {
                 const result = new Map<string, string>();
                 // expect rejection, an error to be thrown
                 await expect(registry.getTransitiveDeps(pkg1.directDeps, overrides, result)).rejects.toThrow(
+                    PackageLoadError,
+                );
+            });
+
+            it('one direct dep, one indirect dep, but indirect dep doesnt exist in registry', async () => {
+                const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', new Map());
+                const pkg1 = await createPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    new Map([[pkg0.name, pkg0.version]]),
+                );
+                const pkg2 = await createPackage(
+                    path.join(localPackagesPath, 'pkg2.apm'),
+                    'pkg2',
+                    new Map([[pkg1.name, pkg1.version]]),
+                );
+
+                // load the package into the registry (DON'T LOAD pkg0)
+                await loadPackagesIntoRegistry(registryPath, [pkg1, pkg2]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the transitive deps
+                const overrides = new Set<string>();
+                const result = new Map<string, string>();
+                // expect rejection, an error to be thrown
+                await expect(registry.getTransitiveDeps(pkg2.directDeps, overrides, result)).rejects.toThrow(
                     PackageLoadError,
                 );
             });
