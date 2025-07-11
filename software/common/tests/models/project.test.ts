@@ -13,6 +13,7 @@ import ProjectInitError from '../../src/errors/project-init';
 import { Package } from '../../src/models/package';
 import { Source } from '../../src/models/source';
 import { Readable } from 'stream';
+import CheckProjectError from '../../src/errors/check-project';
 
 describe('models/Project', () => {
     describe('parseDirectDeps()', () => {
@@ -1307,6 +1308,203 @@ describe('models/Project', () => {
                 // Expect a rejection
                 await expect(Project.init(projectPath, { projectName })).rejects.toThrow(ProjectInitError);
             });
+        });
+    });
+
+    describe('Project.check()', () => {
+        const projectName = 'APMTmpProject';
+        const projectDir = path.join(os.tmpdir(), projectName);
+        let project: Project;
+
+        const writeFileInside = (relPath: string, content: string) => {
+            const filePath = path.join(projectDir, relPath);
+            fs.mkdirSync(path.dirname(filePath), { recursive: true });
+            fs.writeFileSync(filePath, content);
+        };
+
+        const setRootSource = (files: Map<string, string>) => {
+            const rootSourceDir = path.join(projectDir, projectName);
+            // If the dir exists, remove it
+            if (fs.existsSync(rootSourceDir)) fs.rmSync(rootSourceDir, { recursive: true, force: true });
+            // Create the dir
+            fs.mkdirSync(rootSourceDir, { recursive: true });
+            // Create the files
+            for (const [relPath, content] of files.entries()) {
+                writeFileInside(path.join(projectName, relPath), content);
+            }
+        };
+
+        beforeEach(async () => {
+            // Remove the temporary directory if it exists
+            if (fs.existsSync(projectDir)) fs.rmSync(projectDir, { recursive: true, force: true });
+            // Create the temporary directory
+            fs.mkdirSync(projectDir, { recursive: true });
+            // Create the project
+            project = await Project.init(projectDir, { projectName });
+        });
+
+        describe('success cases', () => {
+            const genericTest = async (files: Map<string, string>) => {
+                // Set the root source
+                setRootSource(files);
+                // reload the project
+                project = await Project.load(projectDir);
+                // Expect the project to check
+                await expect(project.check()).resolves.toBeUndefined();
+            };
+
+            it('zero files in root source', async () => await genericTest(new Map()));
+
+            it('one agda file', async () =>
+                await genericTest(new Map([['file1.agda', `module ${projectName}.file1 where`]])));
+
+            it('one agda file that defines a Nat', async () =>
+                await genericTest(
+                    new Map([
+                        [
+                            'file1.agda',
+                            `
+                            module ${projectName}.file1 where
+                            open import Agda.Builtin.Nat
+                            myNat : Nat
+                            myNat = 0
+                            `,
+                        ],
+                    ]),
+                ));
+
+            it('two agda files that both define Nats', async () =>
+                await genericTest(
+                    new Map([
+                        [
+                            'file1.agda',
+                            `
+                                module ${projectName}.file1 where
+                                open import Agda.Builtin.Nat
+                                myNat : Nat
+                                myNat = 1
+                                `,
+                        ],
+                        [
+                            'file2.agda',
+                            `
+                                module ${projectName}.file2 where
+                                open import Agda.Builtin.Nat
+                                myNat : Nat
+                                myNat = 2
+                                `,
+                        ],
+                    ]),
+                ));
+
+            it('one agda file in subdir is correct', async () =>
+                await genericTest(
+                    new Map([
+                        [
+                            'subdir/file1.agda',
+                            `
+                                module ${projectName}.subdir.file1 where
+                                open import Agda.Builtin.Nat
+                                myNat : Nat
+                                myNat = 1
+                                `,
+                        ],
+                    ]),
+                ));
+        });
+
+        describe('failure cases', () => {
+            const genericTest = async (files: Map<string, string>) => {
+                // Set the root source
+                setRootSource(files);
+                // reload the project
+                project = await Project.load(projectDir);
+                // Expect the project to check
+                await expect(project.check()).rejects.toThrow(CheckProjectError);
+            };
+
+            it('empty agda file', async () => await genericTest(new Map([['file1.agda', ``]])));
+
+            it('single agda file with invalid module name (omitting project name)', async () =>
+                await genericTest(new Map([['file1.agda', `module file2 where`]])));
+
+            it('single agda file with invalid module name (wrong file name)', async () =>
+                await genericTest(new Map([['file1.agda', `module ${projectName}.file2 where`]])));
+
+            it('single agda file importing nonexistent library', async () =>
+                await genericTest(
+                    new Map([
+                        [
+                            'file1.agda',
+                            `
+                            module ${projectName}.file1 where
+                            open import MyAwesomeLibrary`,
+                        ],
+                    ]),
+                ));
+
+            it('two agda files where first in lexical order is wrong', async () =>
+                await genericTest(
+                    new Map([
+                        [
+                            'file1.agda',
+                            `
+                                    module ${projectName}.file1 where
+                                    open import Agda.Builtin.Nat
+                                    myNat : Nat
+                                    myNat = abc
+                                    `,
+                        ],
+                        [
+                            'file2.agda',
+                            `
+                                    module ${projectName}.file2 where
+                                    open import Agda.Builtin.Nat
+                                    myNat : Nat
+                                    myNat = 2
+                                    `,
+                        ],
+                    ]),
+                ));
+
+            it('two agda files where second in lexical order is wrong', async () =>
+                await genericTest(
+                    new Map([
+                        [
+                            'file1.agda',
+                            `
+                                        module ${projectName}.file1 where
+                                        open import Agda.Builtin.Nat
+                                        myNat : Nat
+                                        myNat = 1
+                                        `,
+                        ],
+                        [
+                            'file2.agda',
+                            `
+                                        module ${projectName}.file2 where
+                                        open import Agda.Builtin.Nat
+                                        myNat : Nat
+                                        myNat = abc
+                                        `,
+                        ],
+                    ]),
+                ));
+
+            it('one agda file in subdir is wrong', async () =>
+                await genericTest(
+                    new Map([
+                        [
+                            'subdir/file1.agda',
+                            `
+                            module ${projectName}.subdir.file1 where
+                            open import Agda.Builtin.Nat
+                            myNat : Nat
+                            myNat = abc
+                            `,
+                        ],
+                    ]),
+                ));
         });
     });
 });

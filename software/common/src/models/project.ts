@@ -345,7 +345,7 @@ export class Project {
 
             try {
                 // Execute agda on the file
-                await execAsync(`agda ${fullFilePath}`);
+                await execAsync(`agda ${fullFilePath}`, { cwd: this.cwd });
             } catch (error: any) {
                 // console.log(error);
                 let message = error.stderr || error.stdout || error.message || error;
