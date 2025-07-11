@@ -10,7 +10,7 @@ import { Source } from './source';
 import { Package } from './package';
 import { Readable } from 'stream';
 import { promisify } from 'util';
-import { exec } from 'child_process';
+import { exec, ExecException } from 'child_process';
 import CheckProjectError from '../errors/check-project';
 
 // Promisify the exec function
@@ -346,11 +346,13 @@ export class Project {
             try {
                 // Execute agda on the file
                 await execAsync(`agda ${fullFilePath}`, { cwd: this.cwd });
-            } catch (error: any) {
-                // console.log(error);
-                let message = error.stderr || error.stdout || error.message || error;
-                // Throw an error
-                throw new CheckProjectError(this.cwd, message);
+            } catch (error: unknown) {
+                // Handled error
+                if (error && typeof error === 'object' && 'stdout' in error) {
+                    throw new CheckProjectError(this.cwd, (error as ExecException).stdout as string);
+                }
+                // Unhandled errors
+                throw error;
             }
         }
     }
