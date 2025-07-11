@@ -132,20 +132,35 @@ program
 
             // Get the transitive dependencies
             const overrides = new Set<string>();
-            const transitiveDeps: Map<string, string> = new Map();
-            await registry.getTransitiveDeps(deps, overrides, transitiveDeps);
-
-            dbg(`Transitive dependencies: ${JSON.stringify(Object.fromEntries(transitiveDeps))}`);
-
-            // Get the packages asynchronously
-            const pkgs = await Promise.all(
-                Array.from(transitiveDeps.entries()).map(([name, version]) => registry.get(name, version)),
-            );
+            const visited = new Set<string>();
+            const pkgs: common.Package[] = await registry.getInstallDeps(deps, overrides, visited);
 
             dbg(`Packages: ${JSON.stringify(pkgs.map((pkg) => pkg.name))}`);
 
             // Install the dependencies
             await project.install(pkgs);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                console.error(error.message);
+            } else {
+                console.error(error);
+            }
+        }
+    });
+
+program
+    .command('check')
+    .description('Typechecks the current project')
+    .action(async () => {
+        try {
+            // Get the current working directory
+            const cwd = process.cwd();
+
+            // Get the project
+            const project = await common.Project.load(cwd);
+
+            // Typecheck the project
+            await project.check();
         } catch (error: unknown) {
             if (error instanceof Error) {
                 console.error(error.message);

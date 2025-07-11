@@ -9,6 +9,12 @@ import FailedToParseDepsError from '../errors/failed-to-parse-deps';
 import { Source } from './source';
 import { Package } from './package';
 import { Readable } from 'stream';
+import { promisify } from 'util';
+import { exec } from 'child_process';
+import CheckProjectError from '../errors/check-project';
+
+// Promisify the exec function
+const execAsync = promisify(exec);
 
 // The name of the deps file
 const DEPS_FILE_NAME = 'deps.txt';
@@ -316,6 +322,37 @@ export class Project {
 
         // Return the result
         return result;
+    }
+
+    // Check if the project is valid
+    async check(): Promise<void> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:project:check');
+
+        // Indicate that we are checking the project
+        dbg(`Checking project at ${this.cwd}`);
+
+        // Validate the agda files
+        for (const filePath of this.rootSource.agdaFiles) {
+            // Get the full file path
+            const fullFilePath = path.join(this.rootSource.cwd, filePath);
+
+            // Get the debugger
+            const dbg = debug('apm:common:models:project:check:agdaFile');
+
+            // Indicate that we are checking the agda file
+            dbg(`Checking agda file at ${fullFilePath}`);
+
+            try {
+                // Execute agda on the file
+                await execAsync(`agda ${fullFilePath}`);
+            } catch (error: any) {
+                // console.log(error);
+                let message = error.stderr || error.stdout || error.message || error;
+                // Throw an error
+                throw new CheckProjectError(this.cwd, message);
+            }
+        }
     }
 }
 
