@@ -157,7 +157,6 @@ class Registry {
             const subResult = await this.getProjectTree(deps, localOverrides, visited);
 
             // Add the package to the results
-            // result.push(...subResult);
             const tree = new PackageTree(pkg, subResult);
 
             // Add the package to the result
