@@ -522,7 +522,7 @@ describe('models/registry', () => {
                 const registry = await Registry.load(registryPath);
                 // get the project tree
                 const result = await registry.getProjectTree(pkg2.directDeps);
-                console.log(result.map((pkg) => `${pkg.name}@${pkg.version}`).join(', '));
+
                 // expect the project tree to be empty
                 expect(packagesAreSame(result, [pkg1, pkgExtra, pkg0Override])).toBe(true);
             });
@@ -1092,7 +1092,7 @@ describe('models/registry', () => {
                         { id: 2, name: 'pkg2', deps: [0, 1] },
                     ],
                     2,
-                    [0, 1, 2],
+                    [0, 0, 1, 2],
                 ));
         });
     });

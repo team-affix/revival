@@ -2,8 +2,6 @@ import { Package } from '../models/package';
 import { boxed } from './box-text';
 import { AsciiTree } from 'oo-ascii-tree';
 
-console.log(boxed('Calculus\n45gnskjgfdg7346wgfysiudkhb3459wg786s8dyhufghk5w46785resbyhudlf'));
-
 // Convert a package tree to an ASCII tree
 function getAsciiTree(packageTree: PackageTree): AsciiTree {
     // Create the root node
@@ -37,3 +35,7 @@ export class PackageTree {
         return getAsciiTree(this).toString();
     }
 }
+
+export const __test__ = {
+    getAsciiTree,
+};
