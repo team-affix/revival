@@ -10,6 +10,7 @@ import RegistryLoadError from '../errors/registry-load';
 import RegistryCreateError from '../errors/registry-create';
 import GetProjectTreeError from '../errors/get-project-tree';
 import VetPackageError from '../errors/vet-package';
+import CheckProjectError from '../errors/check-project';
 
 // The name of the packages directory
 const PACKAGES_DIR_NAME = 'packages';
@@ -180,12 +181,20 @@ class Registry {
     }
 
     // Vet a package
-    async vet(pkg: Package): Promise<void> {
+    async vet(pkg: Package, expectedVersion?: string): Promise<void> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:vet');
 
         // Indicate that we are vetting a package
         dbg(`Vetting package ${pkg.name}@${pkg.version}`);
+
+        // Check if the package version matches the expected version
+        if (expectedVersion && pkg.version !== expectedVersion)
+            throw new VetPackageError(
+                pkg.name,
+                pkg.version,
+                `Package version does not match expected version. Expected: ${expectedVersion}`,
+            );
 
         // Create a project folder
         const projectDirPath = fs.mkdtempSync(path.join(os.tmpdir(), `apm-vet-${pkg.name}-${pkg.version}`));
@@ -193,28 +202,21 @@ class Registry {
         // Create a project from the package in a temporary directory
         const project = await Project.init(projectDirPath, { pkg });
 
-        // Get the root source directory
-        const rootSourceDir = project.rootSource.cwd;
+        // // Get the root source directory
+        // const rootSourceDir = project.rootSource.cwd;
 
-        // Glob the root source directory
-        const files = await glob(path.join(rootSourceDir, '**', '*'), { nodir: true, dot: true });
+        // // Glob the root source directory
+        // const files = await glob(path.join(rootSourceDir, '**', '*'), { nodir: true, dot: true });
 
-        console.log(files);
+        // // console.log(files);
 
         // Check for any illegal files (anything with an extension other than .agda or .md) within the root source
-        if (project.rootSource.miscFiles.length > 0) {
-            // Get the illegal files
-            const illegalFiles = project.rootSource.miscFiles.filter(
-                (file) => !file.endsWith('.agda') && !file.endsWith('.md'),
+        if (project.rootSource.miscFiles.length > 0)
+            throw new VetPackageError(
+                pkg.name,
+                pkg.version,
+                `Package contains illegal files:\n${project.rootSource.miscFiles.join('\n')}`,
             );
-
-            // Throw an error
-        }
-        throw new VetPackageError(
-            pkg.name,
-            pkg.version,
-            `Package contains illegal files:\n${project.rootSource.miscFiles.join('\n')}`,
-        );
 
         // Get the project tree
         const projectTree = await this.getProjectTree(pkg.directDeps);
@@ -225,8 +227,16 @@ class Registry {
         // Install the project
         await project.install(pkgs);
 
-        // Check the project
-        await project.check();
+        try {
+            // Check the project
+            await project.check();
+        } catch (e: unknown) {
+            // Handled error
+            if (e instanceof CheckProjectError)
+                throw new VetPackageError(pkg.name, pkg.version, (e as CheckProjectError).message);
+            // Unhandled error
+            throw e;
+        }
     }
 
     // // Add a package to the registry
