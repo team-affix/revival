@@ -6,6 +6,7 @@ import { Readable } from 'stream';
 import { Package } from '../../src/models/package';
 import { Source } from '../../src/models/source';
 import { PackageTree, __test__ as PackageTreeTest } from '../../src/utils/package-tree';
+import { boxed } from '../../src/utils/box-text';
 
 describe('utils/PackageTree', () => {
     // Helper function to create a package with no source files
@@ -33,6 +34,12 @@ describe('utils/PackageTree', () => {
         );
     };
 
+    const depend = (deps: Package[]) => {
+        const result = new Map<string, string>();
+        for (const dep of deps) result.set(dep.name, dep.version);
+        return result;
+    };
+
     const testCasePath = path.join(os.tmpdir(), 'TestCaseTemp');
 
     beforeEach(async () => {
@@ -42,66 +49,97 @@ describe('utils/PackageTree', () => {
         fs.mkdirSync(testCasePath, { recursive: true });
     });
 
+    //     describe('getAsciiTree()', () => {
+    //         it('just a root node', async () => {
+    //             // Create the package
+    //             const pkg0 = await createPackage(path.join(testCasePath, 'pkg0.apm'), 'pkg0', depend([]));
+    //             // Create the package tree
+    //             const tree = new PackageTree(pkg0, []);
+    //             // Get the ASCII tree
+    //             const asciiTree = PackageTreeTest.getAsciiTree(tree);
+    //             console.log(asciiTree.toString());
+    //             // Assert the ASCII tree
+    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.version));
+    //         });
+
+    //         it('a root with one child', async () => {
+    //             // Create the packages
+    //             const pkg0 = await createPackage(path.join(testCasePath, 'pkg0.apm'), 'pkg0', depend([]));
+    //             const pkg1 = await createPackage(path.join(testCasePath, 'pkg1.apm'), 'pkg1', depend([pkg0]));
+    //             // Create the package tree
+    //             const tree = new PackageTree(pkg1, [new PackageTree(pkg0, [])]);
+    //             // Get the ASCII tree
+    //             const asciiTree = PackageTreeTest.getAsciiTree(tree);
+    //             console.log(asciiTree.toString());
+    //             // Assert the ASCII tree
+    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.version));
+    //         });
+
+    //         it('a root with two children', async () => {
+    //             // Create the packages
+    //             const pkg0 = await createPackage(path.join(testCasePath, 'pkg0.apm'), 'pkg0', depend([]));
+    //             const pkg1 = await createPackage(path.join(testCasePath, 'pkg1.apm'), 'pkg1', depend([]));
+    //             const pkg2 = await createPackage(path.join(testCasePath, 'pkg2.apm'), 'pkg2', depend([pkg0, pkg1]));
+    //             // Create the package tree
+    //             const tree = new PackageTree(pkg2, [new PackageTree(pkg0, []), new PackageTree(pkg1, [])]);
+    //             // Get the ASCII tree
+    //             const asciiTree = PackageTreeTest.getAsciiTree(tree);
+    //             console.log(asciiTree.toString());
+    //             // Assert the ASCII tree
+    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.version));
+    //         });
+
+    //         it('a root with one child and one grandchild', async () => {
+    //             // Create the packages
+    //             const pkg0 = await createPackage(path.join(testCasePath, 'pkg0.apm'), 'pkg0', depend([]));
+    //             const pkg1 = await createPackage(path.join(testCasePath, 'pkg1.apm'), 'pkg1', depend([pkg0]));
+    //             const pkg2 = await createPackage(path.join(testCasePath, 'pkg2.apm'), 'pkg2', depend([pkg1]));
+    //             // Create the package tree
+    //             const tree = new PackageTree(pkg2, [new PackageTree(pkg1, [new PackageTree(pkg0, [])])]);
+    //             // Get the ASCII tree
+    //             const asciiTree = PackageTreeTest.getAsciiTree(tree);
+    //             console.log(asciiTree.toString());
+    //             // Assert the ASCII tree
+    //             const expected = `┌────────────────────────────────────────────────────────────────┐
+    // |                                                            pkg2│
+    // |${pkg2.version}│
+    // └────────────────────────────────────────────────────────────────┘
+    // ├── ┌────────────────────────────────────────────────────────────────┐
+    // │   |                                                            pkg0│
+    // │   |${pkg0.version}│
+    // │   └────────────────────────────────────────────────────────────────┘
+    // └── ┌────────────────────────────────────────────────────────────────┐
+    //     |                                                            pkg1│
+    //     |${pkg1.version}│
+    //     └────────────────────────────────────────────────────────────────┘`;
+    //             expect(asciiTree.toString()).toBe(expected);
+    //         });
+
+    //         it('a root with two children and four grandchildren', async () => {
+    //             // Create the packages
+    //             const pkg0 = await createPackage(path.join(testCasePath, 'pkg0.apm'), 'pkg0', depend([]));
+    //             const pkg1 = await createPackage(path.join(testCasePath, 'pkg1.apm'), 'pkg1', depend([]));
+    //             const pkg2 = await createPackage(path.join(testCasePath, 'pkg2.apm'), 'pkg2', depend([]));
+    //             const pkg3 = await createPackage(path.join(testCasePath, 'pkg3.apm'), 'pkg3', depend([]));
+    //             const pkg4 = await createPackage(path.join(testCasePath, 'pkg4.apm'), 'pkg4', depend([pkg0, pkg1]));
+    //             const pkg5 = await createPackage(path.join(testCasePath, 'pkg5.apm'), 'pkg5', depend([pkg2, pkg3]));
+    //             const pkg6 = await createPackage(path.join(testCasePath, 'pkg6.apm'), 'pkg6', depend([pkg4, pkg5]));
+    //             // Create the package tree
+    //             const tree = new PackageTree(pkg6, [
+    //                 new PackageTree(pkg4, [new PackageTree(pkg0, []), new PackageTree(pkg1, [])]),
+    //                 new PackageTree(pkg5, [new PackageTree(pkg2, []), new PackageTree(pkg3, [])]),
+    //             ]);
+    //             // Get the ASCII tree
+    //             const asciiTree = PackageTreeTest.getAsciiTree(tree);
+    //             console.log(asciiTree.toString());
+    //             // Assert the ASCII tree
+    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.version));
+    //         });
+    //     });
+
     describe('getTopologicalSort', () => {
-        // // Helper function to create dependent packages
-        // const createDependentPackages = async (
-        //     pkgs: { id: number; name: string; deps: number[] }[],
-        // ): Promise<Package[]> => {
-        //     // Create the packages
-        //     const idPackageMap: Map<number, Package> = new Map();
-        //     for (const pkgDesc of pkgs) {
-        //         // Construct the file path
-        //         const filePath = path.join(testCasePath, `${pkgDesc.id}.apm`);
-        //         // Construct the direct dependencies
-        //         const directDeps = new Map<string, string>();
-        //         for (const id of pkgDesc.deps) {
-        //             const depPkg = idPackageMap.get(id)!;
-        //             directDeps.set(depPkg.name, depPkg.version);
-        //         }
-        //         // Construct the package
-        //         const pkg = await createPackage(filePath, pkgDesc.name, directDeps);
-        //         // Add the package to the map
-        //         idPackageMap.set(pkgDesc.id, pkg);
-        //     }
-        //     // Return the packages
-        //     return Array.from(idPackageMap.values());
-        // };
-
-        // // Generic test function
-        // const genericTest = async (
-        //     includedPkgs: { id: number; name: string; deps: number[] }[],
-        //     rootId: number,
-        //     expectedPkgIds: number[],
-        // ) => {
-        //     // Create the dependent packages
-        //     const pkgs = await createDependentPackages(includedPkgs);
-
-        //     // Get the root package
-        //     const rootPkg = pkgs.get(rootId)!;
-
-        //     // Get the expected packages
-        //     const expectedPkgs = expectedPkgIds.map((id) => pkgs.get(id)!);
-
-        //     // Create the package tree
-        //     const tree = new PackageTree(
-        //         rootPkg,
-        //         expectedPkgs.map((pkg) => new PackageTree(pkg, [])),
-        //     );
-
-        //     // Get the topological sort
-        //     const topologicalSort = tree.getTopologicalSort();
-
-        //     // Assert the topological sort
-        //     expect(packagesAreSame(topologicalSort, expectedPkgs)).toBe(true);
-        // };
-
-        const depend = (deps: Package[]) => {
-            const result = new Map<string, string>();
-            for (const dep of deps) result.set(dep.name, dep.version);
-            return result;
-        };
-
         it('just a root node', async () => {
+            console.log(fs.readdirSync(testCasePath));
             // Create the package
             const pkg0 = await createPackage(path.join(testCasePath, 'pkg0.apm'), 'pkg0', depend([]));
             // Create the package tree
