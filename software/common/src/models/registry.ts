@@ -5,7 +5,7 @@ import os from 'os';
 import { Package } from './package';
 import RegistryLoadError from '../errors/registry-load';
 import RegistryCreateError from '../errors/registry-create';
-import GetInstallDepsError from '../errors/get-install-deps';
+import GetProjectTreeError from '../errors/get-project-tree';
 
 // The name of the packages directory
 const PACKAGES_DIR_NAME = 'packages';
@@ -79,19 +79,28 @@ class Registry {
         return await Package.load(filePath);
     }
 
-    // Get the installation dependencies of a package/project
-    async getInstallDeps(
+    // async getPullDeps(name: string, version: string): Promise<Package[]> {
+    //     // Get the debugger
+    //     const dbg = debug('apm:common:models:Registry:getPullDeps');
+
+    //     // Indicate that we are getting the pull dependencies
+    //     dbg(`Getting pull dependencies given direct dependencies: ${JSON.stringify(Object.fromEntries(directDeps))}`);
+
+    //     // Return the pull dependencies
+    //     return [];
+    // }
+
+    // Get the project tree of a project given its direct dependencies
+    async getProjectTree(
         directDeps: Map<string, string>,
-        overrides: Set<string>,
-        visited: Set<string>,
+        overrides: Set<string> = new Set<string>(),
+        visited: Set<string> = new Set<string>(),
     ): Promise<Package[]> {
         // Get the debugger
-        const dbg = debug('apm:common:models:Registry:getInstallDeps');
+        const dbg = debug('apm:common:models:Registry:getProjectTree');
 
         // Indicate that we are getting the project dependencies
-        dbg(
-            `Getting installation dependencies given direct dependencies: ${JSON.stringify(Object.fromEntries(directDeps))}`,
-        );
+        dbg(`Getting project tree given direct dependencies: ${JSON.stringify(Object.fromEntries(directDeps))}`);
 
         // Filter out the direct dependencies that are overridden
         for (const [name] of directDeps.entries()) {
@@ -109,7 +118,7 @@ class Registry {
             // If the package exists in visited, throw an error
             // as this is an unresolved peer dependency.
             if (visited.has(name))
-                throw new GetInstallDepsError(directDeps, `Unresolved peer dependency: ${name}@${version}`);
+                throw new GetProjectTreeError(directDeps, `Unresolved peer dependency: ${name}@${version}`);
         }
 
         // Create a new set of overrides that includes the direct dependencies
@@ -127,7 +136,7 @@ class Registry {
             const deps = pkg.directDeps;
 
             // Recur on the dependencies of this package
-            const subResult = await this.getInstallDeps(deps, localOverrides, visited);
+            const subResult = await this.getProjectTree(deps, localOverrides, visited);
 
             // Add the package to the results
             result.push(...subResult);
@@ -135,8 +144,8 @@ class Registry {
             // Add the package to the result
             result.push(pkg);
 
-            // Indicate that we have added pkg and its install dependencies to the result
-            dbg(`Added ${name}@${version} and its install dependencies to the result`);
+            // Indicate that we have added pkg and its project tree to the result
+            dbg(`Added ${name}@${version} and its project tree to the result`);
 
             // Add the package to the visited set
             visited.add(name);

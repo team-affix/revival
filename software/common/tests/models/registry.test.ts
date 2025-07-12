@@ -9,7 +9,7 @@ import RegistryLoadError from '../../src/errors/registry-load';
 import { Source } from '../../src/models/source';
 import { Package } from '../../src/models/package';
 import PackageLoadError from '../../src/errors/package-load';
-import GetInstallDepsError from '../../src/errors/get-install-deps';
+import GetProjectTreeError from '../../src/errors/get-project-tree';
 
 describe('models/registry', () => {
     // Helper function to create a package with no source files
@@ -313,7 +313,7 @@ describe('models/registry', () => {
         });
     });
 
-    describe('Registry.getInstallDeps()', () => {
+    describe('Registry.getProjectTree()', () => {
         const registryPath = path.join(testCaseDir, 'registry');
         const localPackagesPath = path.join(testCaseDir, 'local-packages');
 
@@ -342,21 +342,19 @@ describe('models/registry', () => {
         });
 
         describe('success cases', () => {
-            it('zero direct deps should produce empty install deps', async () => {
+            it('zero direct deps should produce empty project tree', async () => {
                 const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', new Map());
                 // load the packages into the registry
                 await loadPackagesIntoRegistry(registryPath, [pkg0]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
-                const result = await registry.getInstallDeps(pkg0.directDeps, overrides, visited);
-                // expect the install deps to be empty
+                // get the project tree
+                const result = await registry.getProjectTree(pkg0.directDeps);
+                // expect the project tree to be empty
                 expect(packagesAreSame(result, [])).toBe(true);
             });
 
-            it('single direct dep should produce install deps of the direct dep', async () => {
+            it('single direct dep should produce project tree of the direct dep', async () => {
                 const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', new Map());
                 const pkg1 = await createPackage(
                     path.join(localPackagesPath, 'pkg1.apm'),
@@ -367,15 +365,13 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
-                const result = await registry.getInstallDeps(pkg1.directDeps, overrides, visited);
-                // expect the install deps to be empty
+                // get the project tree
+                const result = await registry.getProjectTree(pkg1.directDeps);
+                // expect the project tree to be empty
                 expect(packagesAreSame(result, [pkg0])).toBe(true);
             });
 
-            it('single direct dep which has been overridden should not be included in the install deps', async () => {
+            it('single direct dep which has been overridden should not be included in the project tree', async () => {
                 const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', new Map());
                 const pkg1 = await createPackage(
                     path.join(localPackagesPath, 'pkg1.apm'),
@@ -386,11 +382,11 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
+                // get the project tree
                 const overrides = new Set<string>([pkg0.name]);
                 const visited = new Set<string>();
-                const result = await registry.getInstallDeps(pkg1.directDeps, overrides, visited);
-                // expect the install deps to be empty
+                const result = await registry.getProjectTree(pkg1.directDeps, overrides, visited);
+                // expect the project tree to be empty
                 expect(packagesAreSame(result, [])).toBe(true);
             });
 
@@ -410,11 +406,9 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
-                const result = await registry.getInstallDeps(pkg2.directDeps, overrides, visited);
-                // expect the install deps to be empty
+                // get the project tree
+                const result = await registry.getProjectTree(pkg2.directDeps);
+                // expect the project tree to be empty
                 expect(packagesAreSame(result, [pkg0, pkg1])).toBe(true);
             });
 
@@ -438,11 +432,9 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
-                const result = await registry.getInstallDeps(pkg3.directDeps, overrides, visited);
-                // expect the install deps to be empty
+                // get the project tree
+                const result = await registry.getProjectTree(pkg3.directDeps);
+                // expect the project tree to be empty
                 expect(packagesAreSame(result, [pkg0, pkg1, pkg2])).toBe(true);
             });
 
@@ -477,18 +469,15 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
-                // get the install deps
-                const result = await registry.getInstallDeps(pkg3.directDeps, overrides, visited);
-                // expect the install deps to be empty
+                // get the project tree
+                const result = await registry.getProjectTree(pkg3.directDeps);
+                // expect the project tree to be empty
                 expect(packagesAreSame(result, [pkg0, pkg1, pkg2])).toBe(true);
             });
 
             it('one direct dep, one grandchild, grandchild is overridden', async () => {
                 // Get the debugger
-                const dbg = debug('apm:common:models:Registry:getInstallDeps');
+                const dbg = debug('apm:common:models:Registry:getProjectTree');
 
                 // Indicate the specific test
                 dbg('Testing two direct deps, both have same indirect dep');
@@ -531,19 +520,16 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0Original, pkgExtra, pkg0Override, pkg1, pkg2]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
-                // get the install deps
-                const result = await registry.getInstallDeps(pkg2.directDeps, overrides, visited);
+                // get the project tree
+                const result = await registry.getProjectTree(pkg2.directDeps);
                 console.log(result.map((pkg) => `${pkg.name}@${pkg.version}`).join(', '));
-                // expect the install deps to be empty
+                // expect the project tree to be empty
                 expect(packagesAreSame(result, [pkg1, pkgExtra, pkg0Override])).toBe(true);
             });
 
             it('one direct dep, two grandchild, one grandchild is overridden', async () => {
                 // Get the debugger
-                const dbg = debug('apm:common:models:Registry:getInstallDeps');
+                const dbg = debug('apm:common:models:Registry:getProjectTree');
 
                 // Indicate the specific test
                 dbg('Testing two direct deps, both have same indirect dep');
@@ -594,12 +580,9 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0Original, pkgExtra, pkg0Override, pkg1, pkg2, pkg3]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
-                // get the install deps
-                const result = await registry.getInstallDeps(pkg3.directDeps, overrides, visited);
-                // expect the install deps to be empty
+                // get the project tree
+                const result = await registry.getProjectTree(pkg3.directDeps);
+                // expect the project tree to be empty
                 expect(packagesAreSame(result, [pkgExtra, pkg0Override, pkg1, pkg2])).toBe(true);
             });
 
@@ -645,12 +628,9 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkgExtra, pkg0Override, pkg1, pkg2]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
-                // get the install deps
-                const result = await registry.getInstallDeps(pkg2.directDeps, overrides, visited);
-                // expect the install deps to be empty
+                // get the project tree
+                const result = await registry.getProjectTree(pkg2.directDeps);
+                // expect the project tree to be empty
                 expect(packagesAreSame(result, [pkgExtra, pkg0Override, pkg1])).toBe(true);
             });
 
@@ -718,12 +698,9 @@ describe('models/registry', () => {
                 ]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
-                // get the install deps
-                const result = await registry.getInstallDeps(pkg10.directDeps, overrides, visited);
-                // expect the install deps to be empty
+                // get the project tree
+                const result = await registry.getProjectTree(pkg10.directDeps);
+                // expect the project tree to be empty
                 expect(packagesAreSame(result, [pkg0, pkg1, pkg2, pkg3, pkg4, pkg5, pkg6, pkg7, pkg8, pkg9])).toBe(
                     true,
                 );
@@ -777,12 +754,9 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0Original, pkgExtra, pkg0Override, pkg1, pkg2, pkg3]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
-                // get the install deps
-                const result = await registry.getInstallDeps(pkg3.directDeps, overrides, visited);
-                // expect the install deps to be empty
+                // get the project tree
+                const result = await registry.getProjectTree(pkg3.directDeps);
+                // expect the project tree to be empty
                 expect(packagesAreSame(result, [pkgExtra, pkg0Override, pkg1, pkg2])).toBe(true);
             });
 
@@ -877,12 +851,9 @@ describe('models/registry', () => {
                 ]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
-                // get the install deps
-                const result = await registry.getInstallDeps(pkg6.directDeps, overrides, visited);
-                // expect the install deps to be empty
+                // get the project tree
+                const result = await registry.getProjectTree(pkg6.directDeps);
+                // expect the project tree to be empty
                 expect(
                     packagesAreSame(result, [pkg0Extra, pkg1Extra, pkg0Override, pkg1Override, pkg2, pkg3, pkg4, pkg5]),
                 ).toBe(true);
@@ -901,18 +872,18 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
+                // get the project tree
                 const overrides = new Set<string>();
                 const visited = new Set<string>([pkg0.name]);
                 // expect rejection, an error to be thrown
-                await expect(registry.getInstallDeps(pkg1.directDeps, overrides, visited)).rejects.toThrow(
-                    GetInstallDepsError,
+                await expect(registry.getProjectTree(pkg1.directDeps, overrides, visited)).rejects.toThrow(
+                    GetProjectTreeError,
                 );
             });
 
             it('two direct deps, both have same indirect dep', async () => {
                 // Get the debugger
-                const dbg = debug('apm:common:models:Registry:getInstallDeps');
+                const dbg = debug('apm:common:models:Registry:getProjectTree');
 
                 // Indicate the specific test
                 dbg('Testing two direct deps, both have same indirect dep');
@@ -940,13 +911,8 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
                 // expect rejection, an error to be thrown
-                await expect(registry.getInstallDeps(pkg3.directDeps, overrides, visited)).rejects.toThrow(
-                    GetInstallDepsError,
-                );
+                await expect(registry.getProjectTree(pkg3.directDeps)).rejects.toThrow(GetProjectTreeError);
             });
 
             it('one direct dep, but dep doesnt exist in registry', async () => {
@@ -960,13 +926,8 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg1]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
                 // expect rejection, an error to be thrown
-                await expect(registry.getInstallDeps(pkg1.directDeps, overrides, visited)).rejects.toThrow(
-                    PackageLoadError,
-                );
+                await expect(registry.getProjectTree(pkg1.directDeps)).rejects.toThrow(PackageLoadError);
             });
 
             it('one direct dep, one indirect dep, but indirect dep doesnt exist in registry', async () => {
@@ -986,13 +947,8 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg1, pkg2]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
                 // expect rejection, an error to be thrown
-                await expect(registry.getInstallDeps(pkg2.directDeps, overrides, visited)).rejects.toThrow(
-                    PackageLoadError,
-                );
+                await expect(registry.getProjectTree(pkg2.directDeps)).rejects.toThrow(PackageLoadError);
             });
 
             it('2 children, both with 1 grandchild, first grandchild is an unresolve peer dep of grandchild 2', async () => {
@@ -1032,13 +988,8 @@ describe('models/registry', () => {
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3, pkg4]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
-                // get the install deps
-                const overrides = new Set<string>();
-                const visited = new Set<string>();
                 // expect rejection, an error to be thrown
-                await expect(registry.getInstallDeps(pkg4.directDeps, overrides, visited)).rejects.toThrow(
-                    GetInstallDepsError,
-                );
+                await expect(registry.getProjectTree(pkg4.directDeps)).rejects.toThrow(GetProjectTreeError);
             });
         });
     });
