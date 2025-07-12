@@ -966,13 +966,17 @@ describe('models/registry', () => {
         const registryPath = path.join(testCaseDir, 'registry');
         const localPackagesPath = path.join(testCaseDir, 'local-packages');
 
-        // Helper function to check if two arrays of packages are the same
-        const packagesAreSame = (pkgs1: Package[], pkgs2: Package[]) => {
-            // DO NOT SORT THE ARRAYS
-            return (
-                pkgs1.length === pkgs2.length &&
-                pkgs1.every((pkg, index) => pkg.name === pkgs2[index].name && pkg.version === pkgs2[index].version)
-            );
+        // // Helper function to check if two arrays of packages are the same
+        // const packagesAreSame = (pkgs1: Package[], pkgs2: Package[]) => {
+        //     // DO NOT SORT THE ARRAYS
+        //     return (
+        //         pkgs1.length === pkgs2.length &&
+        //         pkgs1.every((pkg, index) => pkg.name === pkgs2[index].name && pkg.version === pkgs2[index].version)
+        //     );
+        // };
+
+        const treesAreSame = (trees1: PackageTree[], trees2: PackageTree[]) => {
+            return trees1.every((tree, index) => tree.toString() === trees2[index].toString());
         };
 
         beforeEach(() => {
@@ -987,81 +991,151 @@ describe('models/registry', () => {
         });
 
         describe('success cases', () => {
-            const genericTest = async (
-                includedPkgs: { id: number; name: string; deps: number[] }[],
-                rootId: number,
-                expectedPkgIds: number[],
-            ) => {
-                // Create the packages
-                const pkgs: Map<number, Package> = new Map();
-                for (const pkgDesc of includedPkgs) {
-                    // Construct the file path
-                    const filePath = path.join(localPackagesPath, `${pkgDesc.id}.apm`);
-                    // Construct the direct dependencies
-                    const directDeps = new Map<string, string>();
-                    for (const id of pkgDesc.deps) {
-                        const depPkg = pkgs.get(id)!;
-                        directDeps.set(depPkg.name, depPkg.version);
-                    }
-                    // Construct the package
-                    const pkg = await createPackage(filePath, pkgDesc.name, directDeps);
-                    // Add the package to the map
-                    pkgs.set(pkgDesc.id, pkg);
-                }
+            // const genericTest = async (
+            //     includedPkgs: { id: number; name: string; deps: number[] }[],
+            //     rootId: number,
+            //     expectedPkgIds: number[],
+            // ) => {
+            //     // Create the packages
+            //     const pkgs: Map<number, Package> = new Map();
+            //     for (const pkgDesc of includedPkgs) {
+            //         // Construct the file path
+            //         const filePath = path.join(localPackagesPath, `${pkgDesc.id}.apm`);
+            //         // Construct the direct dependencies
+            //         const directDeps = new Map<string, string>();
+            //         for (const id of pkgDesc.deps) {
+            //             const depPkg = pkgs.get(id)!;
+            //             directDeps.set(depPkg.name, depPkg.version);
+            //         }
+            //         // Construct the package
+            //         const pkg = await createPackage(filePath, pkgDesc.name, directDeps);
+            //         // Add the package to the map
+            //         pkgs.set(pkgDesc.id, pkg);
+            //     }
 
-                // Get the root package
-                const rootPkg = pkgs.get(rootId)!;
+            //     // Get the root package
+            //     const rootPkg = pkgs.get(rootId)!;
 
-                // Get the expected packages
-                const expectedPkgs = expectedPkgIds.map((id) => pkgs.get(id)!);
+            //     // Get the expected packages
+            //     const expectedPkgs = expectedPkgIds.map((id) => pkgs.get(id)!);
 
-                // Load the packages into the registry
-                await loadPackagesIntoRegistry(registryPath, Array.from(pkgs.values()));
+            //     // Load the packages into the registry
+            //     await loadPackagesIntoRegistry(registryPath, Array.from(pkgs.values()));
 
+            //     // load the registry
+            //     const registry = await Registry.load(registryPath);
+
+            //     // get the project tree
+            //     const result = await registry.getPackageTree(rootPkg.name, rootPkg.version);
+
+            //     // expect the project tree to be empty
+            //     expect(packagesAreSame(result, expectedPkgs)).toBe(true);
+            // };
+
+            it('single package for a package with no dependencies', async () => {
+                const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', depend([]));
+                // load the package into the registry
+                await loadPackagesIntoRegistry(registryPath, [pkg0]);
                 // load the registry
                 const registry = await Registry.load(registryPath);
+                // get the package tree
+                const result = await registry.getPackageTree(pkg0.name, pkg0.version);
+                // expect the package tree to be empty
+                expect(result.toString()).toBe(new PackageTree(pkg0, []).toString());
+            });
 
-                // get the project tree
-                const result = await registry.getPackageTree(rootPkg.name, rootPkg.version);
+            it('one package with one dependency', async () => {
+                const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', depend([]));
+                const pkg1 = await createPackage(path.join(localPackagesPath, 'pkg1.apm'), 'pkg1', depend([pkg0]));
+                // load the packages into the registry
+                await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the package tree
+                const result = await registry.getPackageTree(pkg1.name, pkg1.version);
+                // expect the package tree to be empty
+                expect(result.toString()).toBe(new PackageTree(pkg1, [new PackageTree(pkg0, [])]).toString());
+            });
 
-                // expect the project tree to be empty
-                expect(packagesAreSame(result, expectedPkgs)).toBe(true);
-            };
+            it('one package with two dependencies', async () => {
+                const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', depend([]));
+                const pkg1 = await createPackage(path.join(localPackagesPath, 'pkg1.apm'), 'pkg1', depend([]));
+                const pkg2 = await createPackage(
+                    path.join(localPackagesPath, 'pkg2.apm'),
+                    'pkg2',
+                    depend([pkg0, pkg1]),
+                );
+                // load the packages into the registry
+                await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the package tree
+                const result = await registry.getPackageTree(pkg2.name, pkg2.version);
+                // expect the package tree to be empty
+                expect(result.toString()).toBe(
+                    new PackageTree(pkg2, [new PackageTree(pkg0, []), new PackageTree(pkg1, [])]).toString(),
+                );
+            });
 
-            it('returns a single package for a package with no dependencies', async () =>
-                await genericTest([{ id: 0, name: 'pkg0', deps: [] }], 0, [0]));
+            it('two children, each with one grandchild', async () => {
+                const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', depend([]));
+                const pkg1 = await createPackage(path.join(localPackagesPath, 'pkg1.apm'), 'pkg1', depend([]));
+                const pkg2 = await createPackage(path.join(localPackagesPath, 'pkg2.apm'), 'pkg2', depend([pkg0]));
+                const pkg3 = await createPackage(path.join(localPackagesPath, 'pkg3.apm'), 'pkg3', depend([pkg1]));
+                const pkg4 = await createPackage(
+                    path.join(localPackagesPath, 'pkg4.apm'),
+                    'pkg4',
+                    depend([pkg2, pkg3]),
+                );
+                // load the packages into the registry
+                await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3, pkg4]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the package tree
+                const result = await registry.getPackageTree(pkg4.name, pkg4.version);
+                // expect the package tree to be empty
+                expect(result.toString()).toBe(
+                    new PackageTree(pkg4, [
+                        new PackageTree(pkg2, [new PackageTree(pkg0, [])]),
+                        new PackageTree(pkg3, [new PackageTree(pkg1, [])]),
+                    ]).toString(),
+                );
+            });
 
-            it('returns two packages for a package with one dependency, with the dependency first', async () =>
-                await genericTest(
-                    [
-                        { id: 0, name: 'pkg0', deps: [] },
-                        { id: 1, name: 'pkg1', deps: [0] },
-                    ],
-                    1,
-                    [0, 1],
-                ));
-
-            it('returns three packages for a package with two dependencies, with the dependencies first', async () =>
-                await genericTest(
-                    [
-                        { id: 0, name: 'pkg0', deps: [] },
-                        { id: 1, name: 'pkg1', deps: [] },
-                        { id: 2, name: 'pkg2', deps: [0, 1] },
-                    ],
-                    2,
-                    [0, 1, 2],
-                ));
-
-            it('returns three packages for a package with two dependencies, with the dependencies first', async () =>
-                await genericTest(
-                    [
-                        { id: 0, name: 'pkg0', deps: [] },
-                        { id: 1, name: 'pkg1', deps: [0] },
-                        { id: 2, name: 'pkg2', deps: [0, 1] },
-                    ],
-                    2,
-                    [0, 0, 1, 2],
-                ));
+            it('two children, each with two grandchildren', async () => {
+                const pkg0 = await createPackage(path.join(localPackagesPath, 'pkg0.apm'), 'pkg0', depend([]));
+                const pkg1 = await createPackage(path.join(localPackagesPath, 'pkg1.apm'), 'pkg1', depend([]));
+                const pkg2 = await createPackage(path.join(localPackagesPath, 'pkg2.apm'), 'pkg2', depend([]));
+                const pkg3 = await createPackage(path.join(localPackagesPath, 'pkg3.apm'), 'pkg3', depend([]));
+                const pkg4 = await createPackage(
+                    path.join(localPackagesPath, 'pkg4.apm'),
+                    'pkg4',
+                    depend([pkg0, pkg1]),
+                );
+                const pkg5 = await createPackage(
+                    path.join(localPackagesPath, 'pkg5.apm'),
+                    'pkg5',
+                    depend([pkg2, pkg3]),
+                );
+                const pkg6 = await createPackage(
+                    path.join(localPackagesPath, 'pkg6.apm'),
+                    'pkg6',
+                    depend([pkg4, pkg5]),
+                );
+                // load the packages into the registry
+                await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1, pkg2, pkg3, pkg4, pkg5, pkg6]);
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the package tree
+                const result = await registry.getPackageTree(pkg6.name, pkg6.version);
+                // expect the package tree to be empty
+                expect(result.toString()).toBe(
+                    new PackageTree(pkg6, [
+                        new PackageTree(pkg4, [new PackageTree(pkg0, []), new PackageTree(pkg1, [])]),
+                        new PackageTree(pkg5, [new PackageTree(pkg2, []), new PackageTree(pkg3, [])]),
+                    ]).toString(),
+                );
+            });
         });
     });
 });
