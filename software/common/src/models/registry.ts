@@ -2,7 +2,6 @@ import fs from 'fs';
 import debug from 'debug';
 import path from 'path';
 import os from 'os';
-import { glob } from 'glob';
 import { Package } from './package';
 import { PackageTree } from '../utils/package-tree';
 import { Project } from './project';

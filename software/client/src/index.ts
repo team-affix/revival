@@ -30,59 +30,6 @@ program.name('apm').description('Agda Package Manager - A tool for managing Agda
 //     clean();
 //   });
 
-// Add a clone command
-// program
-//   .command("install")
-//   .description("Installs agda packages from dependencies file")
-//   .argument("[registries...]", "Registry URLs to use for package installation")
-//   .action(async (registries: string[]) => {
-//     if (!cwd_is_root_package()) {
-//       console.error(
-//         "Error: This command must be run from the root package of an apm environment"
-//       );
-//       process.exit(1);
-//     }
-
-//     // Create debug logger
-//     const dbg = debug("apm:install");
-
-//     try {
-//       // Create empty map of installed packages
-//       const installed: Map<string, string> = new Map();
-
-//       // Install the default package
-//       await install_default_package(installed);
-
-//       // Get the root package dependencies
-//       const deps = get_deps();
-
-//       dbg(`Dependencies: ${JSON.stringify(Object.fromEntries(deps))}`);
-
-//       // Create initial queue of dependencies
-//       const queue: Set<string> = new Set();
-//       // Add all initial dependencies to the initial queue
-//       for (const name of deps.keys()) {
-//         queue.add(name);
-//       }
-
-//       dbg(`Queue: ${JSON.stringify(Array.from(queue))}`);
-
-//       // Install the dependencies
-//       for (const [name, version] of deps.entries()) {
-//         await install(name, version, registries, queue, installed);
-//       }
-
-//       dbg(`Installed: ${JSON.stringify(Object.fromEntries(installed))}`);
-//     } catch (error: unknown) {
-//       if (error instanceof Error) {
-//         console.error(error.message);
-//       } else {
-//         console.error(error);
-//       }
-//       process.exit(1);
-//     }
-//   });
-
 program
     .command('init')
     .description('Initializes an apm project in the current directory')
@@ -228,6 +175,31 @@ program
     });
 
 program
+    .command('register')
+    .description('Registers a package in the registry')
+    .argument('<source>', 'The source path for the apm file')
+    .argument('[version]', 'The expected version of the package, if one is known')
+    .action(async (source: string, version?: string) => {
+        // Create debug logger
+        const dbg = debug('apm:project:register');
+
+        try {
+            // Load the package
+            const pkg = await common.Package.load(source);
+            // Get the default registry
+            const registry = await common.Registry.getDefault();
+            // Register the package
+            await registry.put(pkg, version);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                console.error(error.message);
+            } else {
+                console.error(error);
+            }
+        }
+    });
+
+program
     .command('info')
     .description('Prints the details of the supplied package')
     .argument('<source>', 'The source path for the apm file')
@@ -244,6 +216,35 @@ program
             console.log(`Package version: ${pkg.version}`);
             console.log(`Package dependencies: ${JSON.stringify(Object.fromEntries(pkg.directDeps))}`);
             console.log(`Package archive offset: ${pkg.archiveOffset}`);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                console.error(error.message);
+            } else {
+                console.error(error);
+            }
+        }
+    });
+
+program
+    .command('tree')
+    .description('Prints the dependency tree of the current project')
+    .action(async () => {
+        // Create debug logger
+        const dbg = debug('apm:project:tree');
+
+        try {
+            // Get the current working directory
+            const cwd = process.cwd();
+            // Get the project
+            const project = await common.Project.load(cwd);
+            // Get the default registry
+            const registry = await common.Registry.getDefault();
+            // Get the direct dependencies
+            const deps = project.directDeps;
+            // Get the Package Trees
+            const pkgTrees = await registry.getProjectTree(deps);
+            // Print the dependency tree
+            console.log(pkgTrees.map((pkgTree) => pkgTree.toString()).join('\n'));
         } catch (error: unknown) {
             if (error instanceof Error) {
                 console.error(error.message);
