@@ -993,4 +993,107 @@ describe('models/registry', () => {
             });
         });
     });
+
+    describe('Registry.getPackageTree()', () => {
+        const registryPath = path.join(testCaseDir, 'registry');
+        const localPackagesPath = path.join(testCaseDir, 'local-packages');
+
+        // Helper function to check if two arrays of packages are the same
+        const packagesAreSame = (pkgs1: Package[], pkgs2: Package[]) => {
+            // DO NOT SORT THE ARRAYS
+            return (
+                pkgs1.length === pkgs2.length &&
+                pkgs1.every((pkg, index) => pkg.name === pkgs2[index].name && pkg.version === pkgs2[index].version)
+            );
+        };
+
+        beforeEach(() => {
+            // If the registry dir exists, remove it
+            if (fs.existsSync(registryPath)) fs.rmSync(registryPath, { recursive: true, force: true });
+            // If the local packages dir exists, remove it
+            if (fs.existsSync(localPackagesPath)) fs.rmSync(localPackagesPath, { recursive: true, force: true });
+            // create the registry dir
+            fs.mkdirSync(registryPath, { recursive: true });
+            // create the local packages dir
+            fs.mkdirSync(localPackagesPath, { recursive: true });
+        });
+
+        describe('success cases', () => {
+            const genericTest = async (
+                includedPkgs: { id: number; name: string; deps: number[] }[],
+                rootId: number,
+                expectedPkgIds: number[],
+            ) => {
+                // Create the packages
+                const pkgs: Map<number, Package> = new Map();
+                for (const pkgDesc of includedPkgs) {
+                    // Construct the file path
+                    const filePath = path.join(localPackagesPath, `${pkgDesc.id}.apm`);
+                    // Construct the direct dependencies
+                    const directDeps = new Map<string, string>();
+                    for (const id of pkgDesc.deps) {
+                        const depPkg = pkgs.get(id)!;
+                        directDeps.set(depPkg.name, depPkg.version);
+                    }
+                    // Construct the package
+                    const pkg = await createPackage(filePath, pkgDesc.name, directDeps);
+                    // Add the package to the map
+                    pkgs.set(pkgDesc.id, pkg);
+                }
+
+                // Get the root package
+                const rootPkg = pkgs.get(rootId)!;
+
+                // Get the expected packages
+                const expectedPkgs = expectedPkgIds.map((id) => pkgs.get(id)!);
+
+                // Load the packages into the registry
+                await loadPackagesIntoRegistry(registryPath, Array.from(pkgs.values()));
+
+                // load the registry
+                const registry = await Registry.load(registryPath);
+
+                // get the project tree
+                const result = await registry.getPackageTree(rootPkg.name, rootPkg.version);
+
+                // expect the project tree to be empty
+                expect(packagesAreSame(result, expectedPkgs)).toBe(true);
+            };
+
+            it('returns a single package for a package with no dependencies', async () =>
+                await genericTest([{ id: 0, name: 'pkg0', deps: [] }], 0, [0]));
+
+            it('returns two packages for a package with one dependency, with the dependency first', async () =>
+                await genericTest(
+                    [
+                        { id: 0, name: 'pkg0', deps: [] },
+                        { id: 1, name: 'pkg1', deps: [0] },
+                    ],
+                    1,
+                    [0, 1],
+                ));
+
+            it('returns three packages for a package with two dependencies, with the dependencies first', async () =>
+                await genericTest(
+                    [
+                        { id: 0, name: 'pkg0', deps: [] },
+                        { id: 1, name: 'pkg1', deps: [] },
+                        { id: 2, name: 'pkg2', deps: [0, 1] },
+                    ],
+                    2,
+                    [0, 1, 2],
+                ));
+
+            it('returns three packages for a package with two dependencies, with the dependencies first', async () =>
+                await genericTest(
+                    [
+                        { id: 0, name: 'pkg0', deps: [] },
+                        { id: 1, name: 'pkg1', deps: [0] },
+                        { id: 2, name: 'pkg2', deps: [0, 1] },
+                    ],
+                    2,
+                    [0, 1, 2],
+                ));
+        });
+    });
 });
