@@ -133,7 +133,12 @@ program
             // Get the transitive dependencies
             const overrides = new Set<string>();
             const visited = new Set<string>();
-            const pkgs: common.Package[] = await registry.getInstallDeps(deps, overrides, visited);
+            const pkgTrees: common.PackageTree[] = await registry.getProjectTree(deps, overrides, visited);
+
+            dbg(`PackageTrees: ${JSON.stringify(pkgTrees.map((pkgTree) => pkgTree.toString()))}`);
+
+            // Get the topological sort of the package trees
+            const pkgs = pkgTrees.flatMap((pkgTree) => pkgTree.getTopologicalSort());
 
             dbg(`Packages: ${JSON.stringify(pkgs.map((pkg) => pkg.name))}`);
 
