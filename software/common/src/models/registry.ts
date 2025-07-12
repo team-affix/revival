@@ -10,7 +10,7 @@ import RegistryLoadError from '../errors/registry-load';
 import RegistryCreateError from '../errors/registry-create';
 import GetProjectTreeError from '../errors/get-project-tree';
 import VetPackageError from '../errors/vet-package';
-import CheckProjectError from '../errors/check-project';
+import PutPackageError from '../errors/put-package';
 
 // The name of the packages directory
 const PACKAGES_DIR_NAME = 'packages';
@@ -202,14 +202,6 @@ class Registry {
         // Create a project from the package in a temporary directory
         const project = await Project.init(projectDirPath, { pkg });
 
-        // // Get the root source directory
-        // const rootSourceDir = project.rootSource.cwd;
-
-        // // Glob the root source directory
-        // const files = await glob(path.join(rootSourceDir, '**', '*'), { nodir: true, dot: true });
-
-        // // console.log(files);
-
         // Check for any illegal files (anything with an extension other than .agda or .md) within the root source
         if (project.rootSource.miscFiles.length > 0)
             throw new VetPackageError(
@@ -231,17 +223,29 @@ class Registry {
         await project.check();
     }
 
-    // // Add a package to the registry
-    // async put(pkg: Package): Promise<void> {
-    //     // Get the debugger
-    //     const dbg = debug('apm:common:models:Registry:put');
+    // Add a package to the registry
+    async put(pkg: Package, expectedVersion?: string): Promise<void> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:Registry:put');
 
-    //     // Indicate that we are putting a package
-    //     dbg(`Putting package ${pkg.name}@${pkg.version}`);
+        // Indicate that we are putting a package
+        dbg(`Putting package ${pkg.name}@${pkg.version}`);
 
-    //     // Get the path to the package
-    //     const filePath = getPackagePath(this.cwd, pkg.name, pkg.version);
-    // }
+        // Get the path to the package
+        const dest = getPackagePath(this.cwd, pkg.name, pkg.version);
+
+        // Error if the package is already registered
+        if (fs.existsSync(dest)) throw new PutPackageError(pkg.name, pkg.version, 'Package already registered');
+
+        // Vet the package
+        await this.vet(pkg, expectedVersion);
+
+        // Create the directory for the package
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+
+        // Write the package to the registry
+        fs.copyFileSync(pkg.filePath, dest);
+    }
 }
 
 export { Registry };

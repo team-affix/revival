@@ -14,6 +14,7 @@ import GetProjectTreeError from '../../src/errors/get-project-tree';
 import { PackageTree } from '../../src/utils/package-tree';
 import VetPackageError from '../../src/errors/vet-package';
 import CheckProjectError from '../../src/errors/check-project';
+import PutPackageError from '../../src/errors/put-package';
 
 describe('models/registry', () => {
     const writeFileInside = (baseDir: string, relPath: string, content: string) => {
@@ -1436,6 +1437,371 @@ describe('models/registry', () => {
                 const registry = await Registry.load(registryPath);
                 // vet the package
                 await expect(registry.vet(pkg0)).rejects.toThrow(CheckProjectError);
+            });
+        });
+    });
+
+    describe('Registry.put()', () => {
+        const registryPath = path.join(testCaseDir, 'registry');
+        const localPackagesPath = path.join(testCaseDir, 'local-packages');
+
+        beforeEach(async () => {
+            // If the registry dir exists, remove it
+            if (fs.existsSync(registryPath)) fs.rmSync(registryPath, { recursive: true, force: true });
+            // If the local packages dir exists, remove it
+            if (fs.existsSync(localPackagesPath)) fs.rmSync(localPackagesPath, { recursive: true, force: true });
+            // create the registry
+            await Registry.create(registryPath);
+            // create the local packages dir
+            fs.mkdirSync(localPackagesPath, { recursive: true });
+        });
+
+        describe('success cases', () => {
+            it('package with no source files', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+            });
+
+            it('package with no source files and expected version', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0, pkg0.version);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+            });
+
+            it('package with one agda file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['src/Main.agda', 'module pkg0.src.Main where']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+            });
+
+            it('package with one agda file and expected version', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['src/Main.agda', 'module pkg0.src.Main where']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0, pkg0.version);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+            });
+
+            it('package with one md file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['src/Main.md', '# pkg0.src.Main']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+            });
+
+            it('package with one md file and one agda file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([
+                        ['src/Main.md', '# pkg0.src.Main'],
+                        ['src/Main.agda', 'module pkg0.src.Main where'],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+            });
+
+            it('package with one illegal file PASSES vetting if archive is filtered', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['src/Main.txt', 'Illegal file']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+            });
+
+            it('package with multiple agda files', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([
+                        ['Main.agda', 'module pkg0.Main where'],
+                        ['Main2.agda', 'module pkg0.Main2 where'],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+            });
+
+            it('package with multiple agda files and expected version', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([
+                        ['Main.agda', 'module pkg0.Main where'],
+                        ['Main2.agda', 'module pkg0.Main2 where'],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0, pkg0.version);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+            });
+
+            it('package with md file in hidden directory', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['.hidden/Main.md', '# pkg0.Main']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+            });
+
+            it('package with three agda files', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([
+                        ['Main.agda', 'module pkg0.Main where'],
+                        ['Main2.agda', 'module pkg0.Main2 where'],
+                        ['Main3.agda', 'module pkg0.Main3 where'],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+            });
+        });
+
+        describe('failure cases', () => {
+            it('package with one illegal file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['src/Main.txt', 'module pkg0.src.Main where']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.put(pkg0)).rejects.toThrow(VetPackageError);
+            });
+
+            it('package with one legal file and one illegal file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([
+                        ['src/Main.agda', 'module pkg0.src.Main where'],
+                        ['src/Main.txt', 'Illegal file'],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.put(pkg0)).rejects.toThrow(VetPackageError);
+            });
+
+            it('package with one legal file and one hidden illegal file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([
+                        ['src/Main.agda', 'module pkg0.src.Main where'],
+                        ['src/.Main.txt', 'Illegal file'],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.put(pkg0)).rejects.toThrow(VetPackageError);
+            });
+
+            it('package with one hidden illegal file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['src/.Main.txt', 'Illegal file']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.put(pkg0)).rejects.toThrow(VetPackageError);
+            });
+
+            it('package with one illegal file with no extension', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['src/noextension', 'Illegal file']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.put(pkg0)).rejects.toThrow(VetPackageError);
+            });
+
+            it('package with one illegal file in a hidden directory', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['.hidden/noextension', 'Illegal file']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.put(pkg0)).rejects.toThrow(VetPackageError);
+            });
+
+            it('package with no files but wrong version', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.put(pkg0, '1.0.0')).rejects.toThrow(VetPackageError);
+            });
+
+            it('invalid agda file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['Main.agda', 'module pkg0.Main1 where']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.put(pkg0)).rejects.toThrow(CheckProjectError);
+            });
+
+            it('one valid agda file and one invalid agda file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([
+                        ['Main.agda', 'module pkg0.Main where'],
+                        ['Main2.agda', 'module pkg0.Maind where'],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.put(pkg0)).rejects.toThrow(CheckProjectError);
+            });
+
+            it('package already registered', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                // try to get the package after
+                const recovered = await registry.get(pkg0.name, pkg0.version);
+                // expect the recovered package to be the same as the original
+                expect(recovered.version).toBe(pkg0.version);
+                // try to put the package again
+                await expect(registry.put(pkg0)).rejects.toThrow(PutPackageError);
             });
         });
     });
