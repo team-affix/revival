@@ -3,3 +3,4 @@ export { Package } from './models/package';
 export { Project } from './models/project';
 export { Source } from './models/source';
 export { Registry } from './models/registry';
+export { PackageTree } from './utils/package-tree';

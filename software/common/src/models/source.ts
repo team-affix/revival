@@ -23,13 +23,13 @@ export class Source {
         // Check if the cwd is a directory
         if (!fs.statSync(cwd).isDirectory()) throw new SourceLoadError(cwd, 'Path is not a directory');
         // Get the agda files
-        const agdaFiles = await glob('**/*.agda', { cwd, nodir: true });
+        const agdaFiles = await glob('**/*.agda', { cwd, nodir: true, dot: true });
 
         // Get the md files
-        const mdFiles = await glob('**/*.md', { cwd, nodir: true });
+        const mdFiles = await glob('**/*.md', { cwd, nodir: true, dot: true });
 
         // Get the misc files
-        const miscFiles = await glob('**/*', { cwd, nodir: true, ignore: ['**/*.agda', '**/*.md'] });
+        const miscFiles = await glob('**/*', { cwd, nodir: true, ignore: ['**/*.agda', '**/*.md'], dot: true });
 
         // Return the source
         return new Source(cwd, agdaFiles, mdFiles, miscFiles);

@@ -1,11 +1,6 @@
 import { Package } from '../models/package';
 import { boxed } from './box-text';
 import { AsciiTree } from 'oo-ascii-tree';
-import path from 'path';
-import os from 'os';
-import fs from 'fs';
-import { Source } from '../models/source';
-import { Readable } from 'stream';
 
 // Convert a package tree to an ASCII tree
 function getAsciiTree(packageTree: PackageTree): AsciiTree {

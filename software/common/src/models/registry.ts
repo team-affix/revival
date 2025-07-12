@@ -2,18 +2,21 @@ import fs from 'fs';
 import debug from 'debug';
 import path from 'path';
 import os from 'os';
+import { glob } from 'glob';
 import { Package } from './package';
 import { PackageTree } from '../utils/package-tree';
+import { Project } from './project';
 import RegistryLoadError from '../errors/registry-load';
 import RegistryCreateError from '../errors/registry-create';
 import GetProjectTreeError from '../errors/get-project-tree';
+import VetPackageError from '../errors/vet-package';
 
 // The name of the packages directory
 const PACKAGES_DIR_NAME = 'packages';
 
 // Get the path to a package
 function getPackagePath(cwd: string, name: string, version: string): string {
-    return path.join(cwd, PACKAGES_DIR_NAME, name, `${version}.tar`);
+    return path.join(cwd, PACKAGES_DIR_NAME, name, `${version}.apm`);
 }
 
 // Registry model
@@ -175,6 +178,68 @@ class Registry {
         // Return the result
         return result;
     }
+
+    // Vet a package
+    async vet(pkg: Package): Promise<void> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:Registry:vet');
+
+        // Indicate that we are vetting a package
+        dbg(`Vetting package ${pkg.name}@${pkg.version}`);
+
+        // Create a project folder
+        const projectDirPath = fs.mkdtempSync(path.join(os.tmpdir(), `apm-vet-${pkg.name}-${pkg.version}`));
+
+        // Create a project from the package in a temporary directory
+        const project = await Project.init(projectDirPath, { pkg });
+
+        // Get the root source directory
+        const rootSourceDir = project.rootSource.cwd;
+
+        // Glob the root source directory
+        const files = await glob(path.join(rootSourceDir, '**', '*'), { nodir: true, dot: true });
+
+        console.log(files);
+
+        // Check for any illegal files (anything with an extension other than .agda or .md) within the root source
+        if (project.rootSource.miscFiles.length > 0) {
+            // Get the illegal files
+            const illegalFiles = project.rootSource.miscFiles.filter(
+                (file) => !file.endsWith('.agda') && !file.endsWith('.md'),
+            );
+
+            // Throw an error
+        }
+        throw new VetPackageError(
+            pkg.name,
+            pkg.version,
+            `Package contains illegal files:\n${project.rootSource.miscFiles.join('\n')}`,
+        );
+
+        // Get the project tree
+        const projectTree = await this.getProjectTree(pkg.directDeps);
+
+        // Get the topological sort of the project tree
+        const pkgs = projectTree.flatMap((pkgTree) => pkgTree.getTopologicalSort());
+
+        // Install the project
+        await project.install(pkgs);
+
+        // Check the project
+        await project.check();
+    }
+
+    // // Add a package to the registry
+    // async put(pkg: Package): Promise<void> {
+    //     // Get the debugger
+    //     const dbg = debug('apm:common:models:Registry:put');
+
+    //     // Indicate that we are putting a package
+    //     dbg(`Putting package ${pkg.name}@${pkg.version}`);
+
+    //     // Get the path to the package
+    //     const filePath = getPackagePath(this.cwd, pkg.name, pkg.version);
+    // }
 }
 
 export { Registry };

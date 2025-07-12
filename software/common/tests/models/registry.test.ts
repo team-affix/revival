@@ -2,6 +2,7 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import debug from 'debug';
+import tarFs from 'tar-fs';
 import { expect, describe, it, beforeEach, beforeAll } from '@jest/globals';
 import { Readable } from 'stream';
 import { Registry, __test__ as RegistryTest } from '../../src/models/registry';
@@ -11,20 +12,71 @@ import { Package } from '../../src/models/package';
 import PackageLoadError from '../../src/errors/package-load';
 import GetProjectTreeError from '../../src/errors/get-project-tree';
 import { PackageTree } from '../../src/utils/package-tree';
+import VetPackageError from '../../src/errors/vet-package';
 
 describe('models/registry', () => {
+    const writeFileInside = (baseDir: string, relPath: string, content: string) => {
+        // Write the file inside the temporary directory
+        const filePath = path.join(baseDir, relPath);
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, content);
+    };
+
+    const writeFilesInside = (baseDir: string, entries: Map<string, string>) => {
+        for (const [relPath, content] of entries) writeFileInside(baseDir, relPath, content);
+    };
+
     // Helper function to create a package with no source files
-    const createPackage = async (filePath: string, name: string, deps: Map<string, string>) => {
+    const createPackage = async (
+        filePath: string,
+        name: string,
+        deps: Map<string, string>,
+        sourceFiles: Map<string, string> = new Map<string, string>(),
+    ) => {
         // Create the source path
         const sourceDir = path.join(os.tmpdir(), 'apm-tmp-source');
+
         // If the source dir exists, remove it
         if (fs.existsSync(sourceDir)) fs.rmSync(sourceDir, { recursive: true, force: true });
+
         // Create the source dir
-        fs.mkdirSync(sourceDir, { recursive: true });
+        await Source.create(sourceDir);
+
+        // Write the source files
+        writeFilesInside(sourceDir, sourceFiles);
+
         // Create the source object
         const source: Source = await Source.load(sourceDir);
-        // Create the archive
+
+        // Create the archive (this will only tar legal files)
         const archive: Readable = source.getArchive();
+
+        // Create the package
+        return await Package.create(filePath, name, deps, archive);
+    };
+
+    // Helper function to create a malicious package (with illegal files)
+    const createUnfilteredPackage = async (
+        filePath: string,
+        name: string,
+        deps: Map<string, string>,
+        sourceFiles: Map<string, string> = new Map<string, string>(),
+    ) => {
+        // Create the source path
+        const sourceDir = path.join(os.tmpdir(), 'apm-tmp-source');
+
+        // If the source dir exists, remove it
+        if (fs.existsSync(sourceDir)) fs.rmSync(sourceDir, { recursive: true, force: true });
+
+        // Create the source dir
+        fs.mkdirSync(sourceDir, { recursive: true });
+
+        // Write the source files
+        writeFilesInside(sourceDir, sourceFiles);
+
+        // Create the unfiltered archive
+        const archive: Readable = tarFs.pack(sourceDir, { entries: Array.from(sourceFiles.keys()) });
+
         // Create the package
         return await Package.create(filePath, name, deps, archive);
     };
@@ -1135,6 +1187,140 @@ describe('models/registry', () => {
                         new PackageTree(pkg5, [new PackageTree(pkg2, []), new PackageTree(pkg3, [])]),
                     ]).toString(),
                 );
+            });
+        });
+    });
+
+    describe('Registry.vet()', () => {
+        const registryPath = path.join(testCaseDir, 'registry');
+        const localPackagesPath = path.join(testCaseDir, 'local-packages');
+
+        beforeEach(async () => {
+            // If the registry dir exists, remove it
+            if (fs.existsSync(registryPath)) fs.rmSync(registryPath, { recursive: true, force: true });
+            // If the local packages dir exists, remove it
+            if (fs.existsSync(localPackagesPath)) fs.rmSync(localPackagesPath, { recursive: true, force: true });
+            // create the registry
+            await Registry.create(registryPath);
+            // create the local packages dir
+            fs.mkdirSync(localPackagesPath, { recursive: true });
+        });
+
+        describe('success cases', () => {
+            it('package with no source files', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await registry.vet(pkg0);
+            });
+
+            it('package with one agda file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['src/Main.agda', 'module pkg0.src.Main where']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await registry.vet(pkg0);
+            });
+
+            it('package with one md file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['src/Main.md', '# pkg0.src.Main']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await registry.vet(pkg0);
+            });
+
+            it('package with one md file and one agda file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([
+                        ['src/Main.md', '# pkg0.src.Main'],
+                        ['src/Main.agda', 'module pkg0.src.Main where'],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await registry.vet(pkg0);
+            });
+
+            it('package with one illegal file PASSES vetting if archive is filtered', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['src/Main.txt', 'Illegal file']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await registry.vet(pkg0);
+            });
+        });
+
+        describe('failure cases', () => {
+            it('package with one illegal file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([['src/Main.txt', 'module pkg0.src.Main where']]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.vet(pkg0)).rejects.toThrow(VetPackageError);
+            });
+
+            it('package with one legal file and one illegal file', async () => {
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([
+                        ['src/Main.agda', 'module pkg0.src.Main where'],
+                        ['src/Main.txt', 'Illegal file'],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.vet(pkg0)).rejects.toThrow(VetPackageError);
+            });
+
+            it('package with one legal file and one hidden illegal file', async () => {
+                console.log('================================');
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    new Map(),
+                    new Map([
+                        ['src/Main.agda', 'module pkg0.src.Main where'],
+                        ['src/.Main.txt', 'Illegal file'],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.vet(pkg0)).rejects.toThrow(VetPackageError);
             });
         });
     });
