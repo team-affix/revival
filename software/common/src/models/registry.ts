@@ -3,6 +3,7 @@ import debug from 'debug';
 import path from 'path';
 import os from 'os';
 import { Package } from './package';
+import { PackageTree } from '../utils/package-tree';
 import RegistryLoadError from '../errors/registry-load';
 import RegistryCreateError from '../errors/registry-create';
 import GetProjectTreeError from '../errors/get-project-tree';
@@ -112,7 +113,7 @@ class Registry {
         directDeps: Map<string, string>,
         overrides: Set<string> = new Set<string>(),
         visited: Set<string> = new Set<string>(),
-    ): Promise<Package[]> {
+    ): Promise<PackageTree[]> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:getProjectTree');
 
@@ -142,7 +143,7 @@ class Registry {
         const localOverrides = new Set<string>([...overrides, ...directDeps.keys()]);
 
         // Create a result array
-        const result: Package[] = [];
+        const result: PackageTree[] = [];
 
         // Visit each of the direct dependencies and recur on their dependencies
         for (const [name, version] of directDeps.entries()) {
@@ -156,10 +157,11 @@ class Registry {
             const subResult = await this.getProjectTree(deps, localOverrides, visited);
 
             // Add the package to the results
-            result.push(...subResult);
+            // result.push(...subResult);
+            const tree = new PackageTree(pkg, subResult);
 
             // Add the package to the result
-            result.push(pkg);
+            result.push(tree);
 
             // Indicate that we have added pkg and its project tree to the result
             dbg(`Added ${name}@${version} and its project tree to the result`);
@@ -172,7 +174,7 @@ class Registry {
         }
 
         // Print the result
-        dbg(`Result: ${JSON.stringify(result.map((pkg) => `${pkg.name}@${pkg.version}`))}`);
+        dbg(`Result: ${result.map((tree) => tree.toString()).join('\n')}`);
 
         // Return the result
         return result;
