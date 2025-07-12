@@ -13,6 +13,7 @@ import PackageLoadError from '../../src/errors/package-load';
 import GetProjectTreeError from '../../src/errors/get-project-tree';
 import { PackageTree } from '../../src/utils/package-tree';
 import VetPackageError from '../../src/errors/vet-package';
+import CheckProjectError from '../../src/errors/check-project';
 
 describe('models/registry', () => {
     const writeFileInside = (baseDir: string, relPath: string, content: string) => {
@@ -1418,7 +1419,7 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // vet the package
-                await expect(registry.vet(pkg0)).rejects.toThrow(VetPackageError);
+                await expect(registry.vet(pkg0)).rejects.toThrow(CheckProjectError);
             });
 
             it('one valid agda file and one invalid agda file', async () => {
@@ -1434,7 +1435,7 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // vet the package
-                await expect(registry.vet(pkg0)).rejects.toThrow(VetPackageError);
+                await expect(registry.vet(pkg0)).rejects.toThrow(CheckProjectError);
             });
         });
     });

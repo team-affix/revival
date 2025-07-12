@@ -227,16 +227,8 @@ class Registry {
         // Install the project
         await project.install(pkgs);
 
-        try {
-            // Check the project
-            await project.check();
-        } catch (e: unknown) {
-            // Handled error
-            if (e instanceof CheckProjectError)
-                throw new VetPackageError(pkg.name, pkg.version, (e as CheckProjectError).message);
-            // Unhandled error
-            throw e;
-        }
+        // Check the project
+        await project.check();
     }
 
     // // Add a package to the registry
