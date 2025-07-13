@@ -10,7 +10,7 @@ import { boxed } from '../../src/utils/box-text';
 
 describe('utils/PackageTree', () => {
     // Helper function to create a package with no source files
-    const createPackage = async (filePath: string, name: string, deps: Map<string, string>) => {
+    const createPackage = async (filePath: string, name: string, deps: Set<string>) => {
         // Create the source path
         const sourceDir = path.join(os.tmpdir(), 'apm-tmp-source');
         // If the source dir exists, remove it
@@ -35,8 +35,8 @@ describe('utils/PackageTree', () => {
     };
 
     const depend = (deps: Package[]) => {
-        const result = new Map<string, string>();
-        for (const dep of deps) result.set(dep.name, dep.id);
+        const result = new Set<string>();
+        for (const dep of deps) result.add(dep.id);
         return result;
     };
 

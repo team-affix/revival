@@ -17,49 +17,46 @@ describe('models/package', () => {
     // HELPER FUNCTIONS
     describe('Package.serializeDirectDeps()', () => {
         it('should serialize with zero entries', () => {
-            const deps = new Map();
+            const deps = new Set<string>();
             const serialized = PackageTest.serializeDirectDeps(deps);
-            expect(serialized).toBe('{}');
+            expect(serialized).toBe('[]');
         });
 
         it('should serialize with one entry', () => {
-            const deps = new Map([['dep0', 'ver0']]);
+            const deps = new Set<string>(['ver0']);
             const serialized = PackageTest.serializeDirectDeps(deps);
-            expect(serialized).toBe('{"dep0":"ver0"}');
+            expect(serialized).toBe('["ver0"]');
         });
 
         it('should serialize correctly with 2 entries', () => {
-            const deps = new Map([
-                ['dep0', 'ver0'],
-                ['dep1', 'ver1'],
-            ]);
+            const deps = new Set<string>(['ver0', 'ver1']);
             const serialized = PackageTest.serializeDirectDeps(deps);
-            expect(serialized).toBe('{"dep0":"ver0","dep1":"ver1"}');
+            expect(serialized).toBe('["ver0","ver1"]');
         });
 
         it('should serialize correctly with many entries', () => {
-            const deps = new Map([
-                ['dep0', 'ver0'],
-                ['dep1', 'ver1'],
-                ['dep2', 'ver2'],
-                ['dep3', 'ver3'],
-                ['dep4', 'ver4'],
-                ['dep5', 'ver5'],
-                ['dep6', 'ver6'],
-                ['dep7', 'ver7'],
-                ['dep8', 'ver8'],
-                ['dep9', 'ver9'],
-                ['dep10', 'ver10'],
-                ['dep11', 'ver11'],
-                ['dep12', 'ver12'],
-                ['dep13', 'ver13'],
-                ['dep14', 'ver14'],
-                ['dep15', 'ver15'],
+            const deps = new Set<string>([
+                'ver0',
+                'ver1',
+                'ver2',
+                'ver3',
+                'ver4',
+                'ver5',
+                'ver6',
+                'ver7',
+                'ver8',
+                'ver9',
+                'ver10',
+                'ver11',
+                'ver12',
+                'ver13',
+                'ver14',
+                'ver15',
             ]);
 
             const serialized = PackageTest.serializeDirectDeps(deps);
             expect(serialized).toBe(
-                '{"dep0":"ver0","dep1":"ver1","dep2":"ver2","dep3":"ver3","dep4":"ver4","dep5":"ver5","dep6":"ver6","dep7":"ver7","dep8":"ver8","dep9":"ver9","dep10":"ver10","dep11":"ver11","dep12":"ver12","dep13":"ver13","dep14":"ver14","dep15":"ver15"}',
+                '["ver0","ver1","ver2","ver3","ver4","ver5","ver6","ver7","ver8","ver9","ver10","ver11","ver12","ver13","ver14","ver15"]',
             );
         });
     });
@@ -67,39 +64,39 @@ describe('models/package', () => {
     describe('Package.deserializeDirectDeps()', () => {
         describe('success cases', () => {
             it('should deserialize correctly with zero entries', () => {
-                const serialized = '{}';
+                const serialized = '[]';
                 const deps = PackageTest.deserializeDirectDeps(serialized);
-                expect(deps).toEqual(new Map());
+                expect(deps).toEqual(new Set<string>());
             });
 
             it('should deserialize correctly with one entry', () => {
-                const serialized = '{"dep0":"ver0"}';
+                const serialized = '["ver0"]';
                 const deps = PackageTest.deserializeDirectDeps(serialized);
-                expect(deps).toEqual(new Map([['dep0', 'ver0']]));
+                expect(deps).toEqual(new Set<string>(['ver0']));
             });
 
             it('should deserialize correctly with many entries', () => {
                 const serialized =
-                    '{"dep0":"ver0","dep1":"ver1","dep2":"ver2","dep3":"ver3","dep4":"ver4","dep5":"ver5","dep6":"ver6","dep7":"ver7","dep8":"ver8","dep9":"ver9","dep10":"ver10","dep11":"ver11","dep12":"ver12","dep13":"ver13","dep14":"ver14","dep15":"ver15"}';
+                    '["ver0","ver1","ver2","ver3","ver4","ver5","ver6","ver7","ver8","ver9","ver10","ver11","ver12","ver13","ver14","ver15"]';
                 const deps = PackageTest.deserializeDirectDeps(serialized);
                 expect(deps).toEqual(
-                    new Map([
-                        ['dep0', 'ver0'],
-                        ['dep1', 'ver1'],
-                        ['dep2', 'ver2'],
-                        ['dep3', 'ver3'],
-                        ['dep4', 'ver4'],
-                        ['dep5', 'ver5'],
-                        ['dep6', 'ver6'],
-                        ['dep7', 'ver7'],
-                        ['dep8', 'ver8'],
-                        ['dep9', 'ver9'],
-                        ['dep10', 'ver10'],
-                        ['dep11', 'ver11'],
-                        ['dep12', 'ver12'],
-                        ['dep13', 'ver13'],
-                        ['dep14', 'ver14'],
-                        ['dep15', 'ver15'],
+                    new Set<string>([
+                        'ver0',
+                        'ver1',
+                        'ver2',
+                        'ver3',
+                        'ver4',
+                        'ver5',
+                        'ver6',
+                        'ver7',
+                        'ver8',
+                        'ver9',
+                        'ver10',
+                        'ver11',
+                        'ver12',
+                        'ver13',
+                        'ver14',
+                        'ver15',
                     ]),
                 );
             });
@@ -117,17 +114,17 @@ describe('models/package', () => {
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing a closing brace)', () => {
-                const serialized = '{"dep0":"ver0"';
+                const serialized = '["ver0"';
                 expect(() => PackageTest.deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
             it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing an opening brace)', () => {
-                const serialized = '"dep0":"ver0"}';
+                const serialized = '"ver0"]';
                 expect(() => PackageTest.deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
 
-            it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing a colon)', () => {
-                const serialized = '{"dep0" "ver0"}';
+            it('should throw a FailedToDeserializeDepsError if the string is not valid JSON (missing a comma)', () => {
+                const serialized = '["ver0" "ver1"]';
                 expect(() => PackageTest.deserializeDirectDeps(serialized)).toThrow(FailedToDeserializeDepsError);
             });
         });
@@ -745,7 +742,7 @@ describe('models/package', () => {
         describe('success cases', () => {
             const genericTest = async (
                 name: string,
-                deps: Map<string, string>,
+                deps: Set<string>,
                 agdaFiles: Map<string, string>,
                 mdFiles: Map<string, string>,
             ) => {
@@ -768,7 +765,7 @@ describe('models/package', () => {
                 const pkg: Package = await Package.create(packageFilePath, name, deps, archive);
 
                 // Indicate the deps that came back
-                dbg(`Deps: ${JSON.stringify(Object.fromEntries(pkg.directDeps))}`);
+                dbg(`Deps: ${JSON.stringify(Array.from(pkg.directDeps))}`);
 
                 // Check fields of pkg
                 expect(pkg).toBeInstanceOf(Package);
@@ -796,7 +793,7 @@ describe('models/package', () => {
 
             it('small name, no dependencies, no files', async () => {
                 const name = 'Calculus';
-                const deps = new Map();
+                const deps = new Set<string>();
                 const agdaFiles = new Map();
                 const mdFiles = new Map();
 
@@ -805,7 +802,7 @@ describe('models/package', () => {
 
             it('small name, 1 dependency, no files', async () => {
                 const name = 'Calculus';
-                const deps = new Map([['dep0', '1.0.0']]);
+                const deps = new Set<string>(['1.0.0']);
                 const agdaFiles = new Map();
                 const mdFiles = new Map();
 
@@ -814,10 +811,7 @@ describe('models/package', () => {
 
             it('small name, 2 dependencies, no files', async () => {
                 const name = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                ]);
+                const deps = new Set<string>(['1.0.0', '1.0.1']);
                 const agdaFiles = new Map();
                 const mdFiles = new Map();
 
@@ -826,7 +820,7 @@ describe('models/package', () => {
 
             it('small name, 0 dependencies, 1 agda file', async () => {
                 const name = 'Calculus';
-                const deps = new Map();
+                const deps = new Set<string>();
                 const agdaFiles = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
                 const mdFiles = new Map();
 
@@ -835,7 +829,7 @@ describe('models/package', () => {
 
             it('small name, 0 dependencies, 1 md file', async () => {
                 const name = 'Calculus';
-                const deps = new Map();
+                const deps = new Set<string>();
                 const agdaFiles = new Map();
                 const mdFiles = new Map([['file.md', '# MyNat']]);
 
@@ -844,7 +838,7 @@ describe('models/package', () => {
 
             it('small name, 1 dependency, 1 agda file', async () => {
                 const name = 'Calculus';
-                const deps = new Map([['dep0', '1.0.0']]);
+                const deps = new Set<string>(['1.0.0']);
                 const agdaFiles = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
                 const mdFiles = new Map();
 
@@ -853,7 +847,7 @@ describe('models/package', () => {
 
             it('small name, 1 dependency, 1 md file', async () => {
                 const name = 'Calculus';
-                const deps = new Map([['dep0', '1.0.0']]);
+                const deps = new Set<string>(['1.0.0']);
                 const agdaFiles = new Map();
                 const mdFiles = new Map([['file.md', '# MyNat']]);
 
@@ -862,10 +856,7 @@ describe('models/package', () => {
 
             it('small name, 2 dependencies, 1 agda file, 1 md file', async () => {
                 const name = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                ]);
+                const deps = new Set<string>(['1.0.0', '1.0.1']);
                 const agdaFiles = new Map([['file.agda', 'myNat : ℕ\nmyNat = 0']]);
                 const mdFiles = new Map([['file.md', '# MyNat']]);
 
@@ -874,10 +865,7 @@ describe('models/package', () => {
 
             it('small name, 2 dependencies, 1 agda file in subdir', async () => {
                 const name = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                ]);
+                const deps = new Set<string>(['1.0.0', '1.0.1']);
                 const agdaFiles = new Map([['subdir/file.agda', 'myNat : ℕ\nmyNat = 0']]);
                 const mdFiles = new Map();
 
@@ -886,10 +874,7 @@ describe('models/package', () => {
 
             it('small name, 2 dependencies, 1 md file in subdir', async () => {
                 const name = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                ]);
+                const deps = new Set<string>(['1.0.0', '1.0.1']);
                 const agdaFiles = new Map();
                 const mdFiles = new Map([['subdir/file.md', '# MyNat']]);
 
@@ -898,10 +883,7 @@ describe('models/package', () => {
 
             it('small name, 2 dependencies, 1 agda file in subdir, 1 md file in subdir', async () => {
                 const name = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                ]);
+                const deps = new Set<string>(['1.0.0', '1.0.1']);
                 const agdaFiles = new Map([['subdir/file.agda', 'myNat : ℕ\nmyNat = 0']]);
                 const mdFiles = new Map([['subdir/file.md', '# MyNat']]);
 
@@ -910,10 +892,7 @@ describe('models/package', () => {
 
             it('small name, 2 dependencies, 10 agda files each in their own subdir', async () => {
                 const name = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                ]);
+                const deps = new Set<string>(['1.0.0', '1.0.1']);
                 const agdaFiles = new Map();
                 for (let i = 0; i < 10; i++) agdaFiles.set(`subdir${i}/file${i}.agda`, `myNat${i} : ℕ\nmyNat${i} = 0`);
 
@@ -924,10 +903,7 @@ describe('models/package', () => {
 
             it('small name, 2 dependencies, 10 md files each in their own subdir', async () => {
                 const name = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                ]);
+                const deps = new Set<string>(['1.0.0', '1.0.1']);
                 const agdaFiles = new Map();
                 const mdFiles = new Map();
                 for (let i = 0; i < 10; i++) mdFiles.set(`subdir${i}/file${i}.md`, `# MyNat${i}`);
@@ -937,10 +913,7 @@ describe('models/package', () => {
 
             it('small name, 2 dependencies, 10 agda files each in their own subdir, 10 md files each in their own subdir', async () => {
                 const name = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                ]);
+                const deps = new Set<string>(['1.0.0', '1.0.1']);
                 const agdaFiles = new Map();
                 for (let i = 0; i < 10; i++) agdaFiles.set(`subdir${i}/file${i}.agda`, `myNat${i} : ℕ\nmyNat${i} = 0`);
                 const mdFiles = new Map();
@@ -951,10 +924,7 @@ describe('models/package', () => {
 
             it('small name, 2 dependencies, 10 md files each in their own subdir, 10 agda files in root', async () => {
                 const name = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                ]);
+                const deps = new Set<string>(['1.0.0', '1.0.1']);
                 // root agda files
                 const agdaFiles = new Map();
                 for (let i = 0; i < 10; i++) agdaFiles.set(`file${i}.agda`, `myNat${i} : ℕ\nmyNat${i} = 0`);
@@ -967,17 +937,17 @@ describe('models/package', () => {
 
             it('small name, 10 dependencies, 50 agda files in doubly nested subdirs', async () => {
                 const name = 'Calculus';
-                const deps = new Map([
-                    ['dep0', '1.0.0'],
-                    ['dep1', '1.0.1'],
-                    ['dep2', '1.0.2'],
-                    ['dep3', '1.0.3'],
-                    ['dep4', '1.0.4'],
-                    ['dep5', '1.0.5'],
-                    ['dep6', '1.0.6'],
-                    ['dep7', '1.0.7'],
-                    ['dep8', '1.0.8'],
-                    ['dep9', '1.0.9'],
+                const deps = new Set<string>([
+                    '1.0.0',
+                    '1.0.1',
+                    '1.0.2',
+                    '1.0.3',
+                    '1.0.4',
+                    '1.0.5',
+                    '1.0.6',
+                    '1.0.7',
+                    '1.0.8',
+                    '1.0.9',
                 ]);
                 const agdaFiles = new Map();
                 for (let i = 0; i < 50; i++) {
@@ -1013,7 +983,7 @@ describe('models/package', () => {
                 const archive = await tarFs.pack(packDir, { entries: includedFiles });
 
                 // Expect a rejection
-                await expect(Package.create(packageFilePath, 'name', new Map(), archive)).rejects.toThrow(
+                await expect(Package.create(packageFilePath, 'name', new Set<string>(), archive)).rejects.toThrow(
                     PackageCreateError,
                 );
             });

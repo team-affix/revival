@@ -140,7 +140,7 @@ program
             // Construct package with archive
             const pkg = await common.Package.create(destination, project.name, project.directDeps, archive);
             // Write the package to the current working directory
-            console.log(`Package created: ${pkg.version}`);
+            console.log(`Package created: ${pkg.id}`);
         } catch (error: unknown) {
             if (error instanceof Error) {
                 console.error(error.message);
@@ -178,8 +178,8 @@ program
     .command('register')
     .description('Registers a package in the registry')
     .argument('<source>', 'The source path for the apm file')
-    .argument('[version]', 'The expected version of the package, if one is known')
-    .action(async (source: string, version?: string) => {
+    .argument('[id]', 'The expected id of the package, if one is known')
+    .action(async (source: string, id?: string) => {
         // Create debug logger
         const dbg = debug('apm:project:register');
 
@@ -189,7 +189,7 @@ program
             // Get the default registry
             const registry = await common.Registry.getDefault();
             // Register the package
-            await registry.put(pkg, version);
+            await registry.put(pkg, id);
         } catch (error: unknown) {
             if (error instanceof Error) {
                 console.error(error.message);
@@ -213,8 +213,8 @@ program
             // Print the details
             console.log(`Package file: ${pkg.filePath}`);
             console.log(`Package name: ${pkg.name}`);
-            console.log(`Package version: ${pkg.version}`);
-            console.log(`Package dependencies: ${JSON.stringify(Object.fromEntries(pkg.directDeps))}`);
+            console.log(`Package id: ${pkg.id}`);
+            console.log(`Package dependencies: ${JSON.stringify(Array.from(pkg.directDeps))}`);
             console.log(`Package archive offset: ${pkg.archiveOffset}`);
         } catch (error: unknown) {
             if (error instanceof Error) {

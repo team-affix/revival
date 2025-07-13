@@ -8,15 +8,15 @@ import PackageLoadError from '../errors/package-load';
 import PackageCreateError from '../errors/package-create';
 
 // Serialize the dependencies to be written to the binary
-function serializeDirectDeps(deps: Map<string, string>): string {
+function serializeDirectDeps(deps: Set<string>): string {
     // Get the debuggers
     const dbg = debug('apm:common:models:PackageBase:serializeDirectDeps');
 
     // Indicate that we are serializing the deps
-    dbg(`Serializing deps: ${JSON.stringify(Object.fromEntries(deps))}`);
+    dbg(`Serializing deps: ${JSON.stringify(Array.from(deps))}`);
 
     // Create an array from the entries
-    const result = JSON.stringify(Object.fromEntries(deps));
+    const result = JSON.stringify(Array.from(deps));
 
     // Indicate that we have serialized the deps
     dbg(`Serialized deps: ${result}`);
@@ -26,7 +26,7 @@ function serializeDirectDeps(deps: Map<string, string>): string {
 }
 
 // Deserialize the dependencies region from the binary
-function deserializeDirectDeps(deps: string): Map<string, string> {
+function deserializeDirectDeps(deps: string): Set<string> {
     // Get the debuggers
     const dbg = debug('apm:common:models:PackageBase:deserializeDirectDeps');
 
@@ -34,20 +34,20 @@ function deserializeDirectDeps(deps: string): Map<string, string> {
     dbg(`Deserializing deps: ${deps}`);
 
     // Parse the dependencies
-    let result: Map<string, string>;
+    let result: Set<string>;
 
     // Attempt to deserialize the deps
     try {
-        result = new Map<string, string>(Object.entries(JSON.parse(deps)));
+        result = new Set<string>(JSON.parse(deps));
     } catch (e) {
         const msg = e instanceof Error ? e.message : 'Unknown error';
         throw new FailedToDeserializeDepsError(deps, msg);
     }
 
     // Indicate that we have deserialized the deps
-    dbg(`Deserialized deps: ${JSON.stringify(Object.fromEntries(result))}`);
+    dbg(`Deserialized deps: ${JSON.stringify(Array.from(result))}`);
 
-    // Return the map
+    // Return the set
     return result;
 }
 
@@ -83,7 +83,7 @@ export class Package {
     private constructor(
         public readonly filePath: string,
         public readonly name: string,
-        public readonly directDeps: Map<string, string>,
+        public readonly directDeps: Set<string>,
         public readonly archiveOffset: number,
         public readonly id: string,
     ) {}
@@ -103,7 +103,7 @@ export class Package {
         // Indicate that we are reading the package
         dbg(`Reading package`);
 
-        // Open the package file using promise id
+        // Open the package file using promise
         const file = await fs.promises.open(filePath, 'r');
         // Get the stat of the file
         const stat = await file.stat();
@@ -171,12 +171,7 @@ export class Package {
     }
 
     // Create a package from a name, direct dependencies, and a payload
-    static async create(
-        filePath: string,
-        name: string,
-        deps: Map<string, string>,
-        archive: Readable,
-    ): Promise<Package> {
+    static async create(filePath: string, name: string, deps: Set<string>, archive: Readable): Promise<Package> {
         // Get the debugger
         const dbg = debug('apm:common:models:Package:create');
 

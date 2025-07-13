@@ -18,106 +18,56 @@ import CheckProjectError from '../../src/errors/check-project';
 describe('models/Project', () => {
     describe('parseDirectDeps()', () => {
         describe('success cases', () => {
-            it('should parse as an empty map if the string is empty', () => {
+            it('should parse as an empty set if the string is empty', () => {
                 const raw = '';
                 const deps = ProjectTest.parseDirectDeps(raw);
-                expect(deps).toEqual(new Map());
+                expect(deps).toEqual(new Set<string>());
             });
 
             it('should parse correctly with one dependency', () => {
-                const raw = 'dep0 ver0';
+                const raw = 'ver0';
                 const deps = ProjectTest.parseDirectDeps(raw);
-                expect(deps).toEqual(new Map([['dep0', 'ver0']]));
+                expect(deps).toEqual(new Set<string>(['ver0']));
             });
 
             it('should parse correctly with two dependencies', () => {
-                const raw = 'dep0 ver0\ndep1 ver1';
+                const raw = 'ver0\nver1';
                 const deps = ProjectTest.parseDirectDeps(raw);
-                expect(deps).toEqual(
-                    new Map([
-                        ['dep0', 'ver0'],
-                        ['dep1', 'ver1'],
-                    ]),
-                );
+                expect(deps).toEqual(new Set<string>(['ver0', 'ver1']));
             });
 
             it('should parse correctly with many dependencies', () => {
-                const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2\ndep3 ver3\ndep4 ver4\ndep5 ver5';
+                const raw = 'ver0\nver1\nver2\nver3\nver4\nver5';
                 const deps = ProjectTest.parseDirectDeps(raw);
-                expect(deps).toEqual(
-                    new Map([
-                        ['dep0', 'ver0'],
-                        ['dep1', 'ver1'],
-                        ['dep2', 'ver2'],
-                        ['dep3', 'ver3'],
-                        ['dep4', 'ver4'],
-                        ['dep5', 'ver5'],
-                    ]),
-                );
+                expect(deps).toEqual(new Set<string>(['ver0', 'ver1', 'ver2', 'ver3', 'ver4', 'ver5']));
             });
 
             it('should successfully parse if the string contains any redundant newlines', () => {
-                const raw = 'dep0 ver0\n\ndep1 ver1';
+                const raw = 'ver0\n\nver1';
                 const deps = ProjectTest.parseDirectDeps(raw);
-                expect(deps).toEqual(
-                    new Map([
-                        ['dep0', 'ver0'],
-                        ['dep1', 'ver1'],
-                    ]),
-                );
+                expect(deps).toEqual(new Set<string>(['ver0', 'ver1']));
             });
 
             it('should successfully parse if the string contains any redundant newlines', () => {
-                const raw = 'dep0 ver0\n\n\ndep1 ver1\n\n\n\ndep2 ver2\n\n\n';
+                const raw = 'ver0\n\n\nver1\n\n\n\nver2\n\n\n';
                 const deps = ProjectTest.parseDirectDeps(raw);
-                expect(deps).toEqual(
-                    new Map([
-                        ['dep0', 'ver0'],
-                        ['dep1', 'ver1'],
-                        ['dep2', 'ver2'],
-                    ]),
-                );
+                expect(deps).toEqual(new Set<string>(['ver0', 'ver1', 'ver2']));
             });
         });
 
         describe('failure cases', () => {
-            it('should throw a FailedToParseDepsError if the string contains just a package name', () => {
-                const raw = 'dep0';
-                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
-            });
-
             it('should throw a FailedToParseDepsError if the string contains any invalid dependencies', () => {
-                const raw = 'dep0 ver0\ndep1';
-                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
-            });
-
-            it('should throw a FailedToParseDepsError if the string contains only duplicate dependencies', () => {
-                const raw = 'dep0 ver0\ndep0 ver1';
-                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
-            });
-
-            it('should throw a FailedToParseDepsError if the string contains any duplicate dependencies', () => {
-                const raw = 'dep0 ver0\ndep1 ver1\ndep0 ver2';
-                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
-            });
-
-            it('should throw a FailedToParseDepsError if the string contains a single line with more than two parts', () => {
-                const raw = 'dep0 ver0 etc\n';
-                expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
-            });
-
-            it('should throw a FailedToParseDepsError if the string contains any lines with more than two parts', () => {
-                const raw = 'dep0 ver0\ndep1 ver1\ndep2 ver2 etc\ndep3 ver3';
+                const raw = 'ver0 EXTRA';
                 expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if the only line starts with a space', () => {
-                const raw = ' dep0 ver0';
+                const raw = ' ver0';
                 expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
 
             it('should throw a FailedToParseDepsError if any lines start with a space', () => {
-                const raw = 'dep0 ver0\n dep1 ver1\ndep2 ver2';
+                const raw = 'ver0\n ver1\nver2';
                 expect(() => ProjectTest.parseDirectDeps(raw)).toThrow(FailedToParseDepsError);
             });
         });
@@ -141,31 +91,25 @@ describe('models/Project', () => {
 
                 // Read the dependencies file
                 const deps = ProjectTest.readDirectDepsFile(tmpDir);
-                expect(deps).toEqual(new Map());
+                expect(deps).toEqual(new Set<string>());
             });
 
             it('one dependency', () => {
                 // Write the dependencies file
-                fs.writeFileSync(depsPath, 'dep0 ver0');
+                fs.writeFileSync(depsPath, 'ver0');
 
                 // Read the dependencies file
                 const deps = ProjectTest.readDirectDepsFile(tmpDir);
-                expect(deps).toEqual(new Map([['dep0', 'ver0']]));
+                expect(deps).toEqual(new Set<string>(['ver0']));
             });
 
             it('many dependencies', () => {
                 // Write the dependencies file
-                fs.writeFileSync(depsPath, 'dep0 ver0\ndep1 ver1\ndep2 ver2');
+                fs.writeFileSync(depsPath, 'ver0\nver1\nver2');
 
                 // Read the dependencies file
                 const deps = ProjectTest.readDirectDepsFile(tmpDir);
-                expect(deps).toEqual(
-                    new Map([
-                        ['dep0', 'ver0'],
-                        ['dep1', 'ver1'],
-                        ['dep2', 'ver2'],
-                    ]),
-                );
+                expect(deps).toEqual(new Set<string>(['ver0', 'ver1', 'ver2']));
             });
         });
 
@@ -182,7 +126,7 @@ describe('models/Project', () => {
 
             it('should throw a FailedToParseDepsError if the file is not valid', () => {
                 // Write the dependencies file
-                fs.writeFileSync(depsPath, 'pkgName');
+                fs.writeFileSync(depsPath, ' ver0');
 
                 // Read the dependencies file
                 expect(() => ProjectTest.readDirectDepsFile(tmpDir)).toThrow(FailedToParseDepsError);
@@ -206,7 +150,7 @@ describe('models/Project', () => {
 
             it('empty dependencies file', async () => {
                 // Construct the dependencies
-                const deps = new Map();
+                const deps = new Set<string>();
 
                 // Write the empty dependencies file
                 await ProjectTest.writeDirectDepsFile(tmpDir, deps);
@@ -220,7 +164,7 @@ describe('models/Project', () => {
 
             it('one dependency', async () => {
                 // Construct the dependencies
-                const deps = new Map([['dep0', 'ver0']]);
+                const deps = new Set<string>(['ver0']);
 
                 // Write the dependencies file
                 await ProjectTest.writeDirectDepsFile(tmpDir, deps);
@@ -229,16 +173,12 @@ describe('models/Project', () => {
                 const depsRaw = fs.readFileSync(depsPath, 'utf8');
 
                 // Check the result
-                expect(depsRaw).toBe('dep0 ver0\n');
+                expect(depsRaw).toBe('ver0\n');
             });
 
             it('many dependencies', async () => {
                 // Construct the dependencies
-                const deps = new Map([
-                    ['dep0', 'ver0'],
-                    ['dep1', 'ver1'],
-                    ['dep2', 'ver2'],
-                ]);
+                const deps = new Set<string>(['ver0', 'ver1', 'ver2']);
 
                 // Write the dependencies file
                 await ProjectTest.writeDirectDepsFile(tmpDir, deps);
@@ -247,7 +187,7 @@ describe('models/Project', () => {
                 const depsRaw = fs.readFileSync(depsPath, 'utf8');
 
                 // Check the result
-                expect(depsRaw).toBe('dep0 ver0\ndep1 ver1\ndep2 ver2\n');
+                expect(depsRaw).toBe('ver0\nver1\nver2\n');
             });
         });
 
@@ -257,7 +197,7 @@ describe('models/Project', () => {
                 if (fs.existsSync(tmpDir)) fs.rmdirSync(tmpDir, { recursive: true });
 
                 // Expect rejection
-                expect(async () => await ProjectTest.writeDirectDepsFile(tmpDir, new Map())).rejects.toThrow(
+                expect(async () => await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>())).rejects.toThrow(
                     WriteDepsFileError,
                 );
             });
@@ -267,10 +207,10 @@ describe('models/Project', () => {
                 fs.mkdirSync(tmpDir);
 
                 // Create the file
-                fs.writeFileSync(depsPath, 'dep0 ver0');
+                fs.writeFileSync(depsPath, 'ver0');
 
                 // Expect rejection
-                expect(async () => await ProjectTest.writeDirectDepsFile(tmpDir, new Map())).rejects.toThrow(
+                expect(async () => await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>())).rejects.toThrow(
                     WriteDepsFileError,
                 );
             });
@@ -403,7 +343,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and no source files', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -417,7 +357,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual([]);
                 expect(project.rootSource.mdFiles).toEqual([]);
@@ -425,7 +365,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and one dirt file (.txt)', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -439,7 +379,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual([]);
                 expect(project.rootSource.mdFiles).toEqual([]);
@@ -447,7 +387,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and one agda file', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -461,7 +401,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual(['file.agda']);
                 expect(project.rootSource.mdFiles).toEqual([]);
@@ -469,7 +409,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and one md file', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -483,7 +423,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual([]);
                 expect(project.rootSource.mdFiles).toEqual(['file.md']);
@@ -491,7 +431,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and one agda file and one md file', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -510,7 +450,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual(['file.agda']);
                 expect(project.rootSource.mdFiles).toEqual(['file.md']);
@@ -518,7 +458,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and one agda file in nested directory', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -532,7 +472,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual(['subdir/file.agda']);
                 expect(project.rootSource.mdFiles).toEqual([]);
@@ -540,7 +480,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and one md file in nested directory', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -554,7 +494,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual([]);
                 expect(project.rootSource.mdFiles).toEqual(['subdir/file.md']);
@@ -562,7 +502,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and one agda file and one md file in nested directory', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -581,7 +521,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual(['subdir/file1.agda']);
                 expect(project.rootSource.mdFiles).toEqual(['subdir/file2.md']);
@@ -589,7 +529,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and one agda file in doubly-nested directory', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -603,7 +543,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual(['subdir/subdir2/file.agda']);
                 expect(project.rootSource.mdFiles).toEqual([]);
@@ -611,7 +551,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and multiple agda files', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -631,7 +571,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles.sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
                 expect(project.rootSource.mdFiles.sort()).toEqual([]);
@@ -639,7 +579,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and multiple md files', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -659,7 +599,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles.sort()).toEqual([]);
                 expect(project.rootSource.mdFiles.sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
@@ -667,7 +607,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and multiple agda files and multiple md files', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -690,7 +630,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles.sort()).toEqual(['file1.agda', 'file2.agda', 'file3.agda'].sort());
                 expect(project.rootSource.mdFiles.sort()).toEqual(['file1.md', 'file2.md', 'file3.md'].sort());
@@ -698,7 +638,7 @@ describe('models/Project', () => {
 
             it('empty deps.txt file and multiple agda files and multiple md files in nested directories', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map());
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>());
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -721,7 +661,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map());
+                expect(project.directDeps).toEqual(new Set<string>());
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles.sort()).toEqual(
                     ['subdir1/file1.agda', 'subdir2/file2.agda', 'subdir2/subdir3/file3.agda'].sort(),
@@ -733,7 +673,7 @@ describe('models/Project', () => {
 
             it('single package deps.txt file and no source files', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(tmpDir, new Map([['name', '1.0.0']]));
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>(['1.0.0']));
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -747,7 +687,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(new Map([['name', '1.0.0']]));
+                expect(project.directDeps).toEqual(new Set<string>(['1.0.0']));
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual([]);
                 expect(project.rootSource.mdFiles).toEqual([]);
@@ -755,13 +695,7 @@ describe('models/Project', () => {
 
             it('two package deps.txt file and no source files', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(
-                    tmpDir,
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>(['1.0.0', '1.0.1']));
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -775,12 +709,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
+                expect(project.directDeps).toEqual(new Set<string>(['1.0.0', '1.0.1']));
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual([]);
                 expect(project.rootSource.mdFiles).toEqual([]);
@@ -788,13 +717,7 @@ describe('models/Project', () => {
 
             it('two package deps.txt file and one agda file', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(
-                    tmpDir,
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>(['1.0.0', '1.0.1']));
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -808,12 +731,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
+                expect(project.directDeps).toEqual(new Set<string>(['1.0.0', '1.0.1']));
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual(['file.agda']);
                 expect(project.rootSource.mdFiles).toEqual([]);
@@ -821,13 +739,7 @@ describe('models/Project', () => {
 
             it('two package deps.txt file and one md file', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(
-                    tmpDir,
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>(['1.0.0', '1.0.1']));
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -841,12 +753,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
+                expect(project.directDeps).toEqual(new Set<string>(['1.0.0', '1.0.1']));
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual([]);
                 expect(project.rootSource.mdFiles).toEqual(['file.md']);
@@ -854,13 +761,7 @@ describe('models/Project', () => {
 
             it('two package deps.txt file and one agda file and one md file', async () => {
                 // Create the deps file
-                await ProjectTest.writeDirectDepsFile(
-                    tmpDir,
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
+                await ProjectTest.writeDirectDepsFile(tmpDir, new Set<string>(['1.0.0', '1.0.1']));
 
                 // Create the .agda-lib file
                 ProjectTest.createAgdaLibFile(tmpDir, projectName);
@@ -879,12 +780,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                    ]),
-                );
+                expect(project.directDeps).toEqual(new Set<string>(['1.0.0', '1.0.1']));
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles).toEqual(['file.agda']);
                 expect(project.rootSource.mdFiles).toEqual(['file.md']);
@@ -894,13 +790,7 @@ describe('models/Project', () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(
                     tmpDir,
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                        ['name2', '1.0.2'],
-                        ['name3', '1.0.3'],
-                        ['name4', '1.0.4'],
-                    ]),
+                    new Set<string>(['1.0.0', '1.0.1', '1.0.2', '1.0.3', '1.0.4']),
                 );
 
                 // Create the .agda-lib file
@@ -923,15 +813,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                        ['name2', '1.0.2'],
-                        ['name3', '1.0.3'],
-                        ['name4', '1.0.4'],
-                    ]),
-                );
+                expect(project.directDeps).toEqual(new Set<string>(['1.0.0', '1.0.1', '1.0.2', '1.0.3', '1.0.4']));
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles.sort()).toEqual(
                     ['file1.agda', 'file2.agda', 'file3.agda', 'file4.agda', 'file5.agda'].sort(),
@@ -943,13 +825,7 @@ describe('models/Project', () => {
                 // Create the deps file
                 await ProjectTest.writeDirectDepsFile(
                     tmpDir,
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                        ['name2', '1.0.2'],
-                        ['name3', '1.0.3'],
-                        ['name4', '1.0.4'],
-                    ]),
+                    new Set<string>(['1.0.0', '1.0.1', '1.0.2', '1.0.3', '1.0.4']),
                 );
 
                 // Create the .agda-lib file
@@ -972,15 +848,7 @@ describe('models/Project', () => {
                 // Expect the project to be an instance of Project
                 expect(project).toBeInstanceOf(Project);
                 expect(project.name).toBe('APMTmpProject');
-                expect(project.directDeps).toEqual(
-                    new Map([
-                        ['name0', '1.0.0'],
-                        ['name1', '1.0.1'],
-                        ['name2', '1.0.2'],
-                        ['name3', '1.0.3'],
-                        ['name4', '1.0.4'],
-                    ]),
-                );
+                expect(project.directDeps).toEqual(new Set<string>(['1.0.0', '1.0.1', '1.0.2', '1.0.3', '1.0.4']));
                 expect(project.cwd).toBe(tmpDir);
                 expect(project.rootSource.agdaFiles.sort()).toEqual(
                     [
@@ -1078,7 +946,7 @@ describe('models/Project', () => {
                 ProjectTest.createAgdaLibFile(srcPath, 'FailProject');
 
                 // Create the deps.txt file
-                fs.writeFileSync(depsTxtPath, 'pkgName');
+                fs.writeFileSync(depsTxtPath, ' ver0');
 
                 // Expect the file to exist
                 expect(fs.existsSync(depsTxtPath)).toBe(true);
@@ -1097,11 +965,24 @@ describe('models/Project', () => {
                 ProjectTest.createAgdaLibFile(srcPath, 'FailProject');
 
                 // Create the deps.txt file
-                fs.writeFileSync(path.join(srcPath, 'deps.txt'), 'pkgName ver0');
+                fs.writeFileSync(path.join(srcPath, 'deps.txt'), 'ver0');
 
                 // Expect a rejection
                 await expect(Project.load(srcPath)).rejects.toThrow(SourceLoadError);
             });
+
+            // it('should throw a ProjectLoadError if the project does not contain an agda lib file', async () => {
+            //     const srcPath = path.join(tmpDir, 'no-root-source');
+
+            //     // Create the folder
+            //     fs.mkdirSync(srcPath, { recursive: true });
+
+            //     // Create the deps.txt file
+            //     fs.writeFileSync(path.join(srcPath, 'deps.txt'), 'ver0');
+
+            //     // Expect a rejection
+            //     await expect(Project.load(srcPath)).rejects.toThrow(SourceLoadError);
+            // });
         });
     });
 
@@ -1123,13 +1004,7 @@ describe('models/Project', () => {
 
         beforeAll(async () => {
             // Construct the helper package that will be used for all tests
-            const directDeps = new Map([
-                ['name0', '1.0.0'],
-                ['name1', '1.0.1'],
-                ['name2', '1.0.2'],
-                ['name3', '1.0.3'],
-                ['name4', '1.0.4'],
-            ]);
+            const directDeps = new Set<string>(['1.0.0', '1.0.1', '1.0.2', '1.0.3', '1.0.4']);
 
             // Make the helper package dir path
             const helperDir = path.join(os.tmpdir(), 'project-init-helper');

@@ -15,8 +15,8 @@ import PutPackageError from '../errors/put-package';
 const PACKAGES_DIR_NAME = 'packages';
 
 // Get the path to a package
-function getPackagePath(cwd: string, name: string, id: string): string {
-    return path.join(cwd, PACKAGES_DIR_NAME, name, `${id}.apm`);
+function getPackagePath(cwd: string, id: string): string {
+    return path.join(cwd, PACKAGES_DIR_NAME, `${id}.apm`);
 }
 
 // Registry model
@@ -66,15 +66,15 @@ class Registry {
     }
 
     // Get a package from the registry
-    async get(name: string, id: string): Promise<Package> {
+    async get(id: string): Promise<Package> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:getPackage');
 
         // Indicate that we are getting a package
-        dbg(`Getting package ${name}@${id}`);
+        dbg(`Getting package ${id}`);
 
         // Get the path to the package
-        const filePath = getPackagePath(this.cwd, name, id);
+        const filePath = getPackagePath(this.cwd, id);
 
         // Indicate the file path
         dbg(`File path: ${filePath}`);
@@ -86,23 +86,21 @@ class Registry {
     // Gets a package tree, which includes the package itself and all of its dependencies
     // It also includes dependencies which are overridden.
     // The order of the result is a valid topological sort of the package tree.
-    async getPackageTree(name: string, id: string): Promise<PackageTree> {
+    async getPackageTree(id: string): Promise<PackageTree> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:getPackageTree');
 
         // Indicate that we are getting the package tree
-        dbg(`Getting package tree for ${name}@${id}`);
+        dbg(`Getting package tree for ${id}`);
 
         // Get the package
-        const pkg = await this.get(name, id);
+        const pkg = await this.get(id);
 
         // Get the dependencies of the package
         const deps = pkg.directDeps;
 
         // Get the package tree of the dependencies
-        const subTrees: PackageTree[] = await Promise.all(
-            Array.from(deps.entries()).map(([name, id]) => this.getPackageTree(name, id)),
-        );
+        const subTrees: PackageTree[] = await Promise.all(Array.from(deps).map((id) => this.getPackageTree(id)));
 
         // Return the package tree
         return new PackageTree(pkg, subTrees);
@@ -110,51 +108,59 @@ class Registry {
 
     // Get the project tree of a project given its direct dependencies
     async getProjectTree(
-        directDeps: Map<string, string>,
-        overrides: Set<string> = new Set<string>(),
-        visited: Set<string> = new Set<string>(),
+        directDeps: Set<string>,
+        overrideNames: Set<string> = new Set<string>(),
+        visitedNames: Set<string> = new Set<string>(),
     ): Promise<PackageTree[]> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:getProjectTree');
 
         // Indicate that we are getting the project dependencies
-        dbg(`Getting project tree given direct dependencies: ${JSON.stringify(Object.fromEntries(directDeps))}`);
+        dbg(`Getting project tree given direct dependencies: ${JSON.stringify(Array.from(directDeps))}`);
+
+        // Get the packages
+        const pkgs = new Map<string, Package>();
+        for (const id of directDeps) {
+            const pkg = await this.get(id);
+            pkgs.set(id, pkg);
+        }
 
         // Filter out the direct dependencies that are overridden
-        for (const [name] of directDeps.entries()) {
-            dbg(`Checking if ${name} is in overrides`);
-            dbg(`Overrides: ${JSON.stringify(Array.from(overrides))}`);
+        for (const [id, pkg] of pkgs.entries()) {
+            dbg(`Checking if ${pkg.name} is in overrides`);
+            dbg(`Overrides: ${JSON.stringify(Array.from(overrideNames))}`);
             // If the package exists in overrides, pop it from directDeps
             // as it has been overridden.
-            if (overrides.has(name)) directDeps.delete(name);
+            if (overrideNames.has(pkg.name)) pkgs.delete(id);
         }
 
-        // Error if any of the direct dependencies are already in visited
-        for (const [name, id] of directDeps.entries()) {
-            dbg(`Checking if ${name}@${id} is in visited`);
-            dbg(`Visited: ${JSON.stringify(Array.from(visited))}`);
-            // If the package exists in visited, throw an error
-            // as this is an unresolved peer dependency.
-            if (visited.has(name))
-                throw new GetProjectTreeError(directDeps, `Unresolved peer dependency: ${name}@${id}`);
-        }
+        // Get the local package names
+        const pkgNames = Array.from(pkgs.values()).map((pkg) => pkg.name);
 
-        // Create a new set of overrides that includes the direct dependencies
-        const localOverrides = new Set<string>([...overrides, ...directDeps.keys()]);
+        // Create a new set of overrides that includes the locally accepted overrides
+        const localOverrides = new Set<string>([...overrideNames, ...pkgNames]);
 
         // Create a result array
         const result: PackageTree[] = [];
 
         // Visit each of the direct dependencies and recur on their dependencies
-        for (const [name, id] of directDeps.entries()) {
-            // Get the package
-            const pkg = await this.get(name, id);
+        for (const [id, pkg] of pkgs.entries()) {
+            // Check if the package is in visitedNames
+            dbg(`Checking if ${pkg.name} is in visitedNames`);
+
+            // Print the visited names
+            dbg(`visitedNames: ${JSON.stringify(Array.from(visitedNames))}`);
+
+            // If the package exists in visitedNames, throw an error
+            // as this is an unresolved peer dependency.
+            if (visitedNames.has(pkg.name))
+                throw new GetProjectTreeError(id, `Unresolved peer dependency: ${pkg.name}`);
 
             // Get the dependencies of the package
             const deps = pkg.directDeps;
 
             // Recur on the dependencies of this package
-            const subResult = await this.getProjectTree(deps, localOverrides, visited);
+            const subResult = await this.getProjectTree(deps, localOverrides, visitedNames);
 
             // Add the package to the results
             const tree = new PackageTree(pkg, subResult);
@@ -163,13 +169,13 @@ class Registry {
             result.push(tree);
 
             // Indicate that we have added pkg and its project tree to the result
-            dbg(`Added ${name}@${id} and its project tree to the result`);
+            dbg(`Added ${pkg.name}@${id} and its project tree to the result`);
 
             // Add the package to the visited set
-            visited.add(name);
+            visitedNames.add(pkg.name);
 
             // Indicate that we have visited the package
-            dbg(`Added ${name} to visited`);
+            dbg(`Added ${pkg.name} to visitedNames`);
         }
 
         // Print the result
@@ -231,7 +237,7 @@ class Registry {
         dbg(`Putting package ${pkg.name}@${pkg.id}`);
 
         // Get the path to the package
-        const dest = getPackagePath(this.cwd, pkg.name, pkg.id);
+        const dest = getPackagePath(this.cwd, pkg.id);
 
         // Error if the package is already registered
         if (fs.existsSync(dest)) throw new PutPackageError(pkg.name, pkg.id, 'Package already registered');
@@ -247,7 +253,7 @@ class Registry {
     }
 
     // List all packages in the registry
-    async ls(pkgs: Set<{ name: string; id: string }>): Promise<Set<{ name: string; id: string }>> {
+    async ls(pkgIds: Set<string>): Promise<Set<string>> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:ls');
 
@@ -255,18 +261,18 @@ class Registry {
         dbg(`Listing packages`);
 
         // Create a result set
-        const result = new Set<{ name: string; id: string }>();
+        const result = new Set<string>();
 
         // For each package, add it to the result
-        for (const pkg of pkgs) {
+        for (const id of pkgIds) {
             // Get the path to the package
-            const dest = getPackagePath(this.cwd, pkg.name, pkg.id);
+            const dest = getPackagePath(this.cwd, id);
 
             // If the package does not exist, skip it
             if (!fs.existsSync(dest)) continue;
 
             // Add the package to the result
-            result.add({ name: pkg.name, id: pkg.id });
+            result.add(id);
         }
 
         // Return the result

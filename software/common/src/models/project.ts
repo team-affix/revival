@@ -22,7 +22,7 @@ const DEPS_FOLDER_NAME = 'deps';
 const AGDA_LIB_FILE_NAME = '.agda-lib';
 
 // Parse the dependencies given a raw dependencies file
-function parseDirectDeps(raw: string): Map<string, string> {
+function parseDirectDeps(raw: string): Set<string> {
     // Get the debuggers
     const dbg = debug('apm:common:models:Project:parseDeps');
 
@@ -33,37 +33,31 @@ function parseDirectDeps(raw: string): Map<string, string> {
 
     dbg(`DepsLines: ${JSON.stringify(depsLines)}`);
 
-    // Create a map of (name,id) tuples
-    const result = new Map<string, string>();
+    // Create a set of ids
+    const result = new Set<string>();
 
-    // For each line, parse the line and add the tuple to the map
+    // For each line, parse the line and add the id to the set
     for (const line of depsLines) {
         // Parse the line
-        const [name, id, extra] = line.split(' ');
+        const [id, extra] = line.split(' ');
 
         // If there are more than two parts, throw an error
         if (extra)
-            throw new FailedToParseDepsError(`Error parsing line, expected 2 space-separated parts, got 3: ${line}`);
+            throw new FailedToParseDepsError(`Error parsing line, expected 1 space-separated part, got more: ${line}`);
 
         // If the line is empty, continue
-        if (!name) continue;
+        if (!id) continue;
 
-        // If the name can be parsed, but the id or domain cannot, throw an error
-        if (!id) throw new FailedToParseDepsError(`Error parsing line: ${line}`);
-
-        // If the package is already in the map, throw an error
-        if (result.has(name)) throw new FailedToParseDepsError(`Multiple ids of '${name}' listed in dependencies.`);
-
-        // Add the tuple to the map
-        result.set(name, id);
+        // Add the tuple to the set
+        result.add(id);
     }
 
-    // Return the map
+    // Return the set
     return result;
 }
 
 // Read the direct dependencies from the deps file
-function readDirectDepsFile(cwd: string): Map<string, string> {
+function readDirectDepsFile(cwd: string): Set<string> {
     // Get the debugger
     const dbg = debug('apm:common:models:Project:readDirectDepsFile');
 
@@ -89,14 +83,14 @@ function readDirectDepsFile(cwd: string): Map<string, string> {
     const directDeps = parseDirectDeps(depsRaw);
 
     // Indicate the parsed dependencies
-    dbg(`DirectDeps: ${JSON.stringify(Object.fromEntries(directDeps))}`);
+    dbg(`DirectDeps: ${JSON.stringify(Array.from(directDeps))}`);
 
     // Return the parsed dependencies
     return directDeps;
 }
 
 // Write the direct dependencies to the deps file
-async function writeDirectDepsFile(cwd: string, deps: Map<string, string>): Promise<void> {
+async function writeDirectDepsFile(cwd: string, deps: Set<string>): Promise<void> {
     return new Promise((resolve, reject) => {
         // Get the debugger
         const dbg = debug('apm:common:models:Project:writeDirectDepsFile');
@@ -131,8 +125,8 @@ async function writeDirectDepsFile(cwd: string, deps: Map<string, string>): Prom
         });
 
         // For each dependency, write the dependency to the file
-        for (const [name, id] of deps.entries()) {
-            writeStream.write(`${name} ${id}\n`);
+        for (const id of deps) {
+            writeStream.write(`${id}\n`);
         }
 
         // Close the write stream
@@ -178,7 +172,7 @@ export class Project {
     private constructor(
         public readonly cwd: string,
         public readonly name: string,
-        public readonly directDeps: Map<string, string>,
+        public readonly directDeps: Set<string>,
         public readonly rootSource: Source,
         public readonly dependencySources: Source[],
     ) {}
@@ -205,7 +199,7 @@ export class Project {
         const directDeps = readDirectDepsFile(cwd);
 
         // Indicate the direct dependencies
-        dbg(`Direct deps: ${JSON.stringify(Object.fromEntries(directDeps))}`);
+        dbg(`Direct deps: ${JSON.stringify(Array.from(directDeps))}`);
 
         // Load the root source
         const rootSourcePath: string = path.join(cwd, projectName);
@@ -236,14 +230,14 @@ export class Project {
 
         // Declare the initialization values
         let projectName: string;
-        let deps: Map<string, string>;
+        let deps: Set<string>;
         let archive: Readable | undefined;
 
         // Define initialization values based on the extra argument
         if ('projectName' in extra) {
             // Set up default initialization values
             projectName = extra.projectName;
-            deps = new Map();
+            deps = new Set<string>();
             archive = undefined;
         } else {
             // Set up initialization values from the package
