@@ -245,6 +245,33 @@ class Registry {
         // Write the package to the registry
         fs.copyFileSync(pkg.filePath, dest);
     }
+
+    // List all packages in the registry
+    async ls(pkgs: Set<{ name: string; version: string }>): Promise<Set<{ name: string; version: string }>> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:Registry:ls');
+
+        // Indicate that we are listing packages
+        dbg(`Listing packages`);
+
+        // Create a result set
+        const result = new Set<{ name: string; version: string }>();
+
+        // For each package, add it to the result
+        for (const pkg of pkgs) {
+            // Get the path to the package
+            const dest = getPackagePath(this.cwd, pkg.name, pkg.version);
+
+            // If the package does not exist, skip it
+            if (!fs.existsSync(dest)) continue;
+
+            // Add the package to the result
+            result.add({ name: pkg.name, version: pkg.version });
+        }
+
+        // Return the result
+        return result;
+    }
 }
 
 export { Registry };
