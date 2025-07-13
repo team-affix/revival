@@ -5,7 +5,7 @@ import { AsciiTree } from 'oo-ascii-tree';
 // Convert a package tree to an ASCII tree
 function getAsciiTree(packageTree: PackageTree): AsciiTree {
     // Create the root node
-    const tree = new AsciiTree(boxed(packageTree.value.name + '\n' + packageTree.value.version));
+    const tree = new AsciiTree(boxed(packageTree.value.name + '\n' + packageTree.value.id));
 
     // Add the children
     for (const child of packageTree.children) tree.add(getAsciiTree(child));

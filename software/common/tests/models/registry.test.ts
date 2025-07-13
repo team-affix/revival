@@ -73,7 +73,7 @@ describe('models/registry', () => {
 
     const depend = (deps: Package[]) => {
         const result = new Map<string, string>();
-        for (const dep of deps) result.set(dep.name, dep.version);
+        for (const dep of deps) result.set(dep.name, dep.id);
         return result;
     };
 
@@ -118,27 +118,27 @@ describe('models/registry', () => {
             path.join(globalPackagesPath, 'pkg00.apm'),
             'pkgAlpha',
             new Map([
-                [pkg000.name, pkg000.version],
-                [pkg001.name, pkg001.version],
-                [pkg002.name, pkg002.version],
+                [pkg000.name, pkg000.id],
+                [pkg001.name, pkg001.id],
+                [pkg002.name, pkg002.id],
             ]),
         );
         const pkg01 = await createPackage(
             path.join(globalPackagesPath, 'pkg01.apm'),
             'pkgAlpha',
             new Map([
-                [pkg010.name, pkg010.version],
-                [pkg011.name, pkg011.version],
-                [pkg012.name, pkg012.version],
+                [pkg010.name, pkg010.id],
+                [pkg011.name, pkg011.id],
+                [pkg012.name, pkg012.id],
             ]),
         );
         const pkg02 = await createPackage(
             path.join(globalPackagesPath, 'pkg02.apm'),
             'pkgBeta',
             new Map([
-                [pkg020.name, pkg020.version],
-                [pkg021.name, pkg021.version],
-                [pkg022.name, pkg022.version],
+                [pkg020.name, pkg020.id],
+                [pkg021.name, pkg021.id],
+                [pkg022.name, pkg022.id],
             ]),
         );
 
@@ -146,27 +146,27 @@ describe('models/registry', () => {
             path.join(globalPackagesPath, 'pkg10.apm'),
             'pkgAlpha',
             new Map([
-                [pkg100.name, pkg100.version],
-                [pkg101.name, pkg101.version],
-                [pkg102.name, pkg102.version],
+                [pkg100.name, pkg100.id],
+                [pkg101.name, pkg101.id],
+                [pkg102.name, pkg102.id],
             ]),
         );
         const pkg11 = await createPackage(
             path.join(globalPackagesPath, 'pkg11.apm'),
             'pkgAlpha',
             new Map([
-                [pkg110.name, pkg110.version],
-                [pkg111.name, pkg111.version],
-                [pkg112.name, pkg112.version],
+                [pkg110.name, pkg110.id],
+                [pkg111.name, pkg111.id],
+                [pkg112.name, pkg112.id],
             ]),
         );
         const pkg12 = await createPackage(
             path.join(globalPackagesPath, 'pkg12.apm'),
             'pkgBeta',
             new Map([
-                [pkg100.name, pkg100.version], // intentionally, this package is pkg100, peer under pkg10
-                [pkg121.name, pkg121.version],
-                [pkg122.name, pkg122.version],
+                [pkg100.name, pkg100.id], // intentionally, this package is pkg100, peer under pkg10
+                [pkg121.name, pkg121.id],
+                [pkg122.name, pkg122.id],
             ]),
         );
 
@@ -175,18 +175,18 @@ describe('models/registry', () => {
             path.join(globalPackagesPath, 'pkg0.apm'),
             'pkgRoot0',
             new Map([
-                [pkg00.name, pkg00.version],
-                [pkg01.name, pkg01.version],
-                [pkg02.name, pkg02.version],
+                [pkg00.name, pkg00.id],
+                [pkg01.name, pkg01.id],
+                [pkg02.name, pkg02.id],
             ]),
         );
         const pkg1 = await createPackage(
             path.join(globalPackagesPath, 'pkg1.apm'),
             'pkgRoot1',
             new Map([
-                [pkg10.name, pkg10.version],
-                [pkg11.name, pkg11.version],
-                [pkg12.name, pkg12.version],
+                [pkg10.name, pkg10.id],
+                [pkg11.name, pkg11.id],
+                [pkg12.name, pkg12.id],
             ]),
         );
 
@@ -224,7 +224,7 @@ describe('models/registry', () => {
         Promise.all(
             pkgs.map(async (pkg) => {
                 // get the destination package path
-                const dest = RegistryTest.getPackagePath(registryPath, pkg.name, pkg.version);
+                const dest = RegistryTest.getPackagePath(registryPath, pkg.name, pkg.id);
                 // create the package path
                 fs.mkdirSync(path.dirname(dest), { recursive: true });
                 // copy the package
@@ -261,7 +261,7 @@ describe('models/registry', () => {
                 // get an inventory of the packages we want
                 const pkg0 = globalPkgs[0];
                 // create a path to the destination file
-                const pkgPath = RegistryTest.getPackagePath(registryPath, pkg0.name, pkg0.version);
+                const pkgPath = RegistryTest.getPackagePath(registryPath, pkg0.name, pkg0.id);
                 // create a file in the registry path
                 fs.mkdirSync(path.dirname(pkgPath), { recursive: true });
                 fs.copyFileSync(pkg0.filePath, pkgPath);
@@ -314,12 +314,12 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // get the package
-                const resultPkg = await registry.get(pkg.name, pkg.version);
+                const resultPkg = await registry.get(pkg.name, pkg.id);
                 // expect the package to be defined
                 expect(resultPkg).toBeDefined();
                 // expect the package to be the correct package
                 expect(resultPkg?.name).toEqual(pkg.name);
-                expect(resultPkg?.version).toEqual(pkg.version);
+                expect(resultPkg?.id).toEqual(pkg.id);
                 expect(resultPkg?.directDeps).toEqual(pkg.directDeps);
                 expect(resultPkg?.archiveOffset).toEqual(pkg.archiveOffset);
             };
@@ -348,7 +348,7 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // expect rejection, an error to be thrown
-                await expect(registry.get(globalPkgs[0].name, globalPkgs[0].version)).rejects.toThrow(PackageLoadError);
+                await expect(registry.get(globalPkgs[0].name, globalPkgs[0].id)).rejects.toThrow(PackageLoadError);
             });
 
             it('throws PackageLoadError if the package is not registered (2 packages present)', async () => {
@@ -357,7 +357,7 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // expect rejection, an error to be thrown
-                await expect(registry.get(globalPkgs[2].name, globalPkgs[2].version)).rejects.toThrow(PackageLoadError);
+                await expect(registry.get(globalPkgs[2].name, globalPkgs[2].id)).rejects.toThrow(PackageLoadError);
             });
         });
     });
@@ -368,13 +368,13 @@ describe('models/registry', () => {
 
         // // Helper function to check if two arrays of packages are the same
         // const packagesAreSame = (pkgs1: Package[], pkgs2: Package[]) => {
-        //     // Sort just by name, as there will never be duplicate names with different versions
+        //     // Sort just by name, as there will never be duplicate names with different ids
         //     const sortedPkgs1 = pkgs1.sort((a, b) => a.name.localeCompare(b.name));
         //     const sortedPkgs2 = pkgs2.sort((a, b) => a.name.localeCompare(b.name));
         //     return (
         //         sortedPkgs1.length === sortedPkgs2.length &&
         //         sortedPkgs1.every(
-        //             (pkg, index) => pkg.name === sortedPkgs2[index].name && pkg.version === sortedPkgs2[index].version,
+        //             (pkg, index) => pkg.name === sortedPkgs2[index].name && pkg.id === sortedPkgs2[index].id,
         //         )
         //     );
         // };
@@ -876,7 +876,7 @@ describe('models/registry', () => {
                 const pkg1 = await createPackage(
                     path.join(localPackagesPath, 'pkg1.apm'),
                     'pkg1',
-                    new Map([[pkg0.name, pkg0.version]]),
+                    new Map([[pkg0.name, pkg0.id]]),
                 );
                 // load the packages into the registry
                 await loadPackagesIntoRegistry(registryPath, [pkg0, pkg1]);
@@ -902,19 +902,19 @@ describe('models/registry', () => {
                 const pkg1 = await createPackage(
                     path.join(localPackagesPath, 'pkg1.apm'),
                     'pkg1',
-                    new Map([[pkg0.name, pkg0.version]]),
+                    new Map([[pkg0.name, pkg0.id]]),
                 );
                 const pkg2 = await createPackage(
                     path.join(localPackagesPath, 'pkg2.apm'),
                     'pkg2',
-                    new Map([[pkg0.name, pkg0.version]]),
+                    new Map([[pkg0.name, pkg0.id]]),
                 );
                 const pkg3 = await createPackage(
                     path.join(localPackagesPath, 'pkg3.apm'),
                     'pkg3',
                     new Map([
-                        [pkg1.name, pkg1.version],
-                        [pkg2.name, pkg2.version],
+                        [pkg1.name, pkg1.id],
+                        [pkg2.name, pkg2.id],
                     ]),
                 );
                 // load the packages into the registry
@@ -930,7 +930,7 @@ describe('models/registry', () => {
                 const pkg1 = await createPackage(
                     path.join(localPackagesPath, 'pkg1.apm'),
                     'pkg1',
-                    new Map([[pkg0.name, pkg0.version]]),
+                    new Map([[pkg0.name, pkg0.id]]),
                 );
                 // load the package into the registry (DON'T LOAD pkg0)
                 await loadPackagesIntoRegistry(registryPath, [pkg1]);
@@ -945,12 +945,12 @@ describe('models/registry', () => {
                 const pkg1 = await createPackage(
                     path.join(localPackagesPath, 'pkg1.apm'),
                     'pkg1',
-                    new Map([[pkg0.name, pkg0.version]]),
+                    new Map([[pkg0.name, pkg0.id]]),
                 );
                 const pkg2 = await createPackage(
                     path.join(localPackagesPath, 'pkg2.apm'),
                     'pkg2',
-                    new Map([[pkg1.name, pkg1.version]]),
+                    new Map([[pkg1.name, pkg1.id]]),
                 );
 
                 // load the package into the registry (DON'T LOAD pkg0)
@@ -969,19 +969,19 @@ describe('models/registry', () => {
                 const pkg1 = await createPackage(
                     path.join(localPackagesPath, 'pkg1.apm'),
                     'pkg1',
-                    new Map([[pkg0.name, pkg0.version]]),
+                    new Map([[pkg0.name, pkg0.id]]),
                 );
 
                 // Child packages
                 const pkg2 = await createPackage(
                     path.join(localPackagesPath, 'pkg2.apm'),
                     'pkg2',
-                    new Map([[pkg0.name, pkg0.version]]),
+                    new Map([[pkg0.name, pkg0.id]]),
                 );
                 const pkg3 = await createPackage(
                     path.join(localPackagesPath, 'pkg3.apm'),
                     'pkg3',
-                    new Map([[pkg1.name, pkg1.version]]),
+                    new Map([[pkg1.name, pkg1.id]]),
                 );
 
                 // Parent package
@@ -989,8 +989,8 @@ describe('models/registry', () => {
                     path.join(localPackagesPath, 'pkg4.apm'),
                     'pkg4',
                     new Map([
-                        [pkg2.name, pkg2.version],
-                        [pkg3.name, pkg3.version],
+                        [pkg2.name, pkg2.id],
+                        [pkg3.name, pkg3.id],
                     ]),
                 );
 
@@ -1013,7 +1013,7 @@ describe('models/registry', () => {
         //     // DO NOT SORT THE ARRAYS
         //     return (
         //         pkgs1.length === pkgs2.length &&
-        //         pkgs1.every((pkg, index) => pkg.name === pkgs2[index].name && pkg.version === pkgs2[index].version)
+        //         pkgs1.every((pkg, index) => pkg.name === pkgs2[index].name && pkg.id === pkgs2[index].id)
         //     );
         // };
 
@@ -1047,7 +1047,7 @@ describe('models/registry', () => {
             //         const directDeps = new Map<string, string>();
             //         for (const id of pkgDesc.deps) {
             //             const depPkg = pkgs.get(id)!;
-            //             directDeps.set(depPkg.name, depPkg.version);
+            //             directDeps.set(depPkg.name, depPkg.id);
             //         }
             //         // Construct the package
             //         const pkg = await createPackage(filePath, pkgDesc.name, directDeps);
@@ -1068,7 +1068,7 @@ describe('models/registry', () => {
             //     const registry = await Registry.load(registryPath);
 
             //     // get the project tree
-            //     const result = await registry.getPackageTree(rootPkg.name, rootPkg.version);
+            //     const result = await registry.getPackageTree(rootPkg.name, rootPkg.id);
 
             //     // expect the project tree to be empty
             //     expect(packagesAreSame(result, expectedPkgs)).toBe(true);
@@ -1081,7 +1081,7 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // get the package tree
-                const result = await registry.getPackageTree(pkg0.name, pkg0.version);
+                const result = await registry.getPackageTree(pkg0.name, pkg0.id);
                 // expect the package tree to be empty
                 expect(result.toString()).toBe(new PackageTree(pkg0, []).toString());
             });
@@ -1094,7 +1094,7 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // get the package tree
-                const result = await registry.getPackageTree(pkg1.name, pkg1.version);
+                const result = await registry.getPackageTree(pkg1.name, pkg1.id);
                 // expect the package tree to be empty
                 expect(result.toString()).toBe(new PackageTree(pkg1, [new PackageTree(pkg0, [])]).toString());
             });
@@ -1112,7 +1112,7 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // get the package tree
-                const result = await registry.getPackageTree(pkg2.name, pkg2.version);
+                const result = await registry.getPackageTree(pkg2.name, pkg2.id);
                 // expect the package tree to be empty
                 expect(result.toString()).toBe(
                     new PackageTree(pkg2, [new PackageTree(pkg0, []), new PackageTree(pkg1, [])]).toString(),
@@ -1134,7 +1134,7 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // get the package tree
-                const result = await registry.getPackageTree(pkg4.name, pkg4.version);
+                const result = await registry.getPackageTree(pkg4.name, pkg4.id);
                 // expect the package tree to be empty
                 expect(result.toString()).toBe(
                     new PackageTree(pkg4, [
@@ -1169,7 +1169,7 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // get the package tree
-                const result = await registry.getPackageTree(pkg6.name, pkg6.version);
+                const result = await registry.getPackageTree(pkg6.name, pkg6.id);
                 // expect the package tree to be empty
                 expect(result.toString()).toBe(
                     new PackageTree(pkg6, [
@@ -1397,7 +1397,7 @@ describe('models/registry', () => {
                 await expect(registry.vet(pkg0)).rejects.toThrow(VetPackageError);
             });
 
-            it('package with no files but wrong version', async () => {
+            it('package with no files but wrong id', async () => {
                 const pkg0 = await createUnfilteredPackage(
                     path.join(localPackagesPath, 'pkg0.apm'),
                     'pkg0',
@@ -1469,12 +1469,12 @@ describe('models/registry', () => {
                 // put the package
                 await registry.put(pkg0);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
             });
 
-            it('package with no source files and expected version', async () => {
+            it('package with no source files and expected id', async () => {
                 const pkg0 = await createPackage(
                     path.join(localPackagesPath, 'pkg0.apm'),
                     'pkg0',
@@ -1484,11 +1484,11 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // put the package
-                await registry.put(pkg0, pkg0.version);
+                await registry.put(pkg0, pkg0.id);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
             });
 
             it('package with one agda file', async () => {
@@ -1503,12 +1503,12 @@ describe('models/registry', () => {
                 // put the package
                 await registry.put(pkg0);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
             });
 
-            it('package with one agda file and expected version', async () => {
+            it('package with one agda file and expected id', async () => {
                 const pkg0 = await createUnfilteredPackage(
                     path.join(localPackagesPath, 'pkg0.apm'),
                     'pkg0',
@@ -1518,11 +1518,11 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // put the package
-                await registry.put(pkg0, pkg0.version);
+                await registry.put(pkg0, pkg0.id);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
             });
 
             it('package with one md file', async () => {
@@ -1537,9 +1537,9 @@ describe('models/registry', () => {
                 // put the package
                 await registry.put(pkg0);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
             });
 
             it('package with one md file and one agda file', async () => {
@@ -1557,9 +1557,9 @@ describe('models/registry', () => {
                 // put the package
                 await registry.put(pkg0);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
             });
 
             it('package with one illegal file PASSES vetting if archive is filtered', async () => {
@@ -1574,9 +1574,9 @@ describe('models/registry', () => {
                 // put the package
                 await registry.put(pkg0);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
             });
 
             it('package with multiple agda files', async () => {
@@ -1594,12 +1594,12 @@ describe('models/registry', () => {
                 // put the package
                 await registry.put(pkg0);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
             });
 
-            it('package with multiple agda files and expected version', async () => {
+            it('package with multiple agda files and expected id', async () => {
                 const pkg0 = await createPackage(
                     path.join(localPackagesPath, 'pkg0.apm'),
                     'pkg0',
@@ -1612,11 +1612,11 @@ describe('models/registry', () => {
                 // load the registry
                 const registry = await Registry.load(registryPath);
                 // put the package
-                await registry.put(pkg0, pkg0.version);
+                await registry.put(pkg0, pkg0.id);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
             });
 
             it('package with md file in hidden directory', async () => {
@@ -1631,9 +1631,9 @@ describe('models/registry', () => {
                 // put the package
                 await registry.put(pkg0);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
             });
 
             it('package with three agda files', async () => {
@@ -1652,9 +1652,9 @@ describe('models/registry', () => {
                 // put the package
                 await registry.put(pkg0);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
             });
         });
 
@@ -1743,7 +1743,7 @@ describe('models/registry', () => {
                 await expect(registry.put(pkg0)).rejects.toThrow(VetPackageError);
             });
 
-            it('package with no files but wrong version', async () => {
+            it('package with no files but wrong id', async () => {
                 const pkg0 = await createUnfilteredPackage(
                     path.join(localPackagesPath, 'pkg0.apm'),
                     'pkg0',
@@ -1797,9 +1797,9 @@ describe('models/registry', () => {
                 // put the package
                 await registry.put(pkg0);
                 // try to get the package after
-                const recovered = await registry.get(pkg0.name, pkg0.version);
+                const recovered = await registry.get(pkg0.name, pkg0.id);
                 // expect the recovered package to be the same as the original
-                expect(recovered.version).toBe(pkg0.version);
+                expect(recovered.id).toBe(pkg0.id);
                 // try to put the package again
                 await expect(registry.put(pkg0)).rejects.toThrow(PutPackageError);
             });
@@ -1834,7 +1834,7 @@ describe('models/registry', () => {
             // load the registry
             const registry = await Registry.load(registryPath);
             // list the packages
-            const result = await registry.ls(new Set([{ name: 'pkg0', version: '1.0.0' }]));
+            const result = await registry.ls(new Set([{ name: 'pkg0', id: '1.0.0' }]));
             // expect the result to be empty
             expect(result.size).toBe(0);
         });
@@ -1846,10 +1846,10 @@ describe('models/registry', () => {
             // put the package
             await registry.put(pkg0);
             // list the packages
-            const result = await registry.ls(new Set([{ name: pkg0.name, version: pkg0.version }]));
+            const result = await registry.ls(new Set([{ name: pkg0.name, id: pkg0.id }]));
             // expect the result to be the package
             expect(result.size).toBe(1);
-            expect(Array.from(result)).toEqual([{ name: pkg0.name, version: pkg0.version }]);
+            expect(Array.from(result)).toEqual([{ name: pkg0.name, id: pkg0.id }]);
         });
 
         it('1 package in registry, ls a different package', async () => {
@@ -1859,7 +1859,7 @@ describe('models/registry', () => {
             // put the package
             await registry.put(pkg0);
             // list the packages
-            const result = await registry.ls(new Set([{ name: 'pkg1', version: '1.0.0' }]));
+            const result = await registry.ls(new Set([{ name: 'pkg1', id: '1.0.0' }]));
             // expect the result to be empty
             expect(result.size).toBe(0);
         });
@@ -1875,15 +1875,15 @@ describe('models/registry', () => {
             // list the packages
             const result = await registry.ls(
                 new Set([
-                    { name: pkg0.name, version: pkg0.version },
-                    { name: pkg1.name, version: pkg1.version },
+                    { name: pkg0.name, id: pkg0.id },
+                    { name: pkg1.name, id: pkg1.id },
                 ]),
             );
             // expect the result to be the packages
             expect(result.size).toBe(2);
             expect(Array.from(result)).toEqual([
-                { name: pkg0.name, version: pkg0.version },
-                { name: pkg1.name, version: pkg1.version },
+                { name: pkg0.name, id: pkg0.id },
+                { name: pkg1.name, id: pkg1.id },
             ]);
         });
 
@@ -1896,10 +1896,10 @@ describe('models/registry', () => {
             await registry.put(pkg0);
             await registry.put(pkg1);
             // list the packages
-            const result = await registry.ls(new Set([{ name: pkg0.name, version: pkg0.version }]));
+            const result = await registry.ls(new Set([{ name: pkg0.name, id: pkg0.id }]));
             // expect the result to be the packages
             expect(result.size).toBe(1);
-            expect(Array.from(result)).toEqual([{ name: pkg0.name, version: pkg0.version }]);
+            expect(Array.from(result)).toEqual([{ name: pkg0.name, id: pkg0.id }]);
         });
 
         it('1 package in registry, ls 2 packages, one of which is not in the registry', async () => {
@@ -1911,13 +1911,13 @@ describe('models/registry', () => {
             // list the packages
             const result = await registry.ls(
                 new Set([
-                    { name: pkg0.name, version: pkg0.version },
-                    { name: 'pkg1', version: '1.0.0' },
+                    { name: pkg0.name, id: pkg0.id },
+                    { name: 'pkg1', id: '1.0.0' },
                 ]),
             );
             // expect the result to be the package in the registry
             expect(result.size).toBe(1);
-            expect(Array.from(result)).toEqual([{ name: pkg0.name, version: pkg0.version }]);
+            expect(Array.from(result)).toEqual([{ name: pkg0.name, id: pkg0.id }]);
         });
     });
 });

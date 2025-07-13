@@ -51,13 +51,13 @@ function deserializeDirectDeps(deps: string): Map<string, string> {
     return result;
 }
 
-// Compute the version of the package
-async function computeVersion(stream: Readable): Promise<string> {
+// Compute the id of the package
+async function computeId(stream: Readable): Promise<string> {
     // Get the debugger
-    const dbg = debug('apm:common:models:Package:computeVersion');
+    const dbg = debug('apm:common:models:Package:computeId');
 
-    // Indicate that we are computing the version
-    dbg(`Computing version of stream`);
+    // Indicate that we are computing the id
+    dbg(`Computing id of stream`);
 
     // Create the hash
     const hash = crypto.createHash('sha256');
@@ -67,13 +67,13 @@ async function computeVersion(stream: Readable): Promise<string> {
         hash.update(chunk);
     }
 
-    // Compute the version
+    // Compute the id
     const result = hash.digest('hex');
 
-    // Indicate that we have computed the version
-    dbg(`Computed version: ${result}`);
+    // Indicate that we have computed the id
+    dbg(`Computed id: ${result}`);
 
-    // Return the version
+    // Return the id
     return result;
 }
 
@@ -85,7 +85,7 @@ export class Package {
         public readonly name: string,
         public readonly directDeps: Map<string, string>,
         public readonly archiveOffset: number,
-        public readonly version: string,
+        public readonly id: string,
     ) {}
 
     // Load from package file
@@ -103,7 +103,7 @@ export class Package {
         // Indicate that we are reading the package
         dbg(`Reading package`);
 
-        // Open the package file using promise version
+        // Open the package file using promise id
         const file = await fs.promises.open(filePath, 'r');
         // Get the stat of the file
         const stat = await file.stat();
@@ -160,14 +160,14 @@ export class Package {
         // Open a file stream
         const fileStream = fs.createReadStream(filePath);
 
-        // // Get the version of the package
-        const version = await computeVersion(fileStream);
+        // // Get the id of the package
+        const id = await computeId(fileStream);
 
         // Parse the dependencies
         const directDeps = deserializeDirectDeps(depsRaw);
 
         // Return the package
-        return new Package(filePath, name, directDeps, offset, version);
+        return new Package(filePath, name, directDeps, offset, id);
     }
 
     // Create a package from a name, direct dependencies, and a payload
@@ -232,5 +232,5 @@ export class Package {
 export const __test__ = {
     serializeDirectDeps,
     deserializeDirectDeps,
-    computeVersion,
+    computeId,
 };

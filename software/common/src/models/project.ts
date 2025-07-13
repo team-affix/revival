@@ -33,13 +33,13 @@ function parseDirectDeps(raw: string): Map<string, string> {
 
     dbg(`DepsLines: ${JSON.stringify(depsLines)}`);
 
-    // Create a map of (name,version) tuples
+    // Create a map of (name,id) tuples
     const result = new Map<string, string>();
 
     // For each line, parse the line and add the tuple to the map
     for (const line of depsLines) {
         // Parse the line
-        const [name, version, extra] = line.split(' ');
+        const [name, id, extra] = line.split(' ');
 
         // If there are more than two parts, throw an error
         if (extra)
@@ -48,15 +48,14 @@ function parseDirectDeps(raw: string): Map<string, string> {
         // If the line is empty, continue
         if (!name) continue;
 
-        // If the name can be parsed, but the version or domain cannot, throw an error
-        if (!version) throw new FailedToParseDepsError(`Error parsing line: ${line}`);
+        // If the name can be parsed, but the id or domain cannot, throw an error
+        if (!id) throw new FailedToParseDepsError(`Error parsing line: ${line}`);
 
         // If the package is already in the map, throw an error
-        if (result.has(name))
-            throw new FailedToParseDepsError(`Multiple versions of '${name}' listed in dependencies.`);
+        if (result.has(name)) throw new FailedToParseDepsError(`Multiple ids of '${name}' listed in dependencies.`);
 
         // Add the tuple to the map
-        result.set(name, version);
+        result.set(name, id);
     }
 
     // Return the map
@@ -132,8 +131,8 @@ async function writeDirectDepsFile(cwd: string, deps: Map<string, string>): Prom
         });
 
         // For each dependency, write the dependency to the file
-        for (const [name, version] of deps.entries()) {
-            writeStream.write(`${name} ${version}\n`);
+        for (const [name, id] of deps.entries()) {
+            writeStream.write(`${name} ${id}\n`);
         }
 
         // Close the write stream

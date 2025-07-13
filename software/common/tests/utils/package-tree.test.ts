@@ -30,13 +30,13 @@ describe('utils/PackageTree', () => {
         // DO NOT SORT
         return (
             pkgs1.length === pkgs2.length &&
-            pkgs1.every((pkg, index) => pkg.name === pkgs2[index].name && pkg.version === pkgs2[index].version)
+            pkgs1.every((pkg, index) => pkg.name === pkgs2[index].name && pkg.id === pkgs2[index].id)
         );
     };
 
     const depend = (deps: Package[]) => {
         const result = new Map<string, string>();
-        for (const dep of deps) result.set(dep.name, dep.version);
+        for (const dep of deps) result.set(dep.name, dep.id);
         return result;
     };
 
@@ -59,7 +59,7 @@ describe('utils/PackageTree', () => {
     //             const asciiTree = PackageTreeTest.getAsciiTree(tree);
     //             console.log(asciiTree.toString());
     //             // Assert the ASCII tree
-    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.version));
+    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.id));
     //         });
 
     //         it('a root with one child', async () => {
@@ -72,7 +72,7 @@ describe('utils/PackageTree', () => {
     //             const asciiTree = PackageTreeTest.getAsciiTree(tree);
     //             console.log(asciiTree.toString());
     //             // Assert the ASCII tree
-    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.version));
+    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.id));
     //         });
 
     //         it('a root with two children', async () => {
@@ -86,7 +86,7 @@ describe('utils/PackageTree', () => {
     //             const asciiTree = PackageTreeTest.getAsciiTree(tree);
     //             console.log(asciiTree.toString());
     //             // Assert the ASCII tree
-    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.version));
+    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.id));
     //         });
 
     //         it('a root with one child and one grandchild', async () => {
@@ -102,15 +102,15 @@ describe('utils/PackageTree', () => {
     //             // Assert the ASCII tree
     //             const expected = `┌────────────────────────────────────────────────────────────────┐
     // |                                                            pkg2│
-    // |${pkg2.version}│
+    // |${pkg2.id}│
     // └────────────────────────────────────────────────────────────────┘
     // ├── ┌────────────────────────────────────────────────────────────────┐
     // │   |                                                            pkg0│
-    // │   |${pkg0.version}│
+    // │   |${pkg0.id}│
     // │   └────────────────────────────────────────────────────────────────┘
     // └── ┌────────────────────────────────────────────────────────────────┐
     //     |                                                            pkg1│
-    //     |${pkg1.version}│
+    //     |${pkg1.id}│
     //     └────────────────────────────────────────────────────────────────┘`;
     //             expect(asciiTree.toString()).toBe(expected);
     //         });
@@ -133,7 +133,7 @@ describe('utils/PackageTree', () => {
     //             const asciiTree = PackageTreeTest.getAsciiTree(tree);
     //             console.log(asciiTree.toString());
     //             // Assert the ASCII tree
-    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.version));
+    //             // expect(asciiTree.toString()).toBe(boxed(pkg0.name + '\n' + pkg0.id));
     //         });
     //     });
 

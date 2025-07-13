@@ -356,22 +356,22 @@ describe('models/package', () => {
     //     });
     // });
 
-    describe('Package.computeVersion()', () => {
-        const genericTest = async (binary: Buffer, expectedVersion: string) => {
+    describe('Package.computeId()', () => {
+        const genericTest = async (binary: Buffer, expectedId: string) => {
             // Create a readable stream from the binary
             const stream = Readable.from(binary);
-            // Compute the version
-            const version = await PackageTest.computeVersion(stream);
-            expect(version).toBe(expectedVersion);
+            // Compute the id
+            const id = await PackageTest.computeId(stream);
+            expect(id).toBe(expectedId);
         };
 
-        it('should compute the version correctly for small binary', () =>
+        it('should compute the id correctly for small binary', () =>
             genericTest(
                 Buffer.from([0x01, 0x02, 0x03, 0x04]),
                 '9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a',
             ));
 
-        it('should compute the version correctly for medium binary', () =>
+        it('should compute the id correctly for medium binary', () =>
             genericTest(
                 Buffer.from([
                     0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
@@ -379,7 +379,7 @@ describe('models/package', () => {
                 '5dfbabeedf318bf33c0927c43d7630f51b82f351740301354fa3d7fc51f0132e',
             ));
 
-        it('should compute the version correctly for large binary', () =>
+        it('should compute the id correctly for large binary', () =>
             genericTest(
                 Buffer.from([
                     0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
@@ -417,11 +417,11 @@ describe('models/package', () => {
     //             // Print the binary
     //             dbg(`Binary: ${binary.toString('hex')}`);
 
-    //             // Get the version of the package
-    //             const version = PackageTest.computeVersion(binary);
+    //             // Get the id of the package
+    //             const id = PackageTest.computeId(binary);
 
-    //             // Print the version
-    //             dbg(`Version: ${version}`);
+    //             // Print the id
+    //             dbg(`Id: ${id}`);
 
     //             // Create the package file
     //             fs.writeFileSync(pkgPath, binary);
@@ -433,7 +433,7 @@ describe('models/package', () => {
 
     //             expect(pkg.getName()).toBe(pkgName);
     //             expect(pkg.getDirectDeps()).toEqual(deps);
-    //             expect(pkg.getVersion()).toBe(version);
+    //             expect(pkg.getId()).toBe(id);
     //             expect(pkg.getPayload()).toEqual(payload);
     //         };
 
@@ -775,7 +775,7 @@ describe('models/package', () => {
                 expect(pkg.filePath).toBe(packageFilePath);
                 expect(pkg.name).toBe(name);
                 expect(pkg.directDeps).toEqual(deps);
-                expect(pkg.version).toBeDefined();
+                expect(pkg.id).toBeDefined();
                 expect(pkg.archiveOffset).toBeDefined();
 
                 // Extract the archive
@@ -1064,11 +1064,11 @@ describe('models/package', () => {
     //     // Print the binary
     //     dbg(`Binary: ${binary.toString('hex')}`);
 
-    //     // Get the version of the package
-    //     const version = Package.computeVersion(binary);
+    //     // Get the id of the package
+    //     const id = Package.computeId(binary);
 
-    //     // Print the version
-    //     dbg(`Version: ${version}`);
+    //     // Print the id
+    //     dbg(`Id: ${id}`);
 
     //     // Create the package file
     //     fs.writeFileSync(pkgPath, binary);
@@ -1080,7 +1080,7 @@ describe('models/package', () => {
 
     //     expect(pkg.getName()).toBe(pkgName);
     //     expect(pkg.getDeps()).toEqual(deps);
-    //     expect(pkg.getVersion()).toBe(version);
+    //     expect(pkg.getId()).toBe(id);
     //     expect(pkg.getPayload()).toEqual(payload);
     // });
 });

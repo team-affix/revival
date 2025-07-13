@@ -15,8 +15,8 @@ import PutPackageError from '../errors/put-package';
 const PACKAGES_DIR_NAME = 'packages';
 
 // Get the path to a package
-function getPackagePath(cwd: string, name: string, version: string): string {
-    return path.join(cwd, PACKAGES_DIR_NAME, name, `${version}.apm`);
+function getPackagePath(cwd: string, name: string, id: string): string {
+    return path.join(cwd, PACKAGES_DIR_NAME, name, `${id}.apm`);
 }
 
 // Registry model
@@ -66,15 +66,15 @@ class Registry {
     }
 
     // Get a package from the registry
-    async get(name: string, version: string): Promise<Package> {
+    async get(name: string, id: string): Promise<Package> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:getPackage');
 
         // Indicate that we are getting a package
-        dbg(`Getting package ${name}@${version}`);
+        dbg(`Getting package ${name}@${id}`);
 
         // Get the path to the package
-        const filePath = getPackagePath(this.cwd, name, version);
+        const filePath = getPackagePath(this.cwd, name, id);
 
         // Indicate the file path
         dbg(`File path: ${filePath}`);
@@ -86,22 +86,22 @@ class Registry {
     // Gets a package tree, which includes the package itself and all of its dependencies
     // It also includes dependencies which are overridden.
     // The order of the result is a valid topological sort of the package tree.
-    async getPackageTree(name: string, version: string): Promise<PackageTree> {
+    async getPackageTree(name: string, id: string): Promise<PackageTree> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:getPackageTree');
 
         // Indicate that we are getting the package tree
-        dbg(`Getting package tree for ${name}@${version}`);
+        dbg(`Getting package tree for ${name}@${id}`);
 
         // Get the package
-        const pkg = await this.get(name, version);
+        const pkg = await this.get(name, id);
 
         // Get the dependencies of the package
         const deps = pkg.directDeps;
 
         // Get the package tree of the dependencies
         const subTrees: PackageTree[] = await Promise.all(
-            Array.from(deps.entries()).map(([name, version]) => this.getPackageTree(name, version)),
+            Array.from(deps.entries()).map(([name, id]) => this.getPackageTree(name, id)),
         );
 
         // Return the package tree
@@ -130,13 +130,13 @@ class Registry {
         }
 
         // Error if any of the direct dependencies are already in visited
-        for (const [name, version] of directDeps.entries()) {
-            dbg(`Checking if ${name}@${version} is in visited`);
+        for (const [name, id] of directDeps.entries()) {
+            dbg(`Checking if ${name}@${id} is in visited`);
             dbg(`Visited: ${JSON.stringify(Array.from(visited))}`);
             // If the package exists in visited, throw an error
             // as this is an unresolved peer dependency.
             if (visited.has(name))
-                throw new GetProjectTreeError(directDeps, `Unresolved peer dependency: ${name}@${version}`);
+                throw new GetProjectTreeError(directDeps, `Unresolved peer dependency: ${name}@${id}`);
         }
 
         // Create a new set of overrides that includes the direct dependencies
@@ -146,9 +146,9 @@ class Registry {
         const result: PackageTree[] = [];
 
         // Visit each of the direct dependencies and recur on their dependencies
-        for (const [name, version] of directDeps.entries()) {
+        for (const [name, id] of directDeps.entries()) {
             // Get the package
-            const pkg = await this.get(name, version);
+            const pkg = await this.get(name, id);
 
             // Get the dependencies of the package
             const deps = pkg.directDeps;
@@ -163,7 +163,7 @@ class Registry {
             result.push(tree);
 
             // Indicate that we have added pkg and its project tree to the result
-            dbg(`Added ${name}@${version} and its project tree to the result`);
+            dbg(`Added ${name}@${id} and its project tree to the result`);
 
             // Add the package to the visited set
             visited.add(name);
@@ -180,23 +180,23 @@ class Registry {
     }
 
     // Vet a package
-    async vet(pkg: Package, expectedVersion?: string): Promise<void> {
+    async vet(pkg: Package, expectedId?: string): Promise<void> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:vet');
 
         // Indicate that we are vetting a package
-        dbg(`Vetting package ${pkg.name}@${pkg.version}`);
+        dbg(`Vetting package ${pkg.name}@${pkg.id}`);
 
-        // Check if the package version matches the expected version
-        if (expectedVersion && pkg.version !== expectedVersion)
+        // Check if the package id matches the expected id
+        if (expectedId && pkg.id !== expectedId)
             throw new VetPackageError(
                 pkg.name,
-                pkg.version,
-                `Package version does not match expected version. Expected: ${expectedVersion}`,
+                pkg.id,
+                `Package id does not match expected id. Expected: ${expectedId}`,
             );
 
         // Create a project folder
-        const projectDirPath = fs.mkdtempSync(path.join(os.tmpdir(), `apm-vet-${pkg.name}-${pkg.version}`));
+        const projectDirPath = fs.mkdtempSync(path.join(os.tmpdir(), `apm-vet-${pkg.name}-${pkg.id}`));
 
         // Create a project from the package in a temporary directory
         const project = await Project.init(projectDirPath, { pkg });
@@ -205,7 +205,7 @@ class Registry {
         if (project.rootSource.miscFiles.length > 0)
             throw new VetPackageError(
                 pkg.name,
-                pkg.version,
+                pkg.id,
                 `Package contains illegal files:\n${project.rootSource.miscFiles.join('\n')}`,
             );
 
@@ -223,21 +223,21 @@ class Registry {
     }
 
     // Add a package to the registry
-    async put(pkg: Package, expectedVersion?: string): Promise<void> {
+    async put(pkg: Package, expectedId?: string): Promise<void> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:put');
 
         // Indicate that we are putting a package
-        dbg(`Putting package ${pkg.name}@${pkg.version}`);
+        dbg(`Putting package ${pkg.name}@${pkg.id}`);
 
         // Get the path to the package
-        const dest = getPackagePath(this.cwd, pkg.name, pkg.version);
+        const dest = getPackagePath(this.cwd, pkg.name, pkg.id);
 
         // Error if the package is already registered
-        if (fs.existsSync(dest)) throw new PutPackageError(pkg.name, pkg.version, 'Package already registered');
+        if (fs.existsSync(dest)) throw new PutPackageError(pkg.name, pkg.id, 'Package already registered');
 
         // Vet the package
-        await this.vet(pkg, expectedVersion);
+        await this.vet(pkg, expectedId);
 
         // Create the directory for the package
         fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -247,7 +247,7 @@ class Registry {
     }
 
     // List all packages in the registry
-    async ls(pkgs: Set<{ name: string; version: string }>): Promise<Set<{ name: string; version: string }>> {
+    async ls(pkgs: Set<{ name: string; id: string }>): Promise<Set<{ name: string; id: string }>> {
         // Get the debugger
         const dbg = debug('apm:common:models:Registry:ls');
 
@@ -255,18 +255,18 @@ class Registry {
         dbg(`Listing packages`);
 
         // Create a result set
-        const result = new Set<{ name: string; version: string }>();
+        const result = new Set<{ name: string; id: string }>();
 
         // For each package, add it to the result
         for (const pkg of pkgs) {
             // Get the path to the package
-            const dest = getPackagePath(this.cwd, pkg.name, pkg.version);
+            const dest = getPackagePath(this.cwd, pkg.name, pkg.id);
 
             // If the package does not exist, skip it
             if (!fs.existsSync(dest)) continue;
 
             // Add the package to the result
-            result.add({ name: pkg.name, version: pkg.version });
+            result.add({ name: pkg.name, id: pkg.id });
         }
 
         // Return the result
