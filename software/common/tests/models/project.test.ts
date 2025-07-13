@@ -12,10 +12,54 @@ import SourceLoadError from '../../src/errors/source-load';
 import ProjectInitError from '../../src/errors/project-init';
 import { Package } from '../../src/models/package';
 import { Source } from '../../src/models/source';
+import { Registry } from '../../src/models/registry';
 import { Readable } from 'stream';
 import CheckProjectError from '../../src/errors/check-project';
+import PackageLoadError from '../../src/errors/package-load';
 
 describe('models/Project', () => {
+    const writeFileInside = (baseDir: string, relPath: string, content: string) => {
+        // Write the file inside the temporary directory
+        const filePath = path.join(baseDir, relPath);
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, content);
+    };
+
+    const writeFilesInside = (baseDir: string, entries: Map<string, string>) => {
+        for (const [relPath, content] of entries) writeFileInside(baseDir, relPath, content);
+    };
+
+    // Helper function to create a package with no source files
+    const createPackage = async (
+        filePath: string,
+        name: string,
+        deps: Set<string>,
+        sourceFiles: Map<string, string> = new Map<string, string>(),
+    ) => {
+        // Create the source dir
+        const sourceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'apm-tmp-source-'));
+
+        // Write the source files
+        writeFilesInside(sourceDir, sourceFiles);
+
+        // Create the source object
+        const source: Source = await Source.load(sourceDir);
+
+        // Create the archive (this will only tar legal files)
+        const archive: Readable = source.getArchive();
+
+        // Create the package
+        return await Package.create(filePath, name, deps, archive);
+    };
+
+    const testCaseDir = path.join(os.tmpdir(), 'project-test-case-tmpdir');
+
+    const depend = (deps: Package[]) => {
+        const result = new Set<string>();
+        for (const dep of deps) result.add(dep.id);
+        return result;
+    };
+
     describe('parseDirectDeps()', () => {
         describe('success cases', () => {
             it('should parse as an empty set if the string is empty', () => {
@@ -1126,6 +1170,35 @@ describe('models/Project', () => {
                 // Assert that the files in the project match the files in the package
                 assertFilesMatchExactly(rootSourcePath, pkgFiles);
             });
+
+            it('no archive supplied, deps supplied', async () => {
+                // Make the project path
+                const projectPath = path.join(extractDir, projectName);
+                // Create the project folder
+                fs.mkdirSync(projectPath, { recursive: true });
+                // Create the project
+                const project = await Project.init(projectPath, {
+                    projectName,
+                    deps: new Set<string>(['1.0.0', '2.0.0']),
+                });
+                // Expect the project to be an instance of Project
+                expect(project).toBeInstanceOf(Project);
+                // Expect the project name to be APMTmpProject
+                expect(project.name).toBe(projectName);
+                // Expect the project path to be the temporary directory
+                expect(project.cwd).toBe(projectPath);
+                // Expect the project to have a root source
+                const rootSourcePath = path.join(projectPath, projectName);
+                expect(fs.existsSync(rootSourcePath)).toBe(true);
+                // Expect the project to have a deps.txt file
+                const depsTxtPath = path.join(projectPath, 'deps.txt');
+                expect(fs.existsSync(depsTxtPath)).toBe(true);
+                // Expect the project to have a .agda-lib file
+                const agdaLibPath = path.join(projectPath, '.agda-lib');
+                expect(fs.existsSync(agdaLibPath)).toBe(true);
+                // Expect the project to have the correct deps
+                expect(project.directDeps).toEqual(new Set<string>(['1.0.0', '2.0.0']));
+            });
         });
 
         describe('failure cases', () => {
@@ -1184,6 +1257,302 @@ describe('models/Project', () => {
                 await expect(Project.init(projectPath, { projectName })).rejects.toThrow(ProjectInitError);
             });
         });
+    });
+
+    describe('Project.install()', () => {
+        const registryPath = path.join(testCaseDir, 'registry');
+        const localPackagesPath = path.join(testCaseDir, 'local-packages');
+        const projectPath = path.join(testCaseDir, 'project');
+
+        beforeEach(async () => {
+            // If the registry dir exists, remove it
+            if (fs.existsSync(registryPath)) fs.rmSync(registryPath, { recursive: true, force: true });
+            // If the local packages dir exists, remove it
+            if (fs.existsSync(localPackagesPath)) fs.rmSync(localPackagesPath, { recursive: true, force: true });
+            // If the project dir exists, remove it
+            if (fs.existsSync(projectPath)) fs.rmSync(projectPath, { recursive: true, force: true });
+            // create the registry
+            await Registry.create(registryPath);
+            // create the local packages dir
+            fs.mkdirSync(localPackagesPath, { recursive: true });
+        });
+
+        describe('success cases', () => {
+            const genericTest = async (deps: Set<string>, expectedSourceNames: string[]) => {
+                // create the project dir
+                fs.mkdirSync(projectPath, { recursive: true });
+                // create the project
+                let project = await Project.init(projectPath, { projectName: 'TestProject', deps });
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the project tree
+                const projectTree = await registry.getProjectTree(project.directDeps);
+                // get the install dependencies
+                const installDeps = projectTree.flatMap((tree) => tree.getTopologicalSort());
+                // install the project
+                const returnedSources = await project.install(installDeps);
+                // expect the returned sources to be the same as the install dependencies
+                const returnedActualSourceNames = returnedSources.map((source) => path.basename(source.cwd));
+                expect(returnedActualSourceNames.sort()).toEqual(expectedSourceNames.sort());
+                // reload the project
+                project = await Project.load(projectPath);
+                // expect the project to have sources corresponding to the expected source names
+                const actualSourceNames = project.dependencySources.map((source) => path.basename(source.cwd));
+                expect(actualSourceNames.sort()).toEqual(expectedSourceNames.sort());
+            };
+
+            it('no dependencies', async () => {
+                await genericTest(new Set<string>(), []);
+            });
+
+            it('one dependency', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                // execute the generic test
+                await genericTest(new Set<string>([pkg0.id]), [pkg0.name]);
+            });
+
+            it('two dependencies', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map(),
+                );
+                const pkg1 = await createPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    depend([]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                await registry.put(pkg1);
+                // execute the generic test
+                await genericTest(new Set<string>([pkg0.id, pkg1.id]), [pkg0.name, pkg1.name]);
+            });
+
+            it('one direct dependency, one transitive dependency', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map(),
+                );
+                const pkg1 = await createPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    depend([pkg0]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                await registry.put(pkg1);
+                // execute the generic test
+                await genericTest(new Set<string>([pkg1.id]), [pkg0.name, pkg1.name]);
+            });
+
+            it('two direct dependencies, one transitive dependency', async () => {
+                const pkg0 = await createPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map(),
+                );
+                const pkg1 = await createPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    depend([pkg0]),
+                    new Map(),
+                );
+                const pkg2 = await createPackage(
+                    path.join(localPackagesPath, 'pkg2.apm'),
+                    'pkg2',
+                    depend([]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0);
+                await registry.put(pkg1);
+                await registry.put(pkg2);
+                // execute the generic test
+                await genericTest(new Set<string>([pkg1.id, pkg2.id]), [pkg0.name, pkg1.name, pkg2.name]);
+            });
+
+            it('two direct dependencies, one transitive dependency that does NOT get overridden', async () => {
+                // create a dependency of the original package
+                const pkg0OriginalDep = await createPackage(
+                    path.join(localPackagesPath, 'pkg0OriginalDep.apm'),
+                    'pkg0OriginalDep',
+                    depend([]),
+                    new Map(),
+                );
+                // create the original package
+                const pkg0Original = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Original.apm'),
+                    'pkg0',
+                    depend([pkg0OriginalDep]),
+                    new Map(),
+                );
+                // extra package to differentiate between the original and override
+                const pkg0OverrideDep = await createPackage(
+                    path.join(localPackagesPath, 'pkg0OverrideDep.apm'),
+                    'pkg0OverrideDep',
+                    depend([]),
+                    new Map(),
+                );
+                const pkg0Override = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Override.apm'),
+                    'pkg0',
+                    depend([pkg0OverrideDep]),
+                    new Map(),
+                );
+                // create a dependent of the original package
+                const pkg1 = await createPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    depend([pkg0Original]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0OriginalDep);
+                await registry.put(pkg0Original);
+                await registry.put(pkg0OverrideDep);
+                await registry.put(pkg0Override);
+                await registry.put(pkg1);
+                // execute the generic test
+                await genericTest(new Set<string>([pkg1.id]), [pkg0OriginalDep.name, pkg0Original.name, pkg1.name]);
+            });
+
+            it('two direct dependencies, one transitive dependency that gets overridden', async () => {
+                // create a dependency of the original package
+                const pkg0OriginalDep = await createPackage(
+                    path.join(localPackagesPath, 'pkg0OriginalDep.apm'),
+                    'pkg0OriginalDep',
+                    depend([]),
+                    new Map(),
+                );
+                // create the original package
+                const pkg0Original = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Original.apm'),
+                    'pkg0',
+                    depend([pkg0OriginalDep]),
+                    new Map(),
+                );
+                // extra package to differentiate between the original and override
+                const pkg0OverrideDep = await createPackage(
+                    path.join(localPackagesPath, 'pkg0OverrideDep.apm'),
+                    'pkg0OverrideDep',
+                    depend([]),
+                    new Map(),
+                );
+                const pkg0Override = await createPackage(
+                    path.join(localPackagesPath, 'pkg0Override.apm'),
+                    'pkg0',
+                    depend([pkg0OverrideDep]),
+                    new Map(),
+                );
+                // create a dependent of the original package
+                const pkg1 = await createPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    depend([pkg0Original]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkg0OriginalDep);
+                await registry.put(pkg0Original);
+                await registry.put(pkg0OverrideDep);
+                await registry.put(pkg0Override);
+                await registry.put(pkg1);
+                // execute the generic test
+                await genericTest(new Set<string>([pkg1.id, pkg0Override.id]), [
+                    pkg0OverrideDep.name,
+                    pkg0Override.name,
+                    pkg1.name,
+                ]);
+            });
+
+            it('ten direct dependencies, each depending on the same common dependency', async () => {
+                // create the common dependency
+                const pkgCommonDep = await createPackage(
+                    path.join(localPackagesPath, 'pkgCommonDep.apm'),
+                    'pkgCommonDep',
+                    depend([]),
+                    new Map(),
+                );
+                // create the remaining packages
+                const remainingPkgs = await Promise.all(
+                    Array.from({ length: 10 }, (_, i) =>
+                        createPackage(
+                            path.join(localPackagesPath, `pkg${i}.apm`),
+                            `pkg${i}`,
+                            depend([pkgCommonDep]),
+                            new Map(),
+                        ),
+                    ),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the package
+                await registry.put(pkgCommonDep);
+                await Promise.all(remainingPkgs.map((pkg) => registry.put(pkg)));
+                // execute the generic test
+                await genericTest(new Set<string>([...remainingPkgs.map((pkg) => pkg.id), pkgCommonDep.id]), [
+                    pkgCommonDep.name,
+                    ...remainingPkgs.map((pkg) => pkg.name),
+                ]);
+            });
+        });
+
+        describe('failure cases', () => {
+            const genericTest = async (deps: Set<string>, expectedSourceNames: string[]) => {
+                // create the project dir
+                fs.mkdirSync(projectPath, { recursive: true });
+                // create the project
+                let project = await Project.init(projectPath, { projectName: 'TestProject', deps });
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the project tree
+                const projectTree = await registry.getProjectTree(project.directDeps);
+                // get the install dependencies
+                const installDeps = projectTree.flatMap((tree) => tree.getTopologicalSort());
+                // install the project
+                await project.install(installDeps);
+            };
+
+            it('1 unregistered dependency', async () => {
+                // execute the generic test
+                await expect(genericTest(new Set<string>(['DNE-ID']), ['DNE-NAME'])).rejects.toThrow(PackageLoadError);
+            });
+        });
+    });
+
+    describe('Project.clean()', () => {
+        // it('should clean the project', async () => {
+        //     // Create the project
+        //     const project = await Project.init(projectDir, { projectName });
+        //     // Clean the project
+        //     await project.clean();
+        // });
     });
 
     describe('Project.check()', () => {

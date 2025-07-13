@@ -224,7 +224,10 @@ export class Project {
     }
 
     // Initializes a project in the given directory (expects the directory to exist)
-    static async init(cwd: string, extra: { projectName: string } | { pkg: Package }): Promise<Project> {
+    static async init(
+        cwd: string,
+        extra: { projectName: string; deps?: Set<string> } | { pkg: Package },
+    ): Promise<Project> {
         // Get the debugger
         const dbg = debug('apm:common:models:project:create');
 
@@ -237,7 +240,7 @@ export class Project {
         if ('projectName' in extra) {
             // Set up default initialization values
             projectName = extra.projectName;
-            deps = new Set<string>();
+            deps = extra.deps || new Set<string>();
             archive = undefined;
         } else {
             // Set up initialization values from the package
@@ -315,6 +318,19 @@ export class Project {
 
         // Return the result
         return result;
+    }
+
+    // Clean the project
+    async clean(): Promise<void> {
+        // Get the debugger
+        const dbg = debug('apm:common:models:project:clean');
+
+        // Indicate that we are cleaning the project
+        dbg(`Cleaning project at ${this.cwd}`);
+
+        // Remove the deps folder
+        const depsFolderPath = path.join(this.cwd, DEPS_FOLDER_NAME);
+        if (fs.existsSync(depsFolderPath)) fs.rmSync(depsFolderPath, { recursive: true });
     }
 
     // Check if the project is valid
