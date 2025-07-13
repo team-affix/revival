@@ -101,6 +101,26 @@ program
     });
 
 program
+    .command('clean')
+    .description('Cleans the current project')
+    .action(async () => {
+        try {
+            // Get the current working directory
+            const cwd = process.cwd();
+            // Get the project
+            const project = await common.Project.load(cwd);
+            // Clean the project
+            await project.clean();
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                console.error(error.message);
+            } else {
+                console.error(error);
+            }
+        }
+    });
+
+program
     .command('check')
     .description('Typechecks the current project')
     .action(async () => {
