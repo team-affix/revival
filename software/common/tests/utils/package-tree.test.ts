@@ -5,8 +5,7 @@ import fs from 'fs';
 import { Readable } from 'stream';
 import { Package } from '../../src/models/package';
 import { Source } from '../../src/models/source';
-import { PackageTree, __test__ as PackageTreeTest } from '../../src/utils/package-tree';
-import { boxed } from '../../src/utils/box-text';
+import { PackageTree } from '../../src/utils/package-tree';
 
 describe('utils/PackageTree', () => {
     // Helper function to create a package with no source files
