@@ -990,6 +990,13 @@ describe('models/package', () => {
         });
     });
 
+    describe('Package.getDefault()', () => {
+        it('should return the default package', async () => {
+            const pkg = await Package.getDefault();
+            expect(pkg).toBeInstanceOf(Package);
+        });
+    });
+
     // describe('Package.fromDraft()', () => {
     //     const genericTest = (name: string, deps: Map<string, string>, payload: Buffer) => {
     //         const draft = new Draft(name, deps, payload);

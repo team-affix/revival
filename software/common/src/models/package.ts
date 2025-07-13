@@ -6,6 +6,7 @@ import { pipeline } from 'stream/promises';
 import FailedToDeserializeDepsError from '../errors/failed-to-deserialize-deps';
 import PackageLoadError from '../errors/package-load';
 import PackageCreateError from '../errors/package-create';
+import path from 'path';
 
 // Serialize the dependencies to be written to the binary
 function serializeDirectDeps(deps: Set<string>): string {
@@ -216,6 +217,14 @@ export class Package {
 
         // Return the package
         return Package.load(filePath);
+    }
+
+    // Get the default package
+    static async getDefault(): Promise<Package> {
+        // Get the default package path
+        const pkgPath = path.join(__dirname, '..', '..', 'packages', 'default.apm');
+        // Get the default package
+        return await Package.load(pkgPath);
     }
 
     // Get the archive offset of the package

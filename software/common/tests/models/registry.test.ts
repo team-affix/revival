@@ -236,6 +236,20 @@ describe('models/registry', () => {
                 // load the registry
                 await expect(Registry.load(registryPath)).resolves.toBeDefined();
             });
+
+            it('should contain the default package', async () => {
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // get the default package
+                const defaultPkg = await Package.getDefault();
+                // expect the default package to be in the registry
+                const resultPkg = await registry.get(defaultPkg.id);
+                // expect the package to be defined
+                expect(resultPkg).toBeDefined();
+                // expect the package to be the correct package
+                expect(resultPkg?.name).toEqual(defaultPkg.name);
+                expect(resultPkg?.id).toEqual(defaultPkg.id);
+            });
         });
 
         describe('failure cases', () => {
