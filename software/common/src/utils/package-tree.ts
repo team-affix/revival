@@ -19,7 +19,7 @@ export class PackageTree {
     }
 
     // Convert the package tree to a string representation
-    toString(startPrefix: string = '', midPrefix: string = ''): string {
+    toString(startPrefix = '', midPrefix = ''): string {
         // Create a result string
         let result = '';
 
