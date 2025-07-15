@@ -1237,6 +1237,158 @@ describe('models/registry', () => {
                 // vet the package
                 await registry.vet(pkg0);
             });
+
+            it('registered dependency, no code used from dependency', async () => {
+                // create the dependency, NOTE IT IS REGISTERED
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map(),
+                );
+                const pkg1 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    depend([pkg0]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the dependency into the registry manually
+                fs.copyFileSync(pkg0.filePath, RegistryTest.getPackagePath(registryPath, pkg0.id));
+                // vet the package
+                await registry.vet(pkg1);
+            });
+
+            it('two registered dependencies, no code used from dependencies', async () => {
+                // create the dependency, NOTE IT IS REGISTERED
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map(),
+                );
+                const pkg1 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    depend([]),
+                    new Map(),
+                );
+                const pkg2 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg2.apm'),
+                    'pkg2',
+                    depend([pkg0, pkg1]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the dependencies into the registry manually
+                fs.copyFileSync(pkg0.filePath, RegistryTest.getPackagePath(registryPath, pkg0.id));
+                fs.copyFileSync(pkg1.filePath, RegistryTest.getPackagePath(registryPath, pkg1.id));
+                // vet the packages
+                await registry.vet(pkg2);
+            });
+
+            it('registered dependency, code used from dependency', async () => {
+                // create the dependency, NOTE IT IS REGISTERED
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map([
+                        [
+                            'src/Main.agda',
+                            `
+                        module pkg0.src.Main where
+                        data X : Set where
+                            x : X
+                        `,
+                        ],
+                    ]),
+                );
+                const pkg1 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    depend([pkg0]),
+                    new Map([
+                        [
+                            'src/Main.agda',
+                            `
+                        module pkg1.src.Main where
+                        open import pkg0.src.Main
+                        z : X
+                        z = x
+                        `,
+                        ],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the dependency into the registry manually
+                fs.copyFileSync(pkg0.filePath, RegistryTest.getPackagePath(registryPath, pkg0.id));
+                // vet the package
+                await registry.vet(pkg1);
+            });
+
+            it('two registered dependencies, code used from dependencies', async () => {
+                // create the dependency, NOTE IT IS REGISTERED
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map([
+                        [
+                            'src/Main.agda',
+                            `
+                        module pkg0.src.Main where
+                        data X : Set where
+                            x : X
+                        `,
+                        ],
+                    ]),
+                );
+                const pkg1 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    depend([]),
+                    new Map([
+                        [
+                            'src/Main.agda',
+                            `
+                        module pkg1.src.Main where
+                        data Y : Set where
+                            y : Y
+                        `,
+                        ],
+                    ]),
+                );
+                const pkg2 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg2.apm'),
+                    'pkg2',
+                    depend([pkg0, pkg1]),
+                    new Map([
+                        [
+                            'src/Main.agda',
+                            `
+                        module pkg2.src.Main where
+                        open import pkg0.src.Main
+                        open import pkg1.src.Main
+                        z1 : X
+                        z1 = x
+                        z2 : Y
+                        z2 = y
+                        `,
+                        ],
+                    ]),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // put the dependencies into the registry manually
+                fs.copyFileSync(pkg0.filePath, RegistryTest.getPackagePath(registryPath, pkg0.id));
+                fs.copyFileSync(pkg1.filePath, RegistryTest.getPackagePath(registryPath, pkg1.id));
+                // vet the packages
+                await registry.vet(pkg2);
+            });
         });
 
         describe('failure cases', () => {
@@ -1364,6 +1516,26 @@ describe('models/registry', () => {
                 const registry = await Registry.load(registryPath);
                 // vet the package
                 await expect(registry.vet(pkg0)).rejects.toThrow(CheckProjectError);
+            });
+
+            it('unregistered dependency', async () => {
+                // create the dependency, NOTE IT IS NOT REGISTERED
+                const pkg0 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg0.apm'),
+                    'pkg0',
+                    depend([]),
+                    new Map(),
+                );
+                const pkg1 = await createUnfilteredPackage(
+                    path.join(localPackagesPath, 'pkg1.apm'),
+                    'pkg1',
+                    depend([pkg0]),
+                    new Map(),
+                );
+                // load the registry
+                const registry = await Registry.load(registryPath);
+                // vet the package
+                await expect(registry.vet(pkg1)).rejects.toThrow(PackageLoadError);
             });
         });
     });
