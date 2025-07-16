@@ -6,7 +6,6 @@ import { pipeline } from 'stream/promises';
 import FailedToDeserializeDepsError from '../errors/failed-to-deserialize-deps';
 import PackageLoadError from '../errors/package-load';
 import PackageCreateError from '../errors/package-create';
-import path from 'path';
 
 // Serialize the dependencies to be written to the binary
 function serializeDirectDeps(deps: Set<string>): string {
