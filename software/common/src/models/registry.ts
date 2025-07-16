@@ -49,12 +49,6 @@ class Registry {
         // Create the packages directory
         fs.mkdirSync(path.join(cwd, PACKAGES_DIR_NAME), { recursive: true });
 
-        // Create the default package
-        const defaultPkg = await Package.getDefault();
-
-        // Copy the default package to the registry
-        fs.copyFileSync(defaultPkg.filePath, getPackagePath(cwd, defaultPkg.id));
-
         // Return the registry
         return await Registry.load(cwd);
     }

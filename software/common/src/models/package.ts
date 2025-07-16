@@ -219,14 +219,6 @@ export class Package {
         return Package.load(filePath);
     }
 
-    // Get the default package
-    static async getDefault(): Promise<Package> {
-        // Get the default package path
-        const pkgPath = path.join(__dirname, '..', '..', 'packages', 'default.apm');
-        // Get the default package
-        return await Package.load(pkgPath);
-    }
-
     // Get the archive offset of the package
     getArchive(): Readable {
         return fs.createReadStream(this.filePath, { start: this.archiveOffset });
